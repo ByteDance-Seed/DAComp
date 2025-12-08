@@ -1,0 +1,131 @@
+# [总分 | 36分] “快交付但低稳定”项目健康度评估评分标准
+---
+## 需求1：数据基础梳理与团队稳定性指标重定义（最高 9分）
+### 标准1.1：核心数据表与字段口径确认（最高 3分）
+#### 路径1.1.A（数据库三表映射 + 主键说明）
+- 标准1.1.A.1 [1分｜完备性] 明确三张表及用途：`jira__project_enhanced`（200 行快照，覆盖 70 个 project_name，提供 close/open 口径）、`jira__issue_intelligence_analytics`（13,799,108 行 issue 级质量因子）、`jira__team_performance_dashboard`（4,374 行成员行为，仅 5 个项目）。说明 project_name 是三表唯一公共字段。
+- 标准1.1.A.2 [1分｜精确性] 指出正确连接策略与验证方式：`SELECT COUNT(DISTINCT project_name) ...` 在项目表=70、issue 表=70、团队表=5；`project_id` 在团队表仅 5 个，与项目表 200 个不匹配；`COUNT(DISTINCT health_status)=1` 证明该列为常数；通过 `SELECT COUNT(*) FROM (SELECT DISTINCT project_name FROM issue JOIN project USING(project_name))` 得交集=70。
+- 标准1.1.A.3 [1分｜精确性] 给出比对示例 SQL（或伪代码）：`SELECT DISTINCT project_name FROM jira__project_enhanced`、同样从 issue/team 表取集合，再与 `INTERSECT` 校验；说明后续宽表以 project_name 聚合。
+
+#### 路径1.1.B（离线导出/中间表构建）
+- 标准1.1.B.1 [1分｜完备性] 说明导出三表 → 生成以 project_name 聚合的宽表 → 在 Notebook/Python 中联结分析的流程。
+- 标准1.1.B.2 [1分｜精确性] 明确验证步骤：读取 CSV；`project` 去重后 70 项、`issue` 行数 13,799,108、`team` 项目 5；`merge(on='project_name', how='left')` 后保持 70 行；缺失字段保留为 NA，不做额外清洗。
+- 标准1.1.B.3 [1分｜精确性] 提供核验代码：`len(df['project_name'].unique())==70`、`df.isna().sum()` 输出；汇总 `open+closed` 与 `total_issues` 校对后续建模输入。
+（两条路径择一得分）
+
+### 标准1.2：团队稳定性指标重定义（最高 4分）
+#### 路径1.2.A（稳定贡献者占比法——推荐主口径）
+- 标准1.2.A.1 [1分｜完备性] 定义稳定贡献者：`inactive_recently=0 ∧ at_churn_risk=0 ∧ consistency_percentage≥60 ∧ (days_since_first_issue≥90 ∨ sprint_count≥3)`；稳定度=稳定贡献者数 / `COUNT(DISTINCT user_id)` ×100%。
+- 标准1.2.A.2 [2分｜精确性] 计算结果需落在锚点（容差 ±0.5pp）：Data Analytics Delta 33.333%、Mobile App Delta 60.000%、Mobile App Gamma 50.000%、API Gateway V3 80.000%、User Management V3 82.375%。示例 SQL：`SUM(CASE WHEN ... THEN 1 END) / COUNT(DISTINCT user_id)`。
+- 标准1.2.A.3 [1分｜结论性] 说明该指标区分度明显（33%~82%），可用于后续“快/慢 × 稳/不稳”象限；同时指出原始 `team_stability_percentage=100%` 失真。
+
+#### 路径1.2.B（Issue 行为代理：人员流动/参与风险）
+- 标准1.2.B.1 [1分｜完备性] 定义代理指标：`churn_ratio = COUNT(DISTINCT assignee_name)/COUNT(*)`、`avg_engagement_risk_score`；低稳定判定 = 指标 ≥ 全样本 Q75，其中 `Q75(churn_ratio)=5.77×10⁻⁴`、`Q75(engagement_risk)=2.885`。
+- 标准1.2.B.2 [2分｜精确性] 描述计算思路：`GROUP BY project_name` 统计分子分母；利用 `NTILE(4)` 或窗口 `PERCENT_RANK()` 估算分位；产出标签 `is_low_stability = churn_ratio≥5.8e-4 ∨ avg_engagement_risk_score≥2.885`。
+- 标准1.2.B.3 [1分｜结论性] 解释高 churn/高 engagement risk 暗示知识断层与协作风险，可与路径1.2.A 的稳定贡献者占比交叉验证。
+
+#### 路径1.2.C（活跃月份稳定度）
+- 标准1.2.C.1 [1分｜完备性] 定义稳定成员：`strftime('%Y-%m', resolved_at)` 聚合后活跃月份 ≥3 的 assignee；稳定度 = 稳定成员数 / 某项目全部 assignee ×100%，忽略 `resolved_at` 为 NULL 的记录。
+- 标准1.2.C.2 [2分｜精确性] 计算步骤：构造 `month_tag` → 统计 `COUNT(DISTINCT month_tag)` → 过滤≥3 → `GROUP BY project_name` 求占比。锚点（±0.2pp）：Data Analytics Delta 3.81%、Mobile App Delta 0.00%、Mobile App Gamma 0.00%、API Gateway V3 3.96%、User Management V3 1.30%。
+- 标准1.2.C.3 [1分｜结论性] 说明活跃月份指标着重参与连续性，可补充一致性/流失风险视角，识别短期冲刺型贡献者。
+
+### 标准1.3：快速项目识别与象限构建（最高 2分）
+#### 路径1.3.A（固定阈值 + 四象限）
+- 标准1.3.A.1 [1分｜完备性] 定义 `is_fast = avg_close_time_days<15`；75 表内共 70 项目，其中仅有 2 个快项目（Data Analytics Delta 12.6 天、Mobile App Delta 13.67 天）。
+- 标准1.3.A.2 [1分｜精确性] 输出四象限示例，并给出代表值：fast∧low（Data Analytics Delta：稳定度33.3%、bug_rate0.186、open_ratio0.092）、fast∧high（Mobile App Delta：稳定度60.0%、bug_rate0.155、open_ratio0.125）、slow∧high（API Gateway V3、User Management V3；bug_rate0.171/0.207，稳定度≥80%）、slow∧low（Mobile App Gamma：稳定度50.0%、open_ratio0.187）。附 `CASE WHEN` 标记 SQL。
+
+#### 路径1.3.B（分位阈值法）
+- 标准1.3.B.1 [1分｜完备性] 使用 `Q10(avg_close_time_days)=36.5` 作为速度阈值，并说明低样本快组仍只包含上述两项目。
+- 标准1.3.B.2 [1分｜精确性] 计算 `speed_quantile = avg_close_time_days≤36.5` 标记快组，列出项目名称并指出样本仅 2 个；给出 `NTILE(10)` 伪代码与验证手段。
+
+---
+## 需求2：质量与可持续性指标体系构建（最高 9分）
+### 标准2.1：Issue 层质量/风险聚合（最高 4分）
+#### 路径2.1.A（四指标核心聚合）
+- 标准2.1.A.1 [1分｜完备性] 构建指标：`bug_rate`、`avg_regression_ratio`、`avg_lifecycle_quality_score`、`avg_lifecycle_deviation_ratio`，可扩展 `avg_total_risk_score`、`avg_completion_probability`。
+- 标准2.1.A.2 [2分｜精确性] 以 project_name 聚合（n_fast=2，n_slow=68），锚点（容差 ±0.005/±0.05）：bug_rate fast 0.171 vs slow 0.195；avg_regression_ratio fast 0.133 vs slow 0.065；avg_lifecycle_quality_score fast 6.455 vs slow 7.712；avg_lifecycle_deviation_ratio fast 18.371 vs slow 15.021。示例 SQL：聚合后再按 `CASE WHEN avg_close_time_days<15` 分组求均值。
+- 标准2.1.A.3 [1分｜结论性] 指出快项目返工指标高、质量分低、偏差大，是后续分析的质量基准。
+
+#### 路径2.1.B（阈值占比/预警指标）
+- 标准2.1.B.1 [1分｜完备性] 定义高风险占比：`AVG(regression_ratio>0.1)`、`AVG(lifecycle_deviation_ratio>30)`、`share_unusually_fast`、`share_stat_outlier`。
+- 标准2.1.B.2 [2分｜精确性] 锚点（±0.01）：high_regression_share fast 0.334 vs slow 0.010；high_deviation_share fast 0.276 vs slow 0.238；share_unusually_fast fast 0.242 vs slow 0.225；share_stat_outlier fast 0.066 vs slow 0.061。
+- 标准2.1.B.3 [1分｜结论性] 说明快组高占比意味着流程管控不足，更易触发异常告警。
+
+### 标准2.2：团队层与稳定性相关指标（最高 3分）
+#### 路径2.2.A（团队面板聚合）
+- 标准2.2.A.1 [1分｜完备性] 输出项目级均值：`avg_consistency`、`avg_estimate_accuracy`、`avg_sprint_completion_rate`、`churn_risk_share`、`avg_days_since_first_issue`、`avg_unique_collaborators`。
+- 标准2.2.A.2 [2分｜精确性] 锚点（±5% 或 ±0.02）：Data Analytics Delta 56.79 / 90.07 / 0.759 / 0.333 / 1825 / 6.42；Mobile App Delta 75.08 / 86.99 / 0.739 / 0.200 / 1845 / 6.80；Mobile App Gamma 57.42 / 85.62 / 0.723 / 0.125 / 1808 / 7.00；API Gateway V3 72.48 / 86.81 / 0.733 / 0.100 / 1889 / 6.80；User Management V3 82.58 / 87.56 / 0.776 / 0.176 / 1714 / 6.97。
+
+#### 路径2.2.B（稳定性指数/TSI 设计）
+- 标准2.2.B.1 [1分｜完备性] 提出公式：`TSI = 100×[0.3×active_ratio + 0.2×(1-churn_risk_share) + 0.3×high_consistency_ratio + 0.2×single_project_focus_ratio]`，各分量取自团队表字段。
+- 标准2.2.B.2 [1分｜精确性] 说明计算流程：`active_ratio = 1-AVG(inactive_recently)`；`high_consistency_ratio = AVG(consistency_percentage≥70)`；设置阈值 `TSI≥70` 判定高稳；附伪代码或 SQL。
+- 标准2.2.B.3 [1分｜结论性] 指出组合指数在 churn 风险高（如 Data Analytics Delta 33.3%）场景下更稳健，可与稳定贡献者占比互证。
+
+### 标准2.3：长期可持续性代理（最高 2分）
+#### 路径2.3.A（积压与未完成压力）
+- 标准2.3.A.1 [1分｜完备性] 定义 `open_ratio = count_open_issues / (count_open_issues + count_closed_issues)`。
+- 标准2.3.A.2 [1分｜精确性] 锚点（±0.01）：Data Analytics Delta 0.092、Mobile App Delta 0.125、Mobile App Gamma 0.187、API Gateway V3 0.166、User Management V3 0.122。说明高 open_ratio 显示持续交付压力。
+
+#### 路径2.3.B（风险分解）
+- 标准2.3.B.1 [1分｜完备性] 选择 `avg_total_risk_score`、`avg_engagement_risk_score`、`avg_process_risk_score` 作比较。
+- 标准2.3.B.2 [1分｜精确性] 锚点（±0.05/±0.02）：fast vs slow 总风险 99.625 vs 99.338；参与风险 2.664 vs 2.696；流程风险 39.986 vs 39.996。指出差异虽小但需持续监控趋势。
+- 标准2.3.B.3 [1分｜结论性] 说明风险分越高意味着潜在故障、交付不稳定，应与质量指标联合解读。
+
+---
+## 需求3：速度—稳定性—质量关系量化分析（最高 12分）
+### 标准3.1：组别/象限对比（最高 4分）
+#### 路径3.1.A（快/慢均值对比）
+- 标准3.1.A.1 [1分｜完备性] 使用 `avg_close_time_days<15` 划分快慢，说明快组样本仅 2 个。
+- 标准3.1.A.2 [2分｜精确性] 对核心指标对比（容差 ±0.005/±0.05）：回归比 0.133 vs 0.065；质量分 6.455 vs 7.712；偏差 18.371 vs 15.021；bug_rate 0.171 vs 0.195；share_unusually_fast 0.242 vs 0.225。
+- 标准3.1.A.3 [1分｜结论性] 指出“快”伴随更高返工/偏差、质量分更低，速度与质量存在显著张力。
+
+#### 路径3.1.B（四象限：速度 × 稳定度）
+- 标准3.1.B.1 [1分｜完备性] 以路径1.2.A 稳定度≥60% 判定高稳，输出四象限均值。
+- 标准3.1.B.2 [2分｜精确性] 代表项目锚点（容差 ±0.005/±0.01）：fast&low（Data Analytics Delta：bug_rate0.186、consistency56.79、churn_risk_share0.333、open_ratio0.092）；fast&high（Mobile App Delta：bug_rate0.155、consistency75.08、churn_risk_share0.200、open_ratio0.125）；slow&high（User Management V3：bug_rate0.207、consistency82.58、regression_ratio0.062、open_ratio0.122；API Gateway V3 可佐证 bug_rate0.171、consistency72.48）；slow&low（Mobile App Gamma：bug_rate0.191、consistency57.42、churn_risk_share0.125、open_ratio0.187）。
+- 标准3.1.B.3 [1分｜结论性] 说明“快且低稳”缺陷率高、流失风险大，“慢且稳”质量最优但速度慢，定位治理优先级。
+
+### 标准3.2：相关性分析（最高 4分）
+#### 路径3.2.A（Pearson）
+- 标准3.2.A.1 [1分｜完备性] 至少计算三组相关：速度 vs 回归/质量，稳定代理（churn_ratio∣engagement）vs 质量，速度 vs 稳定代理；样本基于 70 个项目。
+- 标准3.2.A.2 [2分｜精确性] Pearson 结果（±0.05）：corr(speed, regression)=-0.466；corr(speed, lifecycle_quality)=+0.467；corr(churn_ratio, regression)=-0.241；corr(engagement_risk, regression)=-0.115；corr(speed, churn_ratio)=+0.129。
+- 标准3.2.A.3 [1分｜结论性] 解释方向：速度越快（周期越短）回归越高、质量越低；稳定性（churn 降）改善返工。
+
+#### 路径3.2.B（Spearman/稳健性补充）
+- 标准3.2.B.1 [1分｜完备性] 使用秩相关或分层（如按项目族）验证方向性。
+- 标准3.2.B.2 [2分｜精确性] Spearman 结果（±0.05）：ρ(speed, regression)≈-0.037、ρ(speed, lifecycle_quality)≈+0.033、ρ(churn_ratio, regression)≈-0.083、ρ(speed, churn_ratio)≈+0.077；说明样本 n=70。
+- 标准3.2.B.3 [1分｜结论性] 指出秩相关方向与 Pearson 一致但幅度较小，提示极值项目主导线性相关，应结合分组分析。
+
+### 标准3.3：线性模型 / 斜率分析（最高 4分）
+#### 路径3.3.A（线性回归或 Cov/Var 斜率）
+- 标准3.3.A.1 [1分｜完备性] 构建 `avg_regression_ratio ~ avg_close_time_days + churn_ratio + avg_engagement_risk_score`（或等价斜率计算）模型。
+- 标准3.3.A.2 [2分｜精确性] 斜率锚点（容差 ±20%）：β(speed→regression)=-0.000488、β(speed→quality)=+0.00895、β(churn_ratio→regression)=-27.21、β(churn_ratio→quality)=+498.64。解释 churn_ratio 数值极小导致系数量级大。
+- 标准3.3.A.3 [1分｜结论性] 强调方向：压缩周期会抬升返工、拉低质量；人员分散（churn 上升）增大返工风险，需结合尺度理解。
+
+#### 路径3.3.B（快组内部对比 / 非参检验）
+- 标准3.3.B.1 [1分｜完备性] 在快组（2 项）内以稳定度≥60% 划分，比较关键指标。
+- 标准3.3.B.2 [2分｜精确性] 描述差异：bug_rate 18.6%（低稳） vs 15.5%（高稳）；avg_consistency 56.79 vs 75.08；churn_risk_share 0.333 vs 0.200；open_ratio 0.092 vs 0.125。若做检验需说明样本极小，仅供趋势参考。
+- 标准3.3.B.3 [1分｜结论性] 说明“快且低稳”缺陷率高、人员风险大，是不可持续信号，应优先介入。
+
+---
+## 需求4：结构化结论与治理建议（最高 6分）
+### 标准4.1：结论与洞见交付（最高 3分）
+#### 路径4.1.A（证据链式总结）
+- 标准4.1.A.1 [1分｜完备性] 结论覆盖：速度与质量/返工关系、稳定性与质量关系、积压/风险现状、样本限制。
+- 标准4.1.A.2 [1分｜精确性] 每条结论引用锚点：如 `corr(speed, regression)=-0.466`、`bug_rate_fast=0.171 vs slow=0.195`、`open_ratio(Data Analytics Delta)=0.092 vs API Gateway V3=0.166`、`fast 样本仅 2 个`。
+- 标准4.1.A.3 [1分｜结论性] 明确判断：“快且低稳”（Data Analytics Delta）短期交付快但返工/流失风险高，长期不可持续；“快且稳”（Mobile App Delta）需强化工程与团队治理维持优势。
+
+#### 路径4.1.B（风险分级/预警框架）
+- 标准4.1.B.1 [1分｜完备性] 构建预警条件：如 `avg_close_time_days<15 ∧ stability<60% ∧ avg_regression_ratio≥0.12 ∧ high_regression_share≥0.25` 判定红色。
+- 标准4.1.B.2 [1分｜精确性] 说明阈值来源（快组均值 0.133、0.334 等）并给出伪代码/SQL；例如 `CASE WHEN` 语句输出 `risk_level in ('Red','Amber','Green')`。
+- 标准4.1.B.3 [1分｜结论性] 阐述预警如何指导治理优先级（快低稳优先处理，其次慢低稳）。
+
+### 标准4.2：治理建议（最高 3分）
+#### 路径4.2.A（工程质量护栏）
+- 标准4.2.A.1 [1分｜完备性] 至少提出 3 条措施，并与数据对齐：① 针对 fast 组 high_regression_share=0.334，落地强制回归测试/质量门；② 针对 high_deviation_share=0.276，建立变更影响评估与回滚演练；③ 结合 share_unusually_fast=0.242，实施 Release checklist 与追踪。
+
+#### 路径4.2.B（团队稳定与知识沉淀）
+- 标准4.2.B.1 [1分｜完备性] 提供 ≥3 条措施：设定核心成员在岗时长目标、结对编程/轮岗、知识库/ADR、导师制、留任激励。
+- 标准4.2.B.2 [1分｜精确性] 与数据洞察对齐：针对 Data Analytics Delta `churn_risk_share=0.333`、`avg_consistency=56.79`，提出双人派单/跨培训、季度一致性复盘等，并指定监测指标（如 `AVG(at_churn_risk)`、`consistency`）。
+- 标准4.2.B.3 [1分｜结论性] 描述实施后如何支撑“快而稳”的长期目标（降低 churn、提升 TSI），并规划复盘节奏。
+
+---

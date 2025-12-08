@@ -1,0 +1,2 @@
+name,count,completeness,accuracy,conclusiveness,readability,professionalism,visualization,total
+gpt-5-2025-08-07-test1__rubrics-gemini-2-5-flash__textgsb-gemini-2-5-flash__visgsb-gemini-2-5-flash.csv,1,75.0,42.86,20.0,40.0,0.0,20.0,45.5

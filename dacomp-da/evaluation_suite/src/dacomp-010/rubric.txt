@@ -1,0 +1,80 @@
+# [Total Score | 22 points] The solution must satisfy two requirements:
+- Requirement 1: Analyze the 2024 seasonal sales trends of agricultural products and identify the Agricultural Product Name with the highest Sales Quantity (units) for each season
+- Requirement 2: Analyze the performance differences across Sales Channel(s) for each season’s top-selling agricultural product and provide strategic recommendations
+---
+## Requirement 1: Analyze the 2024 changes in Sales Quantity (units) trends of agricultural products across different seasons, and identify the Agricultural Product Name with the highest sales in each season (Maximum 6 points)
+### Criterion 1.1: Conduct a comprehensive analysis of the seasonal sales trends of various agricultural products (Maximum 2 points)
+#### Pathway 1.1.A [2 points | Comparative analysis]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: The analysis must cover multiple major agricultural product categories (e.g., Wheat, Corn, Rice, Vegetables, Fruits), rather than only mentioning the top-selling product.
+- Sub-criterion 1.1.A.2 [1 point | Conclusiveness]: Clearly and accurately summarize the seasonal patterns of different products. For example, be able to state explicitly:
+  - “Corn and Rice, as staple grains, have relatively stable sales throughout the year”
+  - “Fruits and Vegetables exhibit pronounced seasonal fluctuations in sales”
+  - “Agricultural products show a seasonal trend of higher in spring and lower in autumn”
+### Criterion 1.2: Through quantitative analysis of 2024 sales data across different seasons, derive the Agricultural Product Name with the highest sales for each season (Maximum 4 points)
+#### Pathway 1.2.A [4 points | Quantitative analysis]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Separately compute, for 2024, the Sales Quantity (units) of agricultural products for each season.
+- Sub-criterion 1.2.A.2 [1 point | Completeness]: By comparing the computed data, clearly state the Agricultural Product Name with the highest sales for each season.
+- Sub-criterion 1.2.A.3 [2 points | Precision]: In 2024, the top-selling Agricultural Product Name by season and its sales volume; the following are reference data (allowing a 1% deviation)
+  | Agricultural Product Name | Season label | Sales Quantity (units) |
+  | --- | -- | -------- |
+  | Wheat | Spring | 1177800 units |
+  | Wheat | Summer | 768100 units |
+  | Wheat | Autumn | 56700 units |
+  | Wheat | Winter | 537900 units |
+---
+## Requirement 2: Analyze performance differences across channels for the top-selling agricultural product in each season (Maximum 16 points)
+### Criterion 2.1: Based on season and Sales Channel, comprehensively analyze performance differences across channels (Maximum 6 points)
+#### Pathway 2.1.A [6 points | Grouped analysis]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Group by Season label and Sales Channel, compute Sales Quantity (units).
+- Sub-criterion 2.1.A.2 [1 point | Completeness]: Group by Season label and Sales Channel, compute Total Transaction Amount.
+- Sub-criterion 2.1.A.3 [1 point | Completeness]: Group by Season label and Sales Channel, compute the average unit price.
+- Sub-criterion 2.1.A.4 [3 points | Precision]: Correctly compute, for the top-selling agricultural product in each season, the Sales Quantity (units), Total Transaction Amount, and average unit price across channels (allowing a 1% deviation); must match the following data (Sales Quantity (units), Total Transaction Amount, and average unit price each account for one point; each correct item earns one point)
+  #### Spring
+  | Sales Channel | Sales Quantity (units) | Total Transaction Amount | Average Unit Price (yuan/unit) |
+  | ---- | ------- | -------- | -------- |
+  | Cooperative | 470500 units | 2705750 yuan | 5.75 yuan/unit |
+  | E-commerce Platform | 323900 units | 2763590 yuan | 8.53 yuan/unit |
+  | Wholesale Market | 269600 units | 1671140 yuan | 6.20 yuan/unit |
+  | Direct Sales | 113800 units | 1195440 yuan | 10.50 yuan/unit |
+  #### Summer
+  | Sales Channel | Sales Quantity (units) | Total Transaction Amount | Average Unit Price (yuan/unit) |
+  | ---- | ------- | -------- | ------- |
+  | Cooperative | 255500 units | 1518800 yuan | 5.94 yuan/unit |
+  | E-commerce Platform | 55800 units | 474300 yuan | 8.50 yuan/unit |
+  | Wholesale Market | 241800 units | 1050450 yuan | 4.34 yuan/unit |
+  | Direct Sales | 215000 units | 1330100 yuan | 6.19 yuan/unit |
+  #### Autumn
+  | Sales Channel | Sales Quantity (units) | Total Transaction Amount | Average Unit Price (yuan/unit) |
+  | ---- | ------ | ------ | ------- |
+  | Cooperative | 16300 units | 47060 yuan | 2.89 yuan/unit |
+  | E-commerce Platform | 12700 units | 48260 yuan | 3.80 yuan/unit |
+  | Wholesale Market | 20200 units | 49520 yuan | 2.45 yuan/unit |
+  | Direct Sales | 7500 units | 20250 yuan | 2.70 yuan/unit |
+  #### Winter
+  | Sales Channel | Sales Quantity (units) | Total Transaction Amount | Average Unit Price (yuan/unit) |
+  | ---- | ------- | -------- | -------- |
+  | Cooperative | 303300 units | 3298820 yuan | 10.88 yuan/unit |
+  | E-commerce Platform | 85600 units | 556400 yuan | 6.5 yuan/unit |
+  | Wholesale Market | 138000 units | 1193400 yuan | 8.65 yuan/unit |
+  | Direct Sales | 11000 units | 81400 yuan | 7.40 yuan/unit |
+  > Note: Statistics expressed as proportions for Sales Quantity (units) and Total Transaction Amount are also acceptable; verify the accuracy of the proportions sequentially.
+  > Note: The average unit price in the reference answers is computed as Total Transaction Amount / Sales Quantity (units). If the solution adopts other calculation approaches (e.g., using the arithmetic average of the Unit Price (yuan) field) or performs data cleaning, then include the analysis model’s computation code, validation logic, and check the computed values.
+### Criterion 2.2: Identify performance differences across channels; approximately equivalent wording is acceptable (Maximum 3 points)
+#### Pathway 2.2.A [3 points | Performance difference discovery]
+- Sub-criterion 2.2.A.1 [1 point | Conclusiveness]: Direct Sales has huge potential — overall Sales Quantity (units) is small but average unit price is high; it is the key breakthrough for improving profit margins.
+- Sub-criterion 2.2.A.2 [1 point | Conclusiveness]: Autumn is sluggish across the board — all channels perform worst in autumn.
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness]: Wholesale Market: highly price-sensitive, with severe unit price declines in summer and autumn.
+### Criterion 2.3: In-depth analysis of channel optimization recommendations; provide specific optimization strategies based on performance across different channels (Maximum 4 points)
+#### Pathway 2.3.A [4 points | Channel optimization strategy analysis]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Provide channel optimization strategies tailored to performance differences across channels.
+- Sub-criterion 2.3.A.2 [1 point | Precision]: Structure optimization strategies into short-term, medium-term, and long-term or into short-term and long-term.
+- Sub-criterion 2.3.A.3 [2 points | Conclusiveness]: Cover the following key points; approximately equivalent wording is acceptable. Keep other content reasonable (cover any two of the following to earn 2 points; only one earns 1 point)
+  - 1. Strengthen the Cooperative supply chain in winter: stock up in advance to ensure sufficient winter supply
+  - 2. Expand the Direct Sales customer base: focus on developing high-value customers to increase the share of Direct Sales
+  - 3. A sharp decline in E-commerce Platform sales in summer requires targeted marketing to stabilize its sales
+  - 4. All channels perform poorly in autumn; significantly reduce production or shift to storage. Concentrate resources on improving product quality to prepare for high-price sales in winter
+### Criterion 2.4: Extended analysis — Customer Satisfaction + Repurchase intention (Maximum 3 points)
+#### Pathway 2.4.A [3 points | Customer Satisfaction and Repurchase intention analysis]
+- Sub-criterion 2.4.A.1 [1 point | Completeness]: Analyze Customer Satisfaction across different Sales Channel(s).
+- Sub-criterion 2.4.A.2 [1 point | Completeness]: Analyze Repurchase intention across different Sales Channel(s).
+- Sub-criterion 2.4.A.3 [2 points | Conclusiveness]: Prioritize improving service quality in Wholesale Market and Cooperative.

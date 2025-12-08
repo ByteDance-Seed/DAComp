@@ -1,0 +1,180 @@
+# [总分 | 42分] 渠道ROI综合评估评分标准
+
+---
+
+## 需求1：数据对齐与基础口径核验（最高 8分）
+
+### 标准1.1：三表结构与渠道映射说明
+
+#### 路径1.1.A [4分 | 全量映射]
+- 小标准1.1.A.1 [1分 | 完备性]：说明三表角色与字段口径，需覆盖 `qualtrics__channel_performance`（`distribution_channel`、`total_responses`、`completed_responses`、`completion_rate`、`avg_duration`、`rushed_responses`、`lengthy_responses`、`efficiency_score`、`market_share` 等）、`qualtrics__survey`（`project_category`、`count_*_survey_responses`、`count_*_completed_survey_responses` 全口径）与 `qualtrics__contact`（`total_count_completed_surveys`、`count_surveys_completed_email`、`count_surveys_completed_sms`、`avg_survey_progress_pct`、`avg_survey_duration_in_seconds` 等），并标注时间字段来源。
+- 小标准1.1.A.2 [2分 | 精确性]：给出 Survey→渠道的精准映射：`email`→`count_email_*`；`sms`→`count_sms_*`；`social`→`count_social_media_*`；`web`→`count_personal_link_* + count_qr_code_* + count_uncategorized_* + count_anonymous_*`；`mobile` 在 survey 中缺失时需声明后续采用 `channel_performance` 指标或类比均值。映射需与实际 SQL 匹配，并附示例求和结果（如 `SELECT SUM(count_email_completed_survey_responses) FROM qualtrics__survey = 38,893` 等）。
+- 小标准1.1.A.3 [1分 | 结论性]：总结映射对分析的影响：披露 `mobile` 无 survey 口径、`web` 聚合匿名来源造成归因模糊，并明确后续 ROI 计算/假设基于上述映射。
+
+#### 路径1.1.B [4分 | 精简映射]
+- 小标准1.1.B.1 [1分 | 完备性]：仅映射 email/sms/social，`web = personal_link + qr_code + uncategorized (+ anonymous)`，并明确 `mobile` 不纳入 survey 端。
+- 小标准1.1.B.2 [2分 | 精确性]：列出 survey 端完成量锚点（允许误差±1%）：email 38,893；sms 12,475；social 359；web 31,096；总计 82,823。核验口径需给出复算 SQL。
+- 小标准1.1.B.3 [1分 | 结论性]：说明精简映射导致 `mobile` 缺席类别分析及可能偏差（如 ROI 偏低需再分配补偿）。
+
+---
+
+### 标准1.2：关键锚点校验
+
+#### 路径1.2.A [4分 | 锚点核对]
+- 小标准1.2.A.1 [1分 | 完备性]：列出需校验指标集：渠道效能（`completed_responses`、`completion_rate`、`efficiency_score`、`market_share`）、类别×渠道（`responses`、`completed`）、用户维度（email/sms 完成总量）。
+- 小标准1.2.A.2 [2分 | 精确性]：输出并对账锚点（误差±1%）：channel_performance 中 email 610/0.5054475/72.987883/0.35；sms 552/0.5225523/60.107840/0.25；web 280/0.4129313/63.684886/0.22；mobile 171/0.3155054/46.581131/0.18；social 40/0.4366381/41.938413/0.08。`qualtrics__survey` project_category 数量：evaluation 1,734；feedback 3,633；research 2,873；完成量（82,823 总计，email 38,893；sms 12,475；web 31,096；social 359）。
+- 小标准1.2.A.3 [1分 | 结论性]：说明锚点为 ROI/预算约束基线，若偏差需回溯字段或聚合逻辑；明确所有后续计算以该口径为准。
+
+---
+
+## 需求2：项目类别 × 渠道表现分析（最高 8分）
+
+### 标准2.1：类别内完成结构与完成率
+
+#### 路径2.1.A [4分 | 直接聚合]
+- 小标准2.1.A.1 [1分 | 完备性]：按 `project_category × channel` 聚合 `responses`、`completed` 并计算完成率。
+- 小标准2.1.A.2 [2分 | 精确性]：核对锚点（容差±0.5%）：`evaluation` 音 email 4,913/2,840→57.81%，sms 13,192/6,949→52.68%，social 1,788/298→16.67%，web 15,814/6,485→41.01%；`feedback` email 19,565/11,870→60.67%，sms 3,829/1,627→42.49%，social 420/5→1.19%，web 41,054/15,559→37.90%；`research` email 37,849/24,183→63.89%，sms 7,949/3,899→49.05%，social 1,322/56→4.24%，web 23,965/9,052→37.77%。需提供 SQL/代码复现。
+- 小标准2.1.A.3 [1分 | 结论性]：提炼类别洞察（如 research 由 email 主导，evaluation 倚重 sms/web，feedback 依赖 web）并描述预算启示。
+
+#### 路径2.1.B [4分 | 份额归一化]
+- 小标准2.1.B.1 [1分 | 完备性]：计算 `share_channel|category = completed_channel / Σcompleted_category` 并保证归一。
+- 小标准2.1.B.2 [2分 | 精确性]：验证份额（容差±0.5pp）：evaluation sms≈41.93%、web≈39.13%、email≈17.14%、social≈1.80%；feedback web≈53.54%、email≈40.85%、sms≈5.60%、social≈0.02%；research email≈65.03%、web≈24.34%、sms≈10.48%、social≈0.15%。
+- 小标准2.1.B.3 [1分 | 结论性]：解释类别定位 × 渠道份额对 ROI 权重/预算的影响（如 evaluation 增加即时触达预算）。
+
+---
+
+### 标准2.2：类别适配度度量
+
+#### 路径2.2.A [4分 | 贝叶斯反推]
+- 小标准2.2.A.1 [1分 | 完备性]：利用 `P(channel|category)` 与 `P(category)` 反推 `P(category|channel)`，列出公式。
+- 小标准2.2.A.2 [2分 | 精确性]：输出锚点（容差±0.5pp）：email→research 0.6218、feedback 0.3052、evaluation 0.0730；sms→evaluation 0.5570、research 0.3125、feedback 0.1304；social→evaluation 0.8301、research 0.1560、feedback 0.0139；web→feedback 0.5004、research 0.2911、evaluation 0.2085。
+- 小标准2.2.A.3 [1分 | 结论性]：说明适配度对 ROI 的作用（email 面向高价值研究；sms 适合即时任务；web 补位反馈；social 仅适合试验）。
+
+#### 路径2.2.B [4分 | 价值权重结合]
+- 小标准2.2.B.1 [1分 | 完备性]：设定类别价值权重：`category_value = 0.7×completion_rate_norm + 0.3×median_duration_norm`，其中完成率为类别级 `Σcompleted/Σresponses`，时长采用完成加权 `median_response_duration`。
+- 小标准2.2.B.2 [2分 | 精确性]：给出计算流程并验证结果：evaluation value=0.15000，feedback=0.16876，research=1.00000；渠道加权得分（ΣP(category|channel)×category_value）：email≈0.68424、sms≈0.41811、web≈0.40682、social≈0.28285（容差±0.001）。
+- 小标准2.2.B.3 [1分 | 结论性]：讨论权重调整对排序的影响（提高 evaluation 权重→sms 得分提升；提高 research 权重→email 更领先），并指明适用场景。
+
+---
+
+## 需求3：用户价值与 cohort 分析（最高 8分）
+
+### 标准3.1：LTV 代理与渠道价值基线
+
+#### 路径3.1.A [4分 | 完成次数代理]
+- 小标准3.1.A.1 [1分 | 完备性]：声明以 `total_count_completed_surveys` 为 LTV 代理、`count_surveys_completed_email/sms` 为渠道贡献，`primary_channel` 判定逻辑（email>sms→email；sms>email→sms；相等且总完成>0→tie；否则 none）。
+- 小标准3.1.A.2 [2分 | 精确性]：核对成果（误差±1%）：contacts=4,000；total_completed=14,076；email_completed=8,138；sms_completed=5,938；primary_channel LTV：email 9,021(64.09%)、sms 3,109(22.09%)、tie 1,946(13.83%)、none 0。
+- 小标准3.1.A.3 [1分 | 结论性]：总结 email 对高价值贡献的领先地位及对 ROI 权重/预算的含义。
+
+#### 路径3.1.B [4分 | 复合价值分数]
+- 小标准3.1.B.1 [1分 | 完备性]：构建复合指标 `score = 0.6×Z(total_completed) + 0.2×Z(avg_progress_pct) + 0.2×Z(avg_duration_seconds)`，缺失值以样本均值替代，并声明整体 Z-score 口径。
+- 小标准3.1.B.2 [2分 | 精确性]：给出各 primary_channel 平均得分（容差±0.02）：email≈0.788、sms≈0.546、tie≈0.361、none≈-0.687，并说明复核方法（Python/SQL 计算输出）。
+- 小标准3.1.B.3 [1分 | 结论性]：比较复合指标与完成次数代理的差异（如 tie 组因长时长而保留价值），讨论对 ROI 模型的优劣。
+
+---
+
+### 标准3.2：cohort 价值分析
+
+#### 路径3.2.A [4分 | 完成次数分箱]
+- 小标准3.2.A.1 [1分 | 完备性]：将 `total_count_completed_surveys` 分为 low(0–1)/mid(2–5)/upper(6–9)/high(≥10)，统计各箱 email/sms 完成占比及平均完成数。
+- 小标准3.2.A.2 [2分 | 精确性]：核对占比（容差±0.5pp）：email 占比 low≈0.6324、mid≈0.5634、upper≈0.5671、high≈0.5847；对应 avg_completed：0.123、3.339、7.054、15.858（允许±0.05）。需提供 SQL 聚合结果。
+- 小标准3.2.A.3 [1分 | 结论性]：指出高价值 cohort 更偏向 email，并说明运营/预算如何利用（如高阶触联系人群优先投放 email）。
+
+#### 路径3.2.B [4分 | 时间 cohort]
+- 小标准3.2.B.1 [1分 | 完备性]：按 `first_survey_response_recorded_at` 聚合到月份，输出 contacts、avg_completed、email_completed、sms_completed、email_share。
+- 小标准3.2.B.2 [2分 | 精确性]：展示 2024-10 至 2025-09 十二个月结果（容差±0.005）：contacts 194→339→…→131；avg_completed 3.273–3.944；email_share 稳定在 0.5532–0.5954 区间；需给出表格或等效输出。
+- 小标准3.2.B.3 [1分 | 结论性]：强调季节性/趋势（email share 稳定、2025-08 平均完成最高）对渠道策略的影响，并建议持续监控。
+
+---
+
+## 需求4：ROI 模型构建与排序（最高 8分）
+
+### 标准4.1：ROI 指标设计与实现
+
+#### 路径4.1.A [4分 | 乘法模型]
+- 小标准4.1.A.1 [1分 | 完备性]：给出公式 `ROI_mult = Π(0.05 + 0.95×norm_metric)`，其中 `norm_metric` 包含 `completion_rate/max`、`efficiency_score/max`、`category_fit/max`、`user_value_norm`，并说明 mobile/soclal 缺口的平滑处理。
+- 小标准4.1.A.2 [2分 | 精确性]：复算并给出数值（容差±0.001）：email≈0.9215、web≈0.1644、sms≈0.1442、social≈0.0007、mobile≈0.00035。需附计算脚本或表格说明每项归一化过程。
+- 小标准4.1.A.3 [1分 | 结论性]：说明乘法模型对短板敏感（mobile 因 completion_norm 极低而被压缩），并强调 email 因四维领先获得最高 ROI。
+
+#### 路径4.1.B [4分 | 线性加权]
+- 小标准4.1.B.1 [1分 | 完备性]：定义 `ROI_lin = 0.28·(completion_rate/max) + 0.22·(efficiency/max) + 0.18·(category_fit/max) + 0.14·user_value_norm + 0.10·(completed/max) + 0.08·quality_norm`，其中 `quality = 1 - (rushed+lengthy)/total_responses`。
+- 小标准4.1.B.2 [2分 | 精确性]：输出结果（容差±0.001）：email≈0.9108、sms≈0.7523、web≈0.7496、mobile≈0.5287、social≈0.4741，并说明质量归一化方法。
+- 小标准4.1.B.3 [1分 | 结论性]：讨论权重变动对排序的影响（如提高质量权重→mobile 更有优势），并评估模型稳定性。
+
+#### 路径4.1.C [4分 | 回归/学习模型]
+- 小标准4.1.C.1 [1分 | 完备性]：设定因变量为 `completed_responses`，自变量包含 `completion_rate`、`efficiency_score`、`category_fit`、`user_value_norm`，说明使用 `LinearRegression`/等价模型与正则化策略。
+- 小标准4.1.C.2 [2分 | 精确性]：给出拟合指标与系数（容差±1%）：`coef = [863.94, 34.85, 440.65, -752.73]`、`intercept = -1918.78`、`R²=1.0`；需说明过拟合风险与交叉验证/特征缩放计划。
+- 小标准4.1.C.3 [1分 | 结论性]：说明模型可用于边际分析或敏感度计算，并阐述数据量小导致的局限及缓解方案。
+
+---
+
+### 标准4.2：排序与稳定性检验
+
+#### 路径4.2.A [4分 | 多模型对比]
+- 小标准4.2.A.1 [1分 | 完备性]：比较乘法、线性（及可选回归）三种 ROI 排序。
+- 小标准4.2.A.2 [2分 | 精确性]：指出排序差异（如乘法模型给出 email>web>sms>social>mobile，而线性模型为 email>sms>web>mobile>social），并解释参数/权重差异的原因，展示如何调参复现（如平滑处理、质量权重）。
+- 小标准4.2.A.3 [1分 | 结论性]：给出最终推荐排序（结合 LTV/Reach 得出 email > sms > web > mobile > social）及业务依据（email 覆盖高价值、sms 保持即时触达、web 提供反馈深度、mobile 维持底线覆盖、social 维持试验）。
+
+---
+
+## 需求5：预算重分配与收益预测（最高 8分）
+
+### 标准5.1：全局预算占比建议
+
+#### 路径5.1.A [4分 | ROI 比例]
+- 小标准5.1.A.1 [1分 | 完备性]：声明预算占比 ∝ 调整后 ROI 指数，并设置最小配额（mobile≥4%，social≥3%）。
+- 小标准5.1.A.2 [2分 | 精确性]：输出推荐份额（容差±0.5pp），并对比当前 market_share（35/25/22/18/8）：
+  - 激进（乘法模型+配额）：email≈65.17%、sms≈13.03%、web≈14.38%、mobile≈4.00%、social≈3.43%。
+  - 线性折中（market-share × ROI 增量）：email≈39.61%、sms≈23.37%、web≈20.49%、mobile≈11.82%、social≈4.71%。
+- 小标准5.1.A.3 [1分 | 结论性]：解释增配/减配逻辑（email 强化高价值、sms 控制但保留即时触达、web 稳定反馈、mobile/social 以底线/试验金维持），并描述预期影响。
+
+#### 路径5.1.B [4分 | 约束优化]
+- 小标准5.1.B.1 [1分 | 完备性]：设定约束（预算总额不变、mobile≥4%、social≥3%、sms ≥10% 覆盖）。定义目标函数（最大化 ROI_mult 或 ROI_lin）。
+- 小标准5.1.B.2 [2分 | 精确性]：描述求解方式（如逐步缩放 + 归一化），并展示满足约束的份额（与 5.1.A.2 激进值一致）。
+- 小标准5.1.B.3 [1分 | 结论性]：说明约束对渠道分配的改变（如 mobile 被抬升至 4% 底线），并指明适用场景（合规/覆盖要求）。
+
+---
+
+### 标准5.2：收益预测
+
+#### 路径5.2.A [4分 | 完成量/质量预测]
+- 小标准5.2.A.1 [1分 | 完备性]：说明预测公式 `new_completed = base_completed × (new_share/old_share)^ε`（ε=0.8），并保持口径与 `channel_performance` 一致。
+- 小标准5.2.A.2 [2分 | 精确性]：给出激进方案预测（容差±2%）：baseline 完成量 1,653 → 1,601.6（-3.11%）；email 610→约1,003；sms 552→约328；web 280→约199；mobile 171→约51；social 40→约20；质量加权完成（Σ新完成×efficiency）105,176.8→108,834.3（+3.48%）。
+- 小标准5.2.A.3 [1分 | 结论性]：解释收益提升来源（email 增配带来高效率完成，sms/web 减配导致总量回调），并指明需监控的指标（完成量下滑 vs 质量收益）。
+
+#### 路径5.2.B [4分 | 价值加权预测]
+- 小标准5.2.B.1 [1分 | 完备性]：定义 `value = completed × efficiency_score × user_value_norm` 作为价值代理。
+- 小标准5.2.B.2 [2分 | 精确性]：激进方案价值曲线：基线 69,183.72 → 新方案 89,390.01（+29.21%）；线性折中方案 69,183.72 → 72,469.40（+4.75%）。
+- 小标准5.2.B.3 [1分 | 结论性]：比较价值导向与完成量导向差异（价值显著提升但总量下降），并建议在高质量需求场景优先价值模型。
+
+---
+
+## 需求6：执行建议、风险与监控（最高 10分）
+
+### 标准6.1：结构化报告与洞察
+
+#### 路径6.1.A [5分 | 全面报告]
+- 小标准6.1.A.1 [1分 | 完备性]：报告需覆盖数据口径/限制、渠道画像、类别差异、用户价值/cohort、ROI 模型、预算方案、收益预测、执行建议与风险/监控。
+- 小标准6.1.A.2 [2分 | 精确性]：关键结论与锚点一致（容差≤前述标准），模型公式明确可复核，开放假设需陈述。
+- 小标准6.1.A.3 [2分 | 结论性]：提供执行路线（阶段性迁移、AB 测试阈值、监控节奏），并衔接业务决策（如先 4 周试点 email 增配 + 每周比较价值指标）。
+
+#### 路径6.1.B [5分 | 精简行动方案]
+- 小标准6.1.B.1 [1分 | 完备性]：至少包含渠道定位、类别策略、用户价值策略、预算调整方向。
+- 小标准6.1.B.2 [2分 | 精确性]：各项建议需引用数据（如 email 在 research 占比 65.03%、sms 在 evaluation 占比 41.93%、high cohort email share 58.47%）。
+- 小标准6.1.B.3 [2分 | 结论性]：给出优先级与预期成效，明确监控 KPI（完成量、效率、价值指数）。
+
+---
+
+### 标准6.2：风险、敏感性与迭代计划
+
+#### 路径6.2.A [5分 | 风险+敏感性]
+- 小标准6.2.A.1 [1分 | 完备性]：列出至少三项风险/假设（如 mobile 缺乏 survey 映射、contact 未覆盖 web/social、权重设定主观）。
+- 小标准6.2.A.2 [2分 | 精确性]：针对每项风险提出缓解措施（补充归因、阶段试点、权重敏感性对比），并展示 ROI 受影响的例子。
+- 小标准6.2.A.3 [2分 | 结论性]：说明风险对结论的影响及迭代计划（数据补齐、季度重标定、监控阈值）。
+
+#### 路径6.2.B [5分 | 监控闭环]
+- 小标准6.2.B.1 [1分 | 完备性]：定义监控指标集（完成率、efficiency_score、category_mix、cohort 价值、ROI 指数等）与复盘频次。
+- 小标准6.2.B.2 [2分 | 精确性]：说明监控方法与阈值（如 ROI_mult 跌出 95% 置信区间需调整；边际 ROI < 0 → 回收预算），确保与模型逻辑一致。
+- 小标准6.2.B.3 [2分 | 结论性]：阐述监控→验证→调整闭环如何支撑持续优化，并指明责任人/工具（BI 看板、月度例会）。
+
+---

@@ -1,0 +1,57 @@
+# [Total score | 30 points]  The solution must meet the following four core requirements:
+- Requirement 1: Alignment of study population and operational definition (grouping, samples, metric mapping)
+- Requirement 2: Comparative analysis of adherence barriers across age groups
+- Requirement 3: Impact assessment of barriers on the degree of symptom improvement and robustness verification
+- Requirement 4: Age-segmented targeted intervention strategies and quantifiable monitoring indicators
+---
+## Requirement 1: Alignment of study population and operational definition (maximum 6 points for this requirement)
+### Criterion 1.1 (3 points): Definition of analysis subjects and scope
+#### Path 1.1.A [3 points | Parameterized grouping and traceability, each sub-path must be scored as an integer]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Specify age groupings and inclusion/exclusion criteria (e.g., configurable groupings such as young adults 18–44, middle-aged 45–59, older adults ≥60), define the observation window and follow-up window, strategies for merging/deduplicating repeat visits, aggregation rules for multiple records per same patient, and source documentation.
+- Sub-criterion 1.1.A.2 [1 point | Precision]: Produce a "sample and operational definition log" including data sources and versions, time range, join keys and filtering rules, sample size by age group, and field unit baselines; attach reproducible pseudocode/SQL skeleton (select → join → filter → group).
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness]: Provide downgrade strategies for missing/conflicting data (e.g., rolling statistics/imputation/same-window substitution) and "uncertainty labeling" rules, and explicitly mark "inferred" records in subsequent results. (Explicit requirement: "processing logic must be presented in the main text or appendix (narrative or pseudocode are both acceptable); verbal description alone will not be scored.")
+
+### Criterion 1.2 (3 points): Metric mapping and preprocessing
+#### Path 1.2.A [3 points | Standardized definitions and consistency checks, each sub-path must be scored as an integer]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Build a unified metric dictionary: adherence components (medication adherence, follow-up completion, prescription adherence/implementation, missed appointments, etc.) and their mapping methods; a dictionary of barrier factors (time, financial, transportation, medication side effects, health literacy/cognition, care accessibility, etc., allowing multi-select consolidation); degree of symptom improvement operational definition (scale/grades → unified scores or MCID attainment).
+- Sub-criterion 1.2.A.2 [1 point | Precision]: Perform unit and time baseline harmonization, outlier handling, same-window alignment, and describe aggregation order; explain when to use preprocessing such as median, trimmed mean, or binning to ensure cross-population comparability.
+- Sub-criterion 1.2.A.3 [1 point | Conclusiveness]: Output a field dictionary (field name, business meaning, calculation definition, unit, source, version, rule_id) and one row of sample data as the basis for subsequent audit and recomputation.
+---
+## Requirement 2: Comparative analysis of adherence barriers across age groups (maximum 10 points for this requirement)
+### Criterion 2.1 (5 points): Barrier distribution and significance of differences
+#### Path 2.1.A [5 points | Stratified proportions and testing, each sub-path must be scored as an integer]
+- Sub-criterion 2.1.A.1 [2 points | Completeness]: Produce an "age group × barrier category" contingency table and within-age-group proportions (including Top-N), and add stratified descriptions of adherence-related behavioral metrics (e.g., missed appointments, prescription delay, follow-up interruption rate).
+- Sub-criterion 2.1.A.2 [2 points | Precision]: Conduct statistical tests on differences in barrier structures between age groups (chi-square/Fisher/nonparametric equivalents), report effect sizes or interval estimates; for sparse cells, document merging/recoding or bootstrap handling and record impacts on directionality.
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness]: Compile a key-point list (≤5 items) of "primary/secondary barriers" for each age group, and identify cross-age commonalities and differences to inform subsequent intervention prioritization.
+
+### Criterion 2.2 (5 points): Quantifying the impact of barriers on adherence behaviors
+#### Path 2.2.A [5 points | Behavioral differences and regression modeling, each sub-path must be scored as an integer]
+- Sub-criterion 2.2.A.1 [2 points | Completeness]: Within each age group, compare core adherence behaviors under different barriers (e.g., missed appointments count/rate, medication days of coverage, follow-up completion, prescription adherence/implementation), using means/medians, distributions or bins, with sample sizes and missing-data handling stated.
+- Sub-criterion 2.2.A.2 [2 points | Precision]: Use appropriate models (linear/generalized linear/ordinal/matching/stratification, etc.) to control covariates (gender, comorbidities, baseline severity, treatment type, follow-up length, etc.), report estimates and uncertainty intervals, and provide necessary model diagnostics and robust standard errors.
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness]: You may use a matrix, table, or structured textual list, as long as it clearly conveys ‘age × barrier × impact direction/magnitude’.
+---
+## Requirement 3: Impact assessment of barriers on the degree of symptom improvement and robustness verification (maximum 10 points for this requirement)
+### Criterion 3.1 (5 points): Stratified effect estimation
+#### Path 3.1.A [5 points | Improvement effects and confounding control, each sub-path must be scored as an integer]
+- Sub-criterion 3.1.A.1 [2 points | Completeness]: Within each age group, estimate differences in the "degree of symptom improvement" under different barriers (e.g., mean/median differences, differences in MCID attainment proportions, or ordinal models), provide baseline values and comparison operational definition, and include sample sizes and missing-data handling.
+- Sub-criterion 3.1.A.2 [2 points | Precision]: Control key confounders (baseline symptoms, adherence level, treatment intensity/type, comorbidities, etc.) via regression adjustment/stratification/weighting or matching, report effect estimates and uncertainty intervals, and state key assumptions (e.g., exchangeability, overlap).
+- Sub-criterion 3.1.A.3 [1 point | Conclusiveness]: Identify, for each age group, the "top barriers most detrimental to improvement," using a formulation of "direction + relative magnitude level + confidence statement" to support strategy prioritization.
+
+### Criterion 3.2 (3 points): Robustness and heterogeneity
+#### Path 3.2.A [3 points | Sensitivity and interaction, each sub-path must be scored as an integer]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Conduct sensitivity analyses such as operational definition/window/score mapping replacements or multiple imputation/bootstrap, covering at least two settings, and produce a record of differences.
+- Sub-criterion 3.2.A.2 [1 point | Precision]: Assess the interaction term or stratified comparison for "age group × barrier," report the interaction direction and intervals, and explain model choice and assumptions.
+- Sub-criterion 3.2.A.3 [1 point | Conclusiveness]: List the "age × barrier" combinations with significant heterogeneity and corresponding explanations, and provide recommendations on intervention order with the reason/rationale chain.
+
+### Criterion 3.3 (2 points): Interpretable output
+#### Path 3.3.A [2 points | Results presentation and actionable insights, each sub-path must be scored as an integer]
+- Sub-criterion 3.3.A.1 [1 point | Completeness]: Provide an "age group × barrier" effect presentation (e.g., tables/forest plots/heatmaps or other forms), including sample size, missing/imputation and operational definition markers, to facilitate audit.
+- Sub-criterion 3.3.A.2 [1 point | Conclusiveness]: Translate statistical results into actionable insights (e.g., "time barriers are associated with follow-up delays, potentially leading to a lower degree of improvement"); avoid hard thresholds unrelated to specific institutions; maintain transferability. You must combine result direction and magnitude; merely restating statistical significance will not be scored.
+---
+## Requirement 4: Age-segmented targeted intervention strategies and quantifiable monitoring indicators (maximum 4 points for this requirement)
+### Criterion 4.1 (4 points): Profile–strategy–indicator closed loop
+#### Path 4.1.A [4 points | Targeted interventions and KPI design, each sub-path must be scored as an integer]
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: For young adults/middle-aged/older adults, propose ≥2 intervention plans each aligned with their primary barriers, and describe the hypothesized mechanism "barrier → behavior → improvement" and implementation prerequisites (digital accessibility, caregiver involvement, affordability, etc.).
+- Sub-criterion 4.1.A.2 [1 point | Precision]: Set SMART monitoring indicators for each intervention: define each metric clearly, data sources (EMR/prescriptions/appointments/follow-up/wearables, etc.), measurement frequency and time window, denominator definition, risk adjustment/stratification plan, and target-setting logic (relative improvement/percentage-point gain/trend slope, etc.).
+- Sub-criterion 4.1.A.3 [1 point | Precision]: Provide implementation essentials for an evaluation design (pre–post, A/B, stepped wedge, or any one), approaches to power/sample size estimation, rules for success/failure determination, and halt/retrospective review triggers to ensure verifiability.
+- Sub-criterion 4.1.A.4 [1 point | Conclusiveness]: Output an execution checklist of "age group × intervention × indicator" (suggested fields: population definition, strategy description, primary KPI, observation window, target direction and timepoint, responsible roles) or similar structured paragraph, for implementation tracking and audit.

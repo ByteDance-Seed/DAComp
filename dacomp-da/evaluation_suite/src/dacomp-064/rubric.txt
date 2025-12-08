@@ -1,0 +1,148 @@
+# [Total Score | 54 Points] Scoring Rubric for Diagnosing and Optimizing the 'Expanding Influence × Declining Participation Efficiency' Contradiction
+---
+## Requirement 1: Data Availability Check and Sample Construction (Max 6 Points)
+### Criterion 1.1 (Max 6 Points): Selection and Validation of Time Window and Sample Definition
+#### Path 1.1.A (Recommended | "Last 6 Months = Recent 3 Months vs. Prior 3 Months" Difference Method)
+- 1.1.A.1 [1 Point | Completeness] State that `dt_max = 2025-01-25 13:00:49` (derived from `MAX(COALESCE(updated_at,resolved_at,created_at))`), and based on this, define `prior=[2024-07-25, 2024-10-25)` and `recent=[2024-10-25, 2025-01-25]`. Declare the matching definition for `stakeholder_id` ↔ `assignee_user_id` / `reporter_user_id`.
+- 1.1.A.2 [4 Points | Precision] During scoring, verify that the following results are consistent with the execution (error=0): `issue_prior_created=0`, `issue_recent_created=0`, `prior_assignees=0`, `recent_assignees=0`, `prior_reporters=0`, `recent_reporters=0`, and that the `date_day` records in `jira__daily_issue_field_history` for the same window are 0. The process of "Filter by window → Aggregate by stakeholder×period → Calculate difference" must be clearly explained, and a reproducible SQL framework must be provided:
+  ```sql
+  WITH params AS (
+    SELECT datetime('2025-01-25 13:00:49') AS dt_max,
+           datetime('2025-01-25 13:00:49','-3 months') AS recent_start,
+           datetime('2025-01-25 13:00:49','-6 months') AS prior_start
+  )
+  SELECT ...
+  FROM jira__issue_enhanced, params
+  WHERE DATE(created_at) BETWEEN prior_start AND dt_max
+  GROUP BY stakeholder_id, period;
+  ```
+- 1.1.A.3 [1 Point | Conclusiveness] Point out the judgment that "sample size for the window is 0 → the difference method is not feasible, must switch to a snapshot-based definition" and explain its business implication (no incremental data to measure trends).
+#### Path 1.1.B (Snapshot Difference Proxy Method | Database Default)
+- 1.1.B.1 [1 Point | Completeness] Acknowledge the lack of windowed data (as all counts above are 0) and switch to the `jira__stakeholder_engagement_insights` snapshot. List the key derived fields: `breadth_depth_delta`, `participation_density_conn`, `depth_efficiency_index`, `assign_report_ratio`, `out_in_ratio`.
+- 1.1.B.2 [4 Points | Precision] Verify all of the following: `cohort_size=4524`, `avg_outbound_influence=17.47±0.05`, `avg_inbound_influence=13.836±0.01`, `avg_direct_network_connections=27.268±0.01`, `avg_strategic_value_score=70.853±0.01`, `avg_breadth=23.369±0.01`, `avg_depth=22.977±0.01`. Explain calculations such as `participation_density_conn = total_comments_authored/NULLIF(direct_network_connections,0)` and `depth_efficiency_index=(engagement_depth_score+engagement_quality_score)/2`. A reproducible SQL outline must be provided:
+  ```sql
+  WITH base AS (
+    SELECT *,
+           engagement_breadth_score - engagement_depth_score AS breadth_depth_delta,
+           CASE WHEN direct_network_connections>0 THEN total_comments_authored*1.0/direct_network_connections END AS participation_density_conn,
+           (engagement_depth_score + engagement_quality_score)/2.0 AS depth_efficiency_index
+    FROM jira__stakeholder_engagement_insights
+  )
+  SELECT ... FROM base;
+  ```
+- 1.1.B.3 [1 Point | Conclusiveness] Emphasize that the snapshot method is for structural early warnings and cannot be used to directly infer temporal trends, and the static nature of the sample must be noted in the report.
+#### Path 1.1.C (Fallback | "Last 12 Months split into 2×6 Months" Difference Method)
+- 1.1.C.1 [1 Point | Completeness] If a fallback path is described, provide the definition `prior=[2024-01-25, 2024-07-25)` and `recent=[2024-07-25, 2025-01-25]` and the conditions for its application.
+- 1.1.C.2 [4 Points | Precision] Confirm that `issues_prior=0` and `issues_recent=0`, and explain that the calculation process is similar to 1.1.A (with the window changed to 6 months).
+- 1.1.C.3 [1 Point | Conclusiveness] State that "the 12-month difference is also empty → must still fall back to the snapshot method" to ensure analytical continuity.
+
+## Requirement 2: Identification and Structural Profiling of the Contradictory Group (Max 12 Points)
+### Criterion 2.1 (Max 6 Points): Flagging Rule for "Expanding Influence × Declining Efficiency/Depth"
+#### Path 2.1.B (Snapshot Contradiction Index Method | Adopted for this database)
+- 2.1.B.1 [1 Point | Completeness] Define the contradiction condition as `breadth_depth_delta ≥ 7.72` AND (`participation_density_conn ≤ 0.98` OR `depth_efficiency_index ≤ 18.412`), with thresholds derived from `mean ± 0.5σ`.
+- 2.1.B.2 [4 Points | Precision] Verify: sample size for `breadth_depth_delta≥7.72` = 1412±1, size of the contradiction set `=856±1`, the average `strategic_value_score` for this group = 82.138±0.01, and the average `out/in` ratio = 1.608±0.01. An SQL skeleton must be included:
+  ```sql
+  WITH stats AS (...), thresholds AS (...)
+  SELECT stakeholder_id,
+         CASE WHEN breadth_depth_delta >= delta_high
+              AND ((participation_density_conn <= pd_low) OR depth_efficiency_index <= depth_low)
+              THEN 1 ELSE 0 END AS contradiction_flag
+  FROM derived;
+  ```
+- 2.1.B.3 [1 Point | Conclusiveness] State that the contradiction set exhibits structural characteristics of extremely high breadth and depth/efficiency metrics below the threshold.
+#### Path 2.1.C (Model/Anomaly Detection Method)
+- 2.1.C.1 [1 Point | Completeness] If using a model, describe the sample, features, and algorithm (e.g., Isolation Forest), and maintain the same threshold baseline as the rule-based method.
+- 2.1.C.2 [4 Points | Precision] The size of the contradiction set identified by the model must have a deviation of ≤10% from the result in 2.1.B, and the model should output significant feature importances.
+- 2.1.C.3 [1 Point | Conclusiveness] Summarize the consistency between the model and rule-based methods regarding key drivers.
+
+### Criterion 2.2 (Max 6 Points): Profile Comparison of Contradiction vs. Non-Contradiction Sets
+#### Path 2.2.A (Aggregated Mean Comparison)
+- 2.2.A.1 [1 Point | Completeness] Side-by-side, output the `breadth_depth_delta`, `participation_density_conn`, `depth_efficiency_index`, `issues_assigned`, `issues_reported`, `total_comments_authored`, `total_projects_involved`, and `assign_report_ratio` for both contradiction and non-contradiction sets.
+- 2.2.A.2 [4 Points | Precision] Verify the key anchor points (error ≤0.1, or ≤0.01 for ratios):
+  - Non-contradiction: `avg_delta=-3.639`, `avg_pd_conn=2.634`, `avg_depth_eff=21.082`, `avg_comments=44.84`, `avg_projects=5.11`, `avg_assigned=11.695`, `avg_reported=3.106`, `avg_assign_report=3.916`;
+  - Contradiction: `avg_delta=17.667`, `avg_pd_conn=2.537`, `avg_depth_eff=16.736`, `avg_comments=82.277`, `avg_projects=9.147`, `avg_assigned=20.02`, `avg_reported=5.597`, `avg_assign_report=3.701`.
+  Explain the reason for using means (sufficient sample size) and provide an SQL framework using `GROUP BY contradiction_flag`.
+- 2.2.A.3 [1 Point | Conclusiveness] Summarize the profile of the contradiction set as "extremely high breadth + low depth/efficiency + high communication load".
+#### Path 2.2.B (Collaboration Bin Analysis)
+- 2.2.B.1 [1 Point | Completeness] Grouped by `direct_network_connections` tertiles (5–15, 15–25, 25–88), output the tier, sample size, contradiction rate, and average `depth_efficiency_index`.
+- 2.2.B.2 [4 Points | Precision] Verify: `T1 contradiction rate=4.58%`, `T2=5.37%`, `T3=46.82%`, with corresponding `avg_depth_eff` of `21.334/21.346/18.099` respectively. Explain the `NTILE(3)` binning logic and provide the SQL snippet.
+- 2.2.B.3 [1 Point | Conclusiveness] Draw the conclusion that "the larger the collaboration radius, the more significant the decline in depth efficiency."
+
+## Requirement 3: Driver Factor Decomposition (Max 18 Points)
+### Criterion 3.1 (Max 6 Points): Response Pattern and Influence Level Risks
+#### Path 3.1.A (Response Pattern Risk Profile)
+- 3.1.A.1 [1 Point | Completeness] For each `response_pattern_type`, output the sample size, number of people in the contradiction set, and contradiction rate.
+- 3.1.A.2 [4 Points | Precision] Verify key types (allow error of ±1 for counts, ≤0.2pp for percentages): `Strategic Advisor 104/496=20.97%`, `Process Optimizer 88/475=18.53%`, `Technical Expert 95/427=22.25%`, `Cross-Functional Bridge 94/451=20.84%`, `Mentor 87/474=18.35%`. Describe the `LEFT JOIN` flagging process and suggest performing a test for proportion differences (e.g., Chi-squared).
+- 3.1.A.3 [1 Point | Conclusiveness] Explain the business implication that high-risk patterns (Strategic Advisor/Technical Expert) exhibit weak execution depth.
+#### Path 3.1.B (Influence Level)
+- 3.1.B.1 [1 Point | Completeness] Calculate the contradiction rate grouped by `influence_level`.
+- 3.1.B.2 [4 Points | Precision] Verify: `Executive Level 112/230=48.70%`, `Senior Leadership 291/666=43.69%`, `Team Leadership 211/938=22.49%`, `Senior Contributor 242/1095=22.10%`, `Mid-Level Contributor 0/1162=0`, `Junior Contributor 0/433=0`. Provide the SQL structure for `GROUP BY influence_level`.
+- 3.1.B.3 [1 Point | Conclusiveness] Point out that high-influence tiers are overstretched and should be prioritized for intervention.
+
+### Criterion 3.2 (Max 6 Points): Network Expansion and Collaboration Load
+#### Path 3.2.A (Contradiction vs. Non-Contradiction Comparison)
+- 3.2.A.1 [1 Point | Completeness] Present side-by-side comparisons of `total_projects_involved`, `cross_functional_projects`, `direct_network_connections`, `total_comments_authored`, `issues_assigned`, and `assign_report_ratio`.
+- 3.2.A.2 [4 Points | Precision] Verify the average values for contradiction vs. non-contradiction sets (error ≤0.1 / ratio≤0.01): `projects=9.147 vs 5.11`, `cross_functional=4.328 vs 2.598`, `direct_connections=46.261 vs 22.836`, `comments=82.277 vs 44.84`, `issues_assigned=20.02 vs 11.695`, `assign/report=3.701 vs 3.916`. Explain how these metrics reflect the chain of collaboration pressure.
+- 3.2.A.3 [1 Point | Conclusiveness] Summarize the chain of "breadth expansion + communication pressure + declining execution ratio".
+#### Path 3.2.B (Collaboration Radius Binning)
+- 3.2.B.1 [1 Point | Completeness] Based on `direct_network_connections` tertiles, output the contradiction rate and `depth_efficiency_index`.
+- 3.2.B.2 [4 Points | Precision] Verify that the values are the same as in 2.2.B, and explain the SQL implementation using `NTILE` binning + aggregation.
+- 3.2.B.3 [1 Point | Conclusiveness] Point out the need to implement throttling/pairing for members with a high collaboration radius to mitigate diminishing returns.
+
+### Criterion 3.3 (Max 6 Points): Strategic Value Mismatch and Role Profiling
+#### Path 3.3.A (Strategic Value vs. Contradiction Rate)
+- 3.3.A.1 [1 Point | Completeness] Stratify by `strategic_value_score ≥85` / `<85`, combining with `stakeholder_archetype` if necessary.
+- 3.3.A.2 [4 Points | Precision] Verify: `SV≥85 group has 976 people, 418 in contradiction, rate 42.83%`; `SV<85 group has 3548 people, 438 in contradiction, rate 12.34%`. List high-value roles in the contradiction set (error ±1): `Engineering Manager 32/60`, `Principal Engineer 31/62`, `Mobile Developer 24/45`, `Data Scientist 23/39`, `UX Designer 22/42`. Explain the stratified `GROUP BY` query with a `CASE` statement.
+- 3.3.A.3 [1 Point | Conclusiveness] Emphasize that high-strategic-value personnel are overstretched and their tasks should be reprioritized.
+#### Path 3.3.B (Role Characteristics + Influence Flow Direction)
+- 3.3.B.1 [1 Point | Completeness] Create a profile using a combination of `stakeholder_archetype`, `influence_level`, and `out/in_ratio>1.5`.
+- 3.3.B.2 [4 Points | Precision] Verify: Contradiction set `avg_out/in=1.608±0.01`, percentage `>1.5 =56.66%±0.2pp`; Non-contradiction set `avg_out/in=1.167±0.01`, percentage `>1.5 =14.39%±0.2pp`. Provide the `AVG` / `CASE` calculation framework and explain the logic for excluding outliers (`total_inbound_influence=0`).
+- 3.3.B.3 [1 Point | Conclusiveness] Point out that the difference comes from role workload and spillover pressure, not simply an imbalance of influence.
+
+## Requirement 4: Quantifying the Impact on Team/Project Efficiency (Max 6 Points)
+### Criterion 4.1 (Max 6 Points): Efficiency Metrics Comparison
+#### Path 4.1.A (User Efficiency | jira__user_enhanced)
+- 4.1.A.1 [1 Point | Completeness] Based on a left join where `stakeholder_id = user_id`, compare `avg_close_time_days`, `avg_age_currently_open_days`, and `close_rate = count_closed/(count_closed+count_open)` for contradiction vs. non-contradiction sets.
+- 4.1.A.2 [4 Points | Precision] Verify: Contradiction set `avg_close_time_days=5.262±0.02`, `avg_open_time_days=5.310±0.02`, `close_rate=0.817±0.005`; Non-contradiction set `avg_close_time_days=4.073±0.02`, `avg_open_time_days=4.089±0.02`, `close_rate=0.805±0.005`. Provide the SQL for `LEFT JOIN jira__user_enhanced` + `GROUP BY contradiction_flag`.
+- 4.1.A.3 [1 Point | Conclusiveness] Synthesize by noting that the contradiction set has a longer close time but a slightly higher close rate, suggesting process bottlenecks in upfront communication and requirements clarification.
+#### Path 4.1.B (Project Granularity | jira__project_enhanced)
+- 4.1.B.1 [1 Point | Completeness] Construct the set of projects: from the `issue` table, get projects where a user was an assignee/reporter, link to the `contradiction_flag`, and get distinct `project_id`s.
+- 4.1.B.2 [4 Points | Precision] Verify: all 200 projects have members from the contradiction set involved (`project_count_contradiction=200±0`), corresponding to `avg_close_time_seconds=1,617,605±1,000` and `avg_assigned_close_time_seconds=0` (field is all 0). Explain the project grouping query logic:
+  ```sql
+  WITH issue_stakeholders AS (...), project_flags AS (...)
+  SELECT project_id, has_contradiction
+  FROM project_flags;
+  ```
+  And require the report to explicitly state that "there are no purely non-contradiction projects, requiring a deeper dive into project subsets".
+- 4.1.B.3 [1 Point | Conclusiveness] Point out that members of the contradiction set are concentrated in long-cycle projects, and a priority governance list should be established at the project level.
+
+## Requirement 5: Personnel Capability Reallocation and Collaboration Governance (Max 12 Points)
+### Criterion 5.1 (Max 6 Points): Data-Driven Restructuring Strategies
+#### Path 5.1.A (Role Throttling + Execution Anchoring + Task Reassignment)
+- 5.1.A.1 [1 Point | Completeness] Propose at least three strategies, mapping them to role clusters like Exec/Senior Leadership, Strategic Advisor/Technical Expert, and core engineering staff.
+- 5.1.A.2 [4 Points | Precision] Each strategy must have quantitative targets and execution logic, for example:
+  1. For the 403 Exec/Senior members in the contradiction set (112+291), implement a "concurrent projects ≤8" throttle (compared to the current average of 9.147 for the set). Over-limit requests are placed in a buffer queue with an alternative owner assigned.
+  2. For the 199 Strategic Advisors & Technical Experts, introduce an execution anchor, requiring `assign/report ≥3.90` (current average for the set is 3.701), to increase their execution ratio via co-owned backlogs or a secondary owner mechanism.
+  3. Depth Support: If `breadth_depth_delta ≥7.72` or `depth_efficiency_index ≤18.412`, automatically assign a cross-functional pair to raise `avg_depth_eff` to ≥18.5 within 4 weeks. Provide pseudocode for the trigger script (e.g., `IF total_projects_involved>8 THEN queue_reassignment(...)`).
+- 5.1.A.3 [1 Point | Conclusiveness] Set a governance target: reduce the number of people in the contradiction set by ≥30% (to ≤599) within 8 weeks, with `avg_depth_eff ≥18.5` for the set. Specify review milestones.
+#### Path 5.1.B (Influence Rebalancing + Communication Throttling)
+- 5.1.B.1 [1 Point | Completeness] Propose at least two measures covering communication throttling, deep work windows, and two-person closed-loop mechanisms.
+- 5.1.B.2 [4 Points | Precision] For example:
+  1. For the 523 individuals with `total_comments_authored>100` or `direct_network_connections>40`, set a comment budget with a target of ≥20% reduction in comment volume (from 82 to ≤66), and log the requests that were curtailed.
+  2. For the 485 individuals (in the contradiction set) with `out/in_ratio>1.5`, pair them with an execution owner to bring the spillover influence ratio back to ≤1.50.
+  3. For members with `cross_functional_projects ≥5`, schedule two 2-hour "deep blocks" per week; cross-domain requests must be approved 48 hours in advance. Provide scheduling/rostering pseudocode or a script skeleton.
+- 5.1.B.3 [1 Point | Conclusiveness] Describe the expected benefits (reduced communication costs, `assign/report` ratio rising to ≥3.9) and the rolling monitoring approach.
+
+### Criterion 5.2 (Max 6 Points): Monitoring and Alerting Closed-Loop System
+#### Path 5.2.A (Metric System and Thresholds)
+- 5.2.A.1 [1 Point | Completeness] Define continuous monitoring metrics: `breadth_depth_delta`, `participation_density_conn`, `depth_efficiency_index`, `direct_network_connections`, `total_projects_involved`, `total_comments_authored`, `assign/report`, `out/in_ratio`, `avg_close_time_days`, `strategic_value_score`.
+- 5.2.A.2 [4 Points | Precision] Set thresholds and explain their origins:
+  - Alert Condition: `breadth_depth_delta≥7.72 AND (participation_density_conn≤0.98 OR depth_efficiency_index≤18.412)` is triggered for two consecutive periods.
+  - Resource Scheduling: `total_projects_involved>10`, `total_comments_authored>100`, `direct_network_connections>40`, `avg_close_time_days>5.0`, `assign/report<3.80`.
+  - Organizational Level: If the contradiction rate for Exec/Senior level reaches ≥40%, trigger a special review.
+  Provide pseudocode for a periodic task (query → alert → write to audit table).
+- 5.2.A.3 [1 Point | Conclusiveness] Describe the "monitor → alert → intervene → review" closed loop. Success criteria: contradiction set size ≤599, Exec/Senior contradiction rate <35%, `avg_depth_eff` of the contradiction set ≥18.5.
+#### Path 5.2.B (Pilot and Iterative Governance)
+- 5.2.B.1 [1 Point | Completeness] Formulate a pilot plan: select the 403 Exec/Senior members of the contradiction set as the pilot group, with the 493 non-contradiction members at the same level as the control group, over a 6-week period.
+- 5.2.B.2 [4 Points | Precision] Define clear evaluation metrics: alert trigger rate, `avg_close_time_days`, `assign/report`, `total_comments_authored`. Explain the comparison method (pilot vs. control difference, pre/post 3-week windows), and provide data logging/difference calculation pseudocode.
+- 5.2.B.3 [1 Point | Conclusiveness] Explain how to dynamically adjust thresholds or resource allocation based on monitoring results to achieve iterative optimization.

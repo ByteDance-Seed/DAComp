@@ -1,0 +1,90 @@
+# [Total Score | 23 points] The solution must satisfy three core requirements:
+- Requirement 1: Analyze employees’ current employment status across different working years intervals (0–5 years, 6–10 years, 11–15 years, 16–20 years, 20+ years)
+- Requirement 2: Identify the core characteristics of long-term retained employees (10 years and above)
+- Requirement 3: Propose specific actions to increase employee tenure based on the data conclusions
+---
+## Requirement 1: Determine fields, analyze company tenure across different working years intervals (0–5 years, 6–10 years, 11–15 years, 16–20 years, 20+ years) (Maximum 5 points)
+### Standard 1.1: Selection of working years fields (Maximum 1 point)
+#### Path 1.1.A [1 point | Field selection explanation]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Select TotalWorkingYears or YearsAtCompany to conduct the analysis, and you must fully explain the rationale for the chosen field. Selecting any other field will not earn points for this requirement.
+### Standard 1.2: Quantitative statistics by working years interval (Maximum 4 points)
+#### Path 1.2.A [4 points | Analysis based on TotalWorkingYears]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: For TotalWorkingYears, correctly bin into the specified intervals: 0–5 years, 6–10 years, 11–15 years, 16–20 years, and 20+ years.
+- Sub-criterion 1.2.A.2 [2 points | Accuracy]: Treat Attrition==Yes as attrited, correctly count attrited employees, and correctly compute the attrition rate (error no more than 1%):
+| Working years interval | Retained employees | Attrited employees | Total | Attrition rate |
+| :--------------------- | :----------------- | :----------------- | :---- | :------------- |
+| 0–5 years              | 227                | 91                 | 318   | 28.62%        |
+| 6–10 years             | 520                | 91                 | 611   | 14.89%        |
+| 11–15 years            | 167                | 24                 | 191   | 12.57%        |
+| 16–20 years            | 136                | 16                 | 152   | 10.53%        |
+| 20+ years              | 192                | 16                 | 208   | 7.69%         |
+- Sub-criterion 1.2.A.3 [1 point | Conclusiveness]: Based on trend analysis, correctly summarize these two points: the longer the working years, the higher the retention rate; 0–5 years is the attrition peak. Reference answer: The attrition rate overall shows a downward trend as working years increase. 0–5 years is the high-attrition phase; 6–20 years enters a stable period, and 20+ years is the most stable.
+#### Path 1.2.B [4 points | Analysis based on YearsAtCompany]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: For company tenure (YearsAtCompany), correctly bin into the specified intervals: 0–5 years, 6–10 years, 11–15 years, 16–20 years, and 20+ years.
+- Sub-criterion 1.2.B.2 [2 points | Accuracy]: Treat Attrition==Yes as attrited, correctly count attrited employees, and correctly compute the attrition rate (error no more than 1%):
+| Working years interval | Retained employees | Attrited employees | Total | Attrition rate |
+| :--------------------- | :----------------- | :----------------- | :---- | :------------- |
+| 0–5 years              | 618                | 163                | 781   | 20.87%        |
+| 6–10 years             | 397                | 55                 | 452   | 12.17%        |
+| 11–15 years            | 101                | 7                  | 108   | 6.48%         |
+| 16–20 years            | 68                 | 5                  | 73    | 6.85%         |
+| 20+ years              | 58                 | 8                  | 66    | 12.12%        |
+- Sub-criterion 1.2.B.3 [1 point | Conclusiveness]: Based on trend analysis, correctly summarize these three points: the attrition rate is lower in the mid-career stage, higher in the early stage, and shows a rebound in the late stage. Reference answer: The attrition rate overall shows a downward trend as working years increase. 0–5 years is the high-attrition phase; the mid-career attrition rate is lower, and attrition rises again at 20+ years.
+---
+## Requirement 2: Identify the core characteristics of long-term retained employees (10+ years) at the company (Maximum 11 points)
+### Standard 2.1: Correctly distinguish long-term retained (company tenure ≥10 years) and non-long-term retained (company tenure <10 years) employees, and compute group counts and proportions (Maximum 2 points)
+#### Path 2.1.A [2 points | Basic information statistics]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Provide a reasonable definition of long-term retention and correctly identify long-term retained employees. Use YearsAtCompany >= 10 as the filter condition.
+- Sub-criterion 2.1.A.2 [1 point | Accuracy]: Correctly produce descriptive statistics for long-term retained employees, at minimum including count and proportion.
+    - Long-term retained employee count: 367; short-term employee count: 1,113
+    - Long-term retention proportion = long-term retained employee count / total employee count × 100% = 24.8% [error no more than 1%]
+### Standard 2.2: Precisely screen employee feature indicators that show significant differences between long-term retained vs. non-long-term retained groups (Maximum 3 points)
+#### Path 2.2.A [3 points | Feature analysis] (If Path 2.2.A is not matched, Standard 2.2 receives no points)
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Select all employee features and conduct comparative analysis by retention group (company tenure ≥10 years vs. <10 years). Focus reporting on features with discriminative power (statistically significant differences).
+- Sub-criterion 2.2.A.2 [2 points | Accuracy]: For numeric features, use t-tests to assess mean differences; for categorical features, use chi-square tests to assess distribution differences, to screen fields with reporting value. Points are awarded if the response misses no more than 2 significant feature indicators and simultaneously falsely reports no more than 1 non-significant indicator. The statistically significant feature indicators are summarized below (13 total): Age, AgeGroup, JobLevel, MonthlyIncome, SalarySlab, NumCompaniesWorked, TotalWorkingYears, YearsInCurrentRole, YearsWithCurrManager, YearsSinceLastPromotion, Attrition, JobRole, MaritalStatus.
+### Standard 2.3: Conduct in-depth analysis of the employee feature indicators that show significant differences between long-term retained (company tenure >=10) vs. <10 groups (Maximum 6 points)
+#### Path 2.3.A [6 points | Comparative quantitative analysis]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: List statistical indicators across feature dimensions in detail and present them in a comparative format ordered from highest to lowest feature importance.
+- Sub-criterion 2.3.A.2 [3 points | Accuracy]: Key descriptive statistics for each feature dimension must be calculated accurately. Verify against the following reference values (error no more than 1%). Correct calculation and reporting of up to 3 features earns 1 point; reporting 4–8 features earns 2 points; reporting 9 or more features with no false reports earns 3 points.
+        1. **Demographics of long-term retained employees**
+            - Older age: average 40.1 vs. 35.9 (+4.2 years); the age interval with the most long-term retained employees is [36–45]
+            - Higher married proportion: 51.5% vs. 44.0% (+6.5%)
+        2. **Career development characteristics of long-term retained employees**
+            - Longer TotalWorkingYears: 17.7 vs. 9.2 (+8.5 years)
+            - Fewer NumCompaniesWorked: 2.23 vs. 2.84 (−0.61 companies)
+        3. **Development within the company for long-term retained employees**
+            - Higher average JobLevel: 2.84 vs. 1.81 (+1.03 levels)
+            - Higher pay: higher average MonthlyIncome: $9,541 vs. $5,504 (+$4,037); the SalarySlab with the most long-term retained employees is [5k–10k]
+            - Longer YearsSinceLastPromotion: 5.09 years vs. 1.22 years (+3.87 years)
+            - Longer YearsWithCurrManager: 8.31 years vs. 2.74 years (+5.57 years)
+            - Lower attrition proportion: 10.35% vs. 17.97% (+7.62%)
+        4. **Differences in retention across JobRole/Department**
+            - JobRoles with higher long-term retention rates: Manager 58.8%, Research Director 48.8%, Healthcare Representative 31.1%, Sales Executive 29.2%, Manufacturing Director 28.6%
+            - JobRoles with lower long-term retention rates: Sales Representative 2.4%, Laboratory Technician 14.2%, Research Scientist 14.3%, Human Resources 15.4%
+            - Department with higher long-term retention rate: Sales 27.1%
+            - Departments with lower long-term retention rates: Research & Development 23.8%, Human Resources 23.81%
+- Sub-criterion 2.3.A.3 [2 points | Conclusiveness]: Based on the above feature data for long-term retained employees, provide structured, clear, and logically rigorous professional analysis such as summary analysis, drill-down analysis, attribution analysis, predictive analysis, and summarize key findings. Provide 3 or more valuable conclusions reasonably synthesized. Here are some reference angles (angles are not strictly limited):
+    - Most stable employee persona (summary analysis example): 36–45 years old, bachelor’s degree or above, TotalWorkingYears ≥15, NumCompaniesWorked ≤2, in higher-level roles in management/director/manufacturing/sales, has a stable direct manager relationship, MonthlyIncome in the 5k–10k and above SalarySlab.
+    - Manager relationship stability is an intervenable variable and among those with the largest differences in long-term retention (drill-down analysis example): Further analysis shows that, controlling for YearsAtCompany, YearsWithCurrManager is significantly negatively correlated with Attrition (p<0.001), indicating that “manager relationship stickiness” is an independent influencing factor.
+    - Higher married proportion among long-term retained employees (attribution analysis example): A possible mechanism is that family factors increase the opportunity cost of job changes; after forming a family, stability preference is stronger.
+    - At different career stages, different variables can be used to predict long-term tenure (predictive analysis example): At hiring (using only pre-hire variables), focus on available TotalWorkingYears, NumCompaniesWorked, target JobRole; post-hire, manager relationship stability, clear promotion and pay progression, and transitioning from entry roles to higher-retention role families (e.g., Sales Representative → Sales Executive) may positively predict long-term retention.
+---
+## Requirement 3: Based on the above analysis, propose specific actions to increase employee tenure (Maximum 7 points)
+### Standard 3.1: Propose specific, targeted actions to increase tenure for high-attrition-risk groups (Maximum 7 points)
+#### Path 3.1.A [7 points | Comprehensive strategy analysis]
+- Sub-criterion 3.1.A.1 [1 point ｜ Completeness]: Based on data and analysis related to “current employment status,” propose 3 or more reasonable, specific actions to increase employee tenure.
+- Sub-criterion 3.1.A.2 [1 point ｜ Completeness]: Segment by YearsAtCompany for high-risk groups, combine data analysis, and propose targeted solutions.
+- Sub-criterion 3.1.A.3 [1 point ｜ Accuracy]: Explicitly focus on the high-attrition-risk group with TotalWorkingYears of 0–5 years, and propose targeted, well-reasoned actions for this group. Incorrectly citing data will not earn points. Below is an example action for one factor:
+    - Focus on employees with 0–5 years of TotalWorkingYears: This working years interval is the attrition peak, with an attrition rate of 28.62%, far above the average and significantly higher than the 6+ years group. Employees in this phase have low organizational embeddedness and are easily attracted by external opportunities.
+    - Targeted actions:
+        1. Systematic onboarding and cultural integration: Provide mentorship and customized training plans in the first 6 months.
+        2. Early promotion and career pathways: Establish a “2–3 year fast-track promotion” to reduce “promotion stagnation.”
+        3. Stable manager relationship in the first 3 years: Reduce changes of direct managers to safeguard trust.
+- Sub-criterion 3.1.A.4 [1 point ｜ Completeness]: Based on data and analysis related to “company tenure,” propose 6 or more reasonable, specific actions to increase employee tenure across 3 or more key features. If supplementary analysis is needed, provide new key evidence to support the action recommendations.
+- Sub-criterion 3.1.A.5 [2 points ｜ Accuracy]: Explicitly focus on multiple high-attrition-risk aspects such as short YearsWithCurrManager and being in JobRoles with lower retention rates, and propose targeted, well-reasoned actions for these groups. Incorrectly citing data will not earn points. Below is an example analysis for one factor:
+     - Focus on employees with short YearsWithCurrManager: Long-term retained employees average 8.31 years with their current manager, whereas short-tenure employees average only 2.74 years. Manager relationship stability is highly correlated with retention.
+     - Targeted actions:
+        1. Reduce frequent changes of direct managers: For key employees, maintain long-term stable reporting relationships as much as possible.
+        2. Link manager performance to team retention: Make team stability a management assessment indicator.
+        3. Team integration training: Improve new managers’ ability to quickly build trust.
+- Sub-criterion 3.1.A.6 [1 point ｜ Conclusiveness]: Synthesize all prior analyses to propose systematic improvements to mechanisms around recruitment, management, development, incentives, and organizational structure, including 4 or more points; reasonable is sufficient.

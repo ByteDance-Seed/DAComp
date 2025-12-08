@@ -1,0 +1,76 @@
+# [总分 | 36分] com.dev.photoeditor 高收益市场 vs 低收益市场绩效差异评分标准
+
+---
+
+## 需求1：构建可复现的收入与绩效数据底座（最高可得 12分）
+
+### 标准1.1：embedded_data 解析与 revenue 度量确认（最高可得 6分）
+
+#### 路径1.1.A [6分｜嵌入字段展开基线]
+- 小标准1.1.A.1 [1分｜完备性]：说明仅使用 `qualtrics__response` 中 `embedded_data` 含 `value_` 的记录，并列出展开时保留的核心字段（question_response_id、survey_response_id、user_language、distribution_channel、value、survey_progress、duration_in_seconds、is_finished_with_survey）。
+- 小标准1.1.A.2 [4分｜精确性]：给出可复现的拆分逻辑（递归 CTE 或等价脚本）生成 `(field_key, field_value)`。需核对锚点：展开后记录数=23 928（容差±1）、distinct field_key=997（容差±1）、`field_value/100` 的 revenue_usd 均值≈5.00、美金区间[0.01, 9.99]（容差±0.01）。
+- 小标准1.1.A.3 [1分｜结论性]：明确 `field_value/100` 为后续分析的收入量纲，并说明所有条目均来自 com.dev.photoeditor 的 KPI 投放数据。
+
+### 标准1.2：高/低收益分桶与样本稳定性（最高可得 6分）
+
+#### 路径1.2.A [6分｜收益阈值与指标校验]
+- 小标准1.2.A.1 [1分｜完备性]：阐述“Top markets= revenue_usd ≥7”“Low markets= revenue_usd <3”的划分口径，同时保留题面所需的 question_value、survey_progress、duration、is_finished_with_survey 以支撑绩效对比。
+- 小标准1.2.A.2 [4分｜精确性]：输出分桶指标：High 组样本量=7 101、Low 组=7 088（容差±5）；对应均值 `avg_revenue_usd`=8.50 vs 1.51、`avg_question_value`=5.53 vs 5.49、`avg_survey_progress`=50.66 vs 51.01、`avg_duration_in_seconds`=44.66 vs 44.43、`finish_rate`=0.5308 vs 0.5380（容差分别±0.02、±0.0005）。
+- 小标准1.2.A.3 [1分｜结论性]：总结两组规模接近且收入差距显著，为后续地理分层分析提供可信基线。
+
+---
+
+## 需求2：揭示高/低收益市场的绩效分歧（最高可得 12分）
+
+### 标准2.1：地域结构差异识别（最高可得 6分）
+
+#### 路径2.1.A [6分｜语言区域分布对比]
+- 小标准2.1.A.1 [1分｜完备性]：以 user_language 作为 region 维度，分别统计高/低收益条目的数量与占比。
+- 小标准2.1.A.2 [4分｜精确性]：至少展示 6 个关键市场，并与锚点对齐：  
+  • ZH：total=2 538、high_cnt=821、low_cnt=689、high_share=32.35%、low_share=27.15%  
+  • FR：total=2 364、high_cnt=746、low_cnt=716、high_share=31.56%、low_share=30.29%  
+  • ES：total=2 415、high_cnt=754、low_cnt=688、high_share=31.22%、low_share=28.49%  
+  • PT：total=2 610、high_cnt=790、low_cnt=772、high_share=30.27%、low_share=29.58%  
+  • IT：total=2 379、high_cnt=693、low_cnt=834、high_share=29.13%、low_share=35.06%  
+  • KO：total=2 305、high_cnt=602、low_cnt=758、high_share=26.12%、low_share=32.89%  
+  （行数容差±5、占比容差±0.1pp）。
+- 小标准2.1.A.3 [1分｜结论性]：点明高收益集中在 ZH/FR/ES，低收益高占比集中于 IT/KO，呈现地理结构错位。
+
+### 标准2.2：关键绩效指标差距（最高可得 6分）
+
+#### 路径2.2.A [6分｜区域绩效对照]
+- 小标准2.2.A.1 [1分｜完备性]：对每个 region 同时计算高/低收益在 survey_progress、question_value、duration_in_seconds 的均值。
+- 小标准2.2.A.2 [4分｜精确性]：列出至少 3 个代表市场的数值差：  
+  • ZH：progress_high=54.74、progress_low=49.10、duration_high=42.38、duration_low=44.05；  
+  • PT：progress_high=49.95、progress_low=55.96、question_value_high=5.54、question_value_low=5.40；  
+  • EN：progress_high=45.91、progress_low=51.57、duration_high=44.40、duration_low=44.82；  
+  （容差±0.1）。  
+- 小标准2.2.A.3 [1分｜结论性]：概括高收益市场既有正向差值（如 ZH 进度 +5.64pp），亦有倒挂市场（PT/EN 高收益反而滞后），为差异成因讨论提供依据。
+
+---
+
+## 需求3：渠道联动与治理优先级（最高可得 12分）
+
+### 标准3.1：渠道维度放大差异（最高可得 6分）
+
+#### 路径3.1.A [6分｜渠道×收益交叉分析]
+- 小标准3.1.A.1 [1分｜完备性]：声明以 distribution_channel 交叉收益桶，输出份额、进度、时长三组指标。
+- 小标准3.1.A.2 [4分｜精确性]：给出关键渠道锚点：  
+  • mobile：high_cnt=1 537、low_cnt=1 435、high_share=31.32%、low_share=29.24%、progress_high=53.61、progress_low=49.80；  
+  • sms：high_cnt=1 349、low_cnt=1 433、high_share=28.94%、low_share=30.74%、progress_high=48.02、progress_low=50.67、duration_high=43.94、duration_low=42.26；  
+  • web：high_cnt=1 439、low_cnt=1 440、high_share=29.85%、low_share=29.88%、progress_high=48.96、progress_low=50.78。  
+  （数量容差±5、占比容差±0.1pp、指标容差±0.1）。
+- 小标准3.1.A.3 [1分｜结论性]：指出移动端是唯一高收益亦显著拉升进度的渠道，而 SMS/web 存在高收益但体验走低的风险。
+
+### 标准3.2：治理优先级与行动建议（最高可得 6分）
+
+#### 路径3.2.A [6分｜数据驱动的策略闭环]
+- 小标准3.2.A.1 [1分｜完备性]：以“区域×渠道”组合给出至少两类优先治理对象，覆盖高收益滞后与低收益潜力两种情景。
+- 小标准3.2.A.2 [4分｜精确性]：引用量化锚点支持建议，示例：  
+  • KO：high_share=26.12% vs low_share=32.89%、progress_high=48.75 vs 49.49，需补齐高收益转化流程；  
+  • PT：progress_high=49.95 vs 55.96、duration_high=46.10 vs 44.48，建议针对高收益客群优化留存路径；  
+  • mobile 渠道：progress 提升幅度 +3.81pp，相比 SMS (-2.65pp) 更适合扩投。  
+  （容差±0.1pp / ±0.1）。
+- 小标准3.2.A.3 [1分｜结论性]：形成“立即拓展 vs 重点补救”双轨策略，并量化预期目标（如 KO 高收益进度提升 ≥1pp、SMS 渠道低收益占比降至≤29%）。
+
+---

@@ -1,0 +1,8 @@
+Develop a fair and reasonable performance evaluation plan for Task Owners across different Task Types, and classify performance levels according to this plan.
+Requirements:
+1. Performance levels and proportions: The final performance evaluation results must be distributed according to Excellent (20%), Good (70%), Needs Improvement (10%).
+2. Evaluation dimensions: The plan should comprehensively consider the following core dimensions (but is not limited to):
+① Task completion status (e.g., completion rate, quality, timeliness)
+② Task Priority (the completion of high-priority tasks should be given special consideration)
+③ Work hours utilization (input–output efficiency)
+Because different Task Types may have significant differences in difficulty, complexity, and required skills, you must fully consider and reasonably balance these differences during plan design and actual evaluation to ensure fairness, comparability, and avoid distortion.

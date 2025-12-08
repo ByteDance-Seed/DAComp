@@ -1,0 +1,141 @@
+==============================
+# [总分 | 30分] 评分标准
+---
+## 需求1：识别并量化“表面健康但潜在高风险”项目（本需求最高可得 12分）
+### 标准1.1：数据映射与项目级口径声明（最高4分）
+#### 路径1.1.A（多表映射 + 代理补位）
+- 小标准1.1.A.1【1分｜完备性】说明数据角色：`jira__project_risk_assessment` 为200条项目主表；`jira__team_performance_dashboard` 仅含 `project_id='all_projects'`，需弃用直接关联；`jira__stakeholder_engagement_insights` 无项目键，必须代理映射。三项均需点名。
+- 小标准1.1.A.2【2分｜精确性】给出并全程使用统一代理：`team_perf_proxy = 0.4*team_stability_percentage + 0.3*(sprint_adoption_rate*100) + 0.3*velocity_score`（其中 `velocity_score = 100` 若 `resolution_velocity_change_percent ≥ 0`，否则 `max(0, 100 + resolution_velocity_change_percent)`）。`stakeholder_factor = (total_external_links / 22.0) × 0.5626`。验证口径：全量 `team_perf_proxy` 范围 57.55–95.48、均值 84.21；`stakeholder_factor` 范围 0.128–0.563、均值 0.343，允许误差±0.05。若采用自定义公式，需给出与回答一致的再现值。
+- 小标准1.1.A.3【1分｜结论性】给出数据质量结论：如“样本200行，项目键存在重复，团队/干系人需代理映射，健康分偏乐观”，并说明后续统计以代理口径为准。
+
+#### 路径1.1.B（仅用项目表派生）
+- 小标准1.1.B.1【1分｜完备性】声明仅依赖项目表派生，并列出至少三个维度：生命周期偏差、干预紧迫度、跨功能复杂度。
+- 小标准1.1.B.2【3分｜精确性】给出可复现公式并验证：
+  - `lifecycle_deviation_ratio = max(0, 1 - value_delivery_percentage/100)`，全量平均 0.31、P75≈0.60；
+  - `intervention_urgency_index = 0.4*(net_issue_growth_30d>0) + 0.3*(high_delay_cost_issues>0) + 0.3*(resolution_velocity_change_percent<0)`，取值仅为{0,0.4,0.7,1.0}，全量平均 0.51、P75≈1.00；
+  - `crossfunc_complexity = 0.4*(unique_issue_types/13) + 0.4*(unique_components/8) + 0.2*(total_external_links/22)`，全量平均 0.69、P75≈1.00。检查数值误差≤±0.02。
+- 小标准1.1.B.3【1分｜结论性】阐明单表派生的适用性与局限，例如“便于快速扫描生命周期/协作偏差，但无法刻画干系人网络质量”。
+
+#### 路径1.1.C（数据质量声明）
+- 小标准1.1.C.1【1分｜完备性】列出关键缺陷：项目键重复、团队表仅全局汇总、干系人表缺项目键，并说明各自的替代口径。
+- 小标准1.1.C.2【2分｜精确性】明确后续统一阈值：健康高判定 `overall_health_score>75` 且 `team_perf_proxy>80`；干系人高压 `stakeholder_factor≥0.40`；风险高位阈值取 `composite_risk_score ≥ 43.81`（全量P75，误差±0.1）。需说明所有统计均按该口径执行。
+- 小标准1.1.C.3【1分｜结论性】给出保守策略，例如“对高位阈值执行 P70/P80 敏感性（见2.2.C），并对重复项目取行级分析”，与前述声明互相呼应。
+
+### 标准1.2：“矛盾项目”识别与规模统计（最高6分）
+#### 路径1.2.A（复合阈值 + 组织信号）
+- 小标准1.2.A.1【1分｜完备性】明确矛盾判定：满足 `overall_health_score>75`、`team_perf_proxy>80`、`composite_risk_score≥43.81`，且命中 `urgent_flag=1`（干预紧迫度≥0.7）或 `contra_pri_flag=1`（战略优先级为Critical/High）。
+- 小标准1.2.A.2【4分｜精确性】给出统计：矛盾项目 7 个，占全量 3.5%、占健康子集 24.14%；`composite_risk_score` 均值 47.47、范围 44.01–55.02。需同时列出风险驱动分布（Resource Constraints=5、Schedule Pressure=1、Team Dynamics=1）、推荐干预（全部为 Immediate Executive Review Required）、战略优先级（Critical=3、High=4）。允许误差±1 项或±0.2 分，超出则不得分。
+- 小标准1.2.A.3【1分｜结论性】总结规模特征，如“近四分之一高健康项目落入高风险，高度集中于资源与跨团队瓶颈”。
+
+#### 路径1.2.B（规则旗标法）
+- 小标准1.2.B.1【1分｜完备性】列出规则：健康条件同上；团队条件需说明 `schedule_risk_score≥35`、`resource_risk_score≥40` 认定 assignment 风险；组织旗标为 `lifecycle_deviation_ratio>0.5` 或 `intervention_urgency_index≥0.7` 或 `crossfunc_complexity>0.75`。
+- 小标准1.2.B.2【4分｜精确性】验证：健康高项目 29 个，其中 schedule≥35 为15，resource≥40 为9，assignment双高 5；组织旗标命中 17；综合规则识别矛盾 20 个（占健康 68.97%）。输出需与此一致（误差±1 个）。
+- 小标准1.2.B.3【1分｜结论性】说明规则法适用于快速排查，但会高估（相较复合模型 7 个 → 20 个）。
+
+#### 路径1.2.C（分位阈值 + cume_dist）
+- 小标准1.2.C.1【1分｜完备性】说明 `composite_risk_score` 通过 `cume_dist()` 取 P75=43.81，并与组织/紧迫旗标联合使用。
+- 小标准1.2.C.2【4分｜精确性】报告矛盾项目的驱动/干预分布：Resource=5、Schedule=1、Team=1；干预层级 Immediate Executive=7；战略优先级 Critical Priority=3、High Priority=4。需同时给出 `stakeholder_factor` 均值 0.369、`crossfunc_complexity` 均值 0.72。误差允许±0.01。
+- 小标准1.2.C.3【1分｜结论性】指出风险集中在资源投入与跨功能协作错配。
+
+### 标准1.3：结构化分布与样例证据（最高2分）
+#### 路径1.3.A（群组均值对比）
+- 小标准1.3.A.1【1分｜完备性】提供矛盾 vs 非矛盾 9 项指标均值：value_delivery_percentage 52.4 vs 69.9；team_stability_percentage 75.8 vs 80.0；schedule_risk_score 38.4 vs 36.2；resource_risk_score 46.1 vs 32.4；net_issue_growth_30d 9.1 vs 4.4；resolution_velocity_change_percent 7.5 vs 12.5；unique_components 4.7 vs 5.0；unique_issue_types 11.4 vs 10.5；total_external_links 14.4 vs 13.4；high_delay_cost_issues 2.9 vs 3.6。（误差±0.3）
+- 小标准1.3.A.2【1分｜精确性】说明差异含义，如“矛盾组价值交付落后17.5pp、资源压力高出13.7分”。
+
+#### 路径1.3.B（典型样例）
+- 小标准1.3.B.1【1分｜完备性】列出 ≥5 个矛盾项目（需使用 `project_id`），例如：
+  - PRO18313235436(DAA)：health79.5、team83.1、composite55.02、value65.5、stability76.4、issue_growth1、velocity-15.8、schedule33、resource52、crossfunc0.85、external_links22；
+  - PRO12023225217(POD)：91.5、81.3、50.82、46.0、72.8、9.0、-4.1、53、36、0.75、9；
+  - PRO28057297018(UMG)：75.8、86.8、46.37、44.5、71.6、21.0、41.2、35、56、0.54、12；
+  - PRO29402630254(UMA)：76.4、87.8、46.35、50.5、86.6、12.0、-15.8、25、39、0.90、16；
+  - PRO17787949649(SEA)：87.2、82.9、45.10、62.5、62.5、-1.0、41.2、55、64、0.67、20。
+- 小标准1.3.B.2【1分｜精确性】样例需与公式一致，允许误差±0.2 分（百分号指标±0.2pp）。
+
+---
+## 需求2：综合风险评估模型构建与验证（本需求最高可得 12分）
+### 标准2.1：模型特征与归一化设计（最高5分）
+#### 路径2.1.A（加权归一化模型）
+- 小标准2.1.A.1【1分｜完备性】列出模型维度与方向：复杂度、进度、资源、问题增长、速度衰减、依赖度、价值缺口、团队不稳定；并说明三项风险旗标（干预紧迫、团队动荡、战略冲突）。
+- 小标准2.1.A.2【4分｜精确性】给出公式并验证：
+  - 归一化：`complexity_norm = complexity_risk_score/100`；`schedule_norm = schedule_risk_score/100`；`resource_norm = resource_risk_score/100`；`issue_growth_norm = max(0, net_issue_growth_30d)/21`；`velocity_decline_norm = max(0, -resolution_velocity_change_percent)/22.5`；`dependency_norm = min(1, total_external_links/22)`；`value_gap_norm = lifecycle_deviation_ratio`；`team_instability_norm = clip((100-team_stability_percentage)/48,0,1)`。
+  - 综合得分：`composite = 100*(0.20*complexity_norm + 0.15*schedule_norm + 0.15*resource_norm + 0.10*issue_growth_norm + 0.10*velocity_decline_norm + 0.10*dependency_norm + 0.10*value_gap_norm + 0.10*team_instability_norm) + 10*(0.5*urgent_flag + 0.3*teamdyn_flag + 0.2*contra_pri_flag)`。
+  - PD 映射参考：`PD = 1 / (1 + exp(-( -3 + 0.08*(composite-40) )))`，示例 `composite=30→PD=0.0219`、`43.81→0.0633`、`60→0.1978`（误差±0.002）。
+  - 验证：全量最小 18.64、最大 70.76、均值 37.87；矛盾样本 DAA=55.02、POD=50.82。误差±0.1。
+
+#### 路径2.1.B（正负对冲模型）
+- 小标准2.1.B.1【1分｜完备性】定义 `positive_health = 0.5*(overall_health_score/100) + 0.3*(team_perf_proxy/100) + 0.2*(success_probability/100)`；`risk_load = composite/100 + stakeholder_factor`。
+- 小标准2.1.B.2【4分｜精确性】计算 `adjusted_true_health = 100*(positive_health - risk_load)` 并列示差距：矛盾组均值 -16.9，非矛盾 -13.8；样例 PRO18313235436=-46.5、PRO12023225217=-3.6。误差±0.5。
+
+#### 路径2.1.C（分层卡模型）
+- 小标准2.1.C.1【1分｜完备性】设定：True Healthy ≥20；Watchlist [0,20)；At Risk [-20,0)；Critical < -20。
+- 小标准2.1.C.2【4分｜精确性】给出分层结果：True Healthy=6、Watchlist=44、At Risk=74、Critical=76（误差±1）。需说明矛盾样本全部落在 Critical 档。
+
+### 标准2.2：模型输出与阈值校准（最高4分）
+#### 路径2.2.A（P75阈值 + 矛盾检出）
+- 小标准2.2.A.1【1分｜完备性】说明 P75 通过 `cume_dist()` 得到 43.81，并与 `urgent_flag`/`contra_pri_flag` 组合。
+- 小标准2.2.A.2【2分｜精确性】列出检出效果：矛盾 7 项，平均风险 47.47（范围 44.01–55.02），占健康高项目 24.14%。误差±0.2。
+- 小标准2.2.A.3【1分｜结论性】描述模型纠偏：如“健康评分误判 29 项 → 模型识别出 7 项高风险，优先聚焦资源瓶颈”。
+
+#### 路径2.2.B（健康×真实风险四象限）
+- 小标准2.2.B.1【1分｜完备性】构建象限：横轴 `overall_health_score>75`，纵轴 `composite≥43.81`。
+- 小标准2.2.B.2【2分｜精确性】给出象限规模：High&HighRisk=14、High&LowRisk=28、NotHigh&HighRisk=37、NotHigh&LowRisk=121。误差±1。
+- 小标准2.2.B.3【1分｜结论性】指出错配：例如“29 个高健康中仅 13 个真实健康，46.4% 为错判”。
+
+#### 路径2.2.C（错判矩阵 + 敏感性）
+- 小标准2.2.C.1【1分｜完备性】提供错判矩阵：`HighHealth∧TrueHealthy=13`、`HighHealth∧TrueRisk=29`、`NotHigh∧TrueHealthy=37`、`NotHigh∧TrueRisk=121`。
+- 小标准2.2.C.2【2分｜精确性】执行阈值敏感性：
+  - P70=42.03 → 矛盾 10、均值 46.09；
+  - P75=43.81 → 矛盾 7、均值 47.47；
+  - P80=45.24 → 矛盾 4、均值 49.64。
+  需同时说明占健康比：34.48%、24.14%、13.79%。
+- 小标准2.2.C.3【1分｜结论性】推荐保持 P75，并以 P70 作为扩围复核、P80 作为红线清单。
+
+### 标准2.3：模型验证与解释性（最高3分）
+#### 路径2.3.A（协方差验证）
+- 小标准2.3.A.1【1分｜完备性】给出全量与健康子集协方差：
+  - 全量 `cov(comp,value)=-60.27`、`cov(comp,velocity)=-57.81`、`cov(comp,resource)=41.68`、`cov(comp,schedule)=43.67`、`cov(comp,issue_growth)=44.21`；
+  - 健康子集 -64.49、-95.56、86.25、52.69、38.50。
+- 小标准2.3.A.2【1分｜精确性】数值允差±1。
+- 小标准2.3.A.3【1分｜结论性】解释风险分与价值/速度负相关，与资源/进度/问题增长正相关。
+
+#### 路径2.3.B（群组均值 + 模型解释）
+- 小标准2.3.B.1【1分｜完备性】比较 `positive_health` 与 `risk_load`：矛盾组 67.5 vs 84.4，非矛盾 58.0 vs 71.8。
+- 小标准2.3.B.2【1分｜精确性】指出差距导致 `adjusted_true_health` 负值扩大（-16.9 vs -13.8）。
+- 小标准2.3.B.3【1分｜结论性】总结风险组合：“价值不足 + 资源压力 + 干系人高压” 叠加造成假象繁荣。
+
+---
+## 需求3：根因分析与治理建议（本需求最高可得 6分）
+### 标准3.1：人员配置效率（最高2分）
+#### 路径3.1.A（Assignment 风险）
+- 小标准3.1.A.1【1分｜完备性】定义 `assignment_risk_flag = (schedule_risk_score≥55 OR resource_risk_score≥55)`。
+- 小标准3.1.A.2【1分｜精确性】统计：矛盾组 2/7（28.6%），对照组 53/193（27.5%）。误差±1 项。
+
+#### 路径3.1.B（高绩效人群风险）
+- 小标准3.1.B.1【1分｜完备性】将 `team_perf_proxy≥85` 视为高绩效，并按 `stakeholder_factor` 分层：High≥0.40、Medium[0.32,0.40)、Low<0.32。
+- 小标准3.1.B.2【1分｜精确性】展示价值交付均值：High=68.0、Medium=72.6、Low=71.9（误差±0.3）。
+- 小标准3.1.B.3【1分｜结论性】指出高绩效×高风险组合交付反而垫底，需优先干预其干系人管理。
+
+### 标准3.2：沟通协作网络质量（最高2分）
+#### 路径3.2.A（风险分层画像）
+- 小标准3.2.A.1【1分｜完备性】说明高风险干系人占比：`stakeholder_factor≥0.40` 占全量 38.50%。
+- 小标准3.2.A.2【1分｜精确性】比较网络指标：矛盾组 `stakeholder_factor` 0.369、`crossfunc_complexity` 0.72、外链 14.4；对照组 0.343、0.69、13.4（误差±0.02）。
+- 小标准3.2.A.3【1分｜结论性】总结为“量多质低”的网络结构。
+
+#### 路径3.2.B（高绩效用户中的参与风险）
+- 小标准3.2.B.1【1分｜完备性】同 3.1.B 的分层，用以评估参与质量差异。
+- 小标准3.2.B.2【1分｜精确性】指出高风险层的 `intervention_urgency_index≥0.7` 占比 62.5%，中风险 50.0%，低风险 45.8%（误差±2pp）。
+- 小标准3.2.B.3【1分｜结论性】强调需提高高风险层协作深度与响应时效。
+
+### 标准3.3：流程偏差与跨功能错配（最高1分）
+- 小标准3.3.A.1【1分｜完备性】定义关注指标：`lifecycle_deviation_ratio>0.5`、`crossfunc_complexity>0.75`、`total_external_links≥18`。
+- 小标准3.3.A.2【1分｜精确性】矛盾组命中：生命周期偏差 3、跨功能错配 4、高外链 2；对照组分别 32、64、53（误差±1）。
+- 小标准3.3.A.3【1分｜结论性】指出三项共振是“假象繁荣”的主驱因。
+
+### 标准3.4：治理策略与执行闭环（最高1分）
+- 小标准3.4.A.1【1分｜结论性】至少给出 4 条治理措施并带量化目标，例如：
+  1. 对矛盾项目两周内调配资源，使 `resource_risk_score` 降至≤40；
+  2. 将高风险干系人 4 周内的响应 SLA 控制在 24h 内，并监测 `stakeholder_factor<0.35`；
+  3. 在下一双迭代内提升目标团队 `value_delivery_percentage` 至≥65%；
+  4. 对 `crossfunc_complexity>0.75` 的项目实施协同看板与WIP限制，使指标在一个发布周期内回落到≤0.7；
+  5. 对 `assignment_risk_flag=1` 项目进行岗位双换班审查并在两次冲刺内压降 `schedule_risk_score` 至≤35。
+  建议需与指标口径吻合。

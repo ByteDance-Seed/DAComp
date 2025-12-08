@@ -1,0 +1,410 @@
+# [Total Score | 34 points] The problem-solving process must meet the following five core requirements:
+- Requirement 1: Multi-table merge, Hand, Foot, and Mouth Disease screening, and patient outcome extraction
+- Requirement 2: Cover the symptoms dimension and complete correlation testing
+- Requirement 3: Cover the prevention/control dimension and complete correlation testing
+- Requirement 4: Cover the treatment dimension and complete correlation testing
+- Requirement 5: Formulate non-exaggerated conclusion statements based on actual computed results
+
+
+## Requirement 1: Multi-table merge, Hand, Foot, and Mouth Disease screening, and patient outcome extraction (maximum 4 points)
+### Standard 1.1 Table-level integration and primary key consistency (maximum 1 point)
+#### Path 1.1.A Full multi-table merge (1 point)
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Merge diagnosis_and_classification and the clinical diagnosis sheet; clearly define the unique primary key as **Case ID**, and de-duplicate by the primary key.
+### Standard 1.2 Research sample selection (maximum 1 point)
+#### Path 1.2.A Strictly construct the study cohort according to the problem statement (1 point)
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Clearly select cases with the Differential Diagnosis (Measles/Hand, Foot, and Mouth Disease) column value equal to "Hand, Foot, and Mouth Disease" as study subjects; complete handling of missing/blank values.
+
+### Standard 1.3 Patient outcome extraction and encoding (maximum 2 points)
+#### Path 1.3.A Standardize the target variable (Deceased/Recovered) (2 points)
+- Sub-standard 1.3.A.1 [1 point | Completeness]: Based on Outcome (Cured/Improved/Deceased), construct a binary variable, explicitly “Deceased=1, Cured=0” (or similar encoding); explain the handling strategy for “Improved” (e.g., exclude or merge into Cured).
+- Sub-standard 1.3.A.2 [1 point | Accuracy]: The encoding is error-free, and remains consistent with the grouping used in subsequent tests (code and textual descriptions correspond one-to-one).
+
+
+## Requirement 2: Cover the symptoms dimension and complete correlation testing (maximum 9 points)
+### Standard 2.1 Field selection and numeric extraction (maximum 3 points)
+#### Path 2.1.A Only path (3 points)
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Select and analyze at least 4 of the following fields for correlation with the patient’s final outcome:
+  - Complication Type (Pneumonia/Encephalitis/Skin Infection)
+  - Severity grading (mild/moderate/severe)
+  - Associated Symptoms (Cough/Headache/Vomiting)
+  - Rash Distribution (Head & Face/Trunk/Limbs), Rash Morphology (Macule/Papule/Vesicle)
+  - Highest Body Temperature (°C)
+- Sub-standard 2.1.A.2 [1 point | Completeness]: Encode each categorical field, and perform numeric extraction for potential numeric fields.
+- Sub-standard 2.1.A.3 [1 point | Precision]:
+  - Encoding rules for categorical fields: only “Severity grading” uses ordinal encoding; all others use nominal (unordered) encoding.
+  - Numeric field extraction: consistent with common understanding, with no omissions (example: when Complication management timeliness is “26h”, extract the numeric 26 as a numeric variable).
+
+### Standard 2.2 Correlation testing (maximum 6 points)
+#### Path 2.2.A Correlation coefficient methods (6 points)
+- Sub-standard 2.2.A.1 [1 point | Completeness]: For each selected symptoms field, select and compute an appropriate correlation coefficient or a specific correlation test method, and provide the basis and rationale for selection.
+- Sub-standard 2.2.A.2 [2 points | Accuracy]: The choice of test method is appropriate and reasonable; reference rules are as follows:
+  - Binary variables → Fisher’s exact test
+  - Multicategorical variables → χ² test
+  - Non-normal numeric → Mann-Whitney test
+  - Normal variables with unequal variances → Welch’s t-test
+  - All use **two-sided tests**  
+  If deviating from the reference choice, logic must be validated; if reasonable, points can be awarded.
+- Sub-standard 2.2.A.3 [2 points | Accuracy]: Correlation coefficients/statistics are computed correctly; missing one required field deducts 1 point, deduct until zero. Reference answers below (using the clinical_manifestations sheet as the base, multi-table joins without removing nulls, 211 valid rows, including 69 Hand, Foot, and Mouth Disease rows; when metric definitions are consistent, permissible error ≤1%; otherwise validate by code. In addition, if 1.1 and 1.2 did not achieve full points, this accuracy item is also 0 points):
+
+| Field                 | Category/Overall | Method                                 | Statistic/Coefficient | Degrees of freedom | Cramér's V | p-value     | Significance (p<0.05) |
+|-----------------------|------------------|----------------------------------------|-----------------------|--------------------|------------|-------------|------------------------|
+| Severity grading      | (Overall ordinal) | Spearman rank correlation (two-sided)  | 0.297216              | -                  | -          | 0.0424742   | Significant            |
+| Associated Symptoms   | (Overall multicategorical) | χ² test of independence (two-sided) | 11.138               | 2                  | 0.401772   | 0.00381421  | Significant            |
+| Complication Type     | (Overall multicategorical) | χ² test of independence (two-sided) | 7.68288              | 2                  | 0.333686   | 0.0214627   | Significant            |
+| Highest Body Temperature (°C) | (Continuous) | Mann-Whitney U (two-sided)            | 536.5                | -                  | -          | 0.110882    | Not significant        |
+| Rash Distribution     | (Overall multicategorical) | χ² test of independence (two-sided) | 11.6613              | 2                  | 0.411101   | 0.0029362   | Significant            |
+| Rash Morphology       | (Overall multicategorical) | χ² test of independence (two-sided) | 11.3882              | 2                  | 0.406259   | 0.0033658   | Significant            |
+
+- Sub-standard 2.2.A.4 [1 point | Conclusion soundness]: Strictly based on the correlation results per field, determine whether each symptoms field is significantly associated according to the p<0.05 criterion.
+
+#### Path 2.2.B Proportion analysis grouped by patient outcome (5 points)
+- Sub-standard 2.2.B.1 [1 point | Completeness]: Group by Outcome (Deceased/Cured), and compute within-group proportions for each categorical symptoms field in each group. For numeric fields, first perform interval binning, then compute within-group proportions for the two groups; or directly compare means (or similar statistics).
+- Sub-standard 2.2.B.2 [3 points | Accuracy]: Within-group proportion calculations for each field are correct; missing one required field deducts 1 point, deduct until zero. Reference answers below (data scope as above, same error requirements; moreover, if 1.1 and 1.2 did not achieve full points, this accuracy item is also 0 points):
+
+  - **Complication Type**
+  | Category     | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |--------------|-------------------------------------------|-------------------------|
+  | Skin Infection | 0                                       | 0.698113               |
+  | Skin Infection | 1                                       | 0.3125                 |
+  | Pneumonia      | 0                                       | 0.169811               |
+  | Pneumonia      | 1                                       | 0.375                  |
+  | Encephalitis   | 0                                       | 0.132075               |
+  | Encephalitis   | 1                                       | 0.3125                 |
+
+  - **Associated Symptoms**
+  | Category     | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |--------------|-------------------------------------------|-------------------------|
+  | Vomiting     | 0                                         | 0.226415               |
+  | Vomiting     | 1                                         | 0.5625                 |
+  | Cough        | 0                                         | 0.660377               |
+  | Cough        | 1                                         | 0.1875                 |
+  | Headache     | 0                                         | 0.113208               |
+  | Headache     | 1                                         | 0.25                   |
+
+  - **Rash Distribution**
+  | Category     | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |--------------|-------------------------------------------|-------------------------|
+  | Limbs        | 0                                         | 0.113208               |
+  | Limbs        | 1                                         | 0.4375                 |
+  | Head & Face  | 0                                         | 0.358491               |
+  | Head & Face  | 1                                         | 0.4375                 |
+  | Trunk        | 0                                         | 0.528302               |
+  | Trunk        | 1                                         | 0.125                  |
+
+  - **Rash Morphology**
+  | Category     | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |--------------|-------------------------------------------|-------------------------|
+  | Papule       | 0                                         | 0.471698               |
+  | Papule       | 1                                         | 0.25                   |
+  | Macule       | 0                                         | 0.415094               |
+  | Macule       | 1                                         | 0.25                   |
+  | Vesicle      | 0                                         | 0.113208               |
+  | Vesicle      | 1                                         | 0.5                    |
+
+  - **Highest Body Temperature (°C)_binned**
+  | Category     | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |--------------|-------------------------------------------|-------------------------|
+  | 37.5-38.4    | 0                                         | 0.339623               |
+  | 37.5-38.4    | 1                                         | 0.0625                 |
+  | 38.5-39.4    | 0                                         | 0.396226               |
+  | 38.5-39.4    | 1                                         | 0.375                  |
+  | <37.5        | 0                                         | 0.169811               |
+  | <37.5        | 1                                         | 0.5                    |
+  | ≥39.5        | 0                                         | 0.0943396             |
+  | ≥39.5        | 1                                         | 0.0625                 |
+
+  - **Severity grading**
+  | Category     | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |--------------|-------------------------------------------|-------------------------|
+  | Moderate     | 0                                         | 0.184211               |
+  | Moderate     | 1                                         | 0.444444               |
+  | Mild         | 0                                         | 0.710526               |
+  | Mild         | 1                                         | 0.333333               |
+  | Severe       | 0                                         | 0.105263               |
+  | Severe       | 1                                         | 0.222222               |
+
+- Sub-standard 2.2.B.3 [1 point | Conclusion soundness]: Based on within-group proportion results for the two outcome groups, identify symptoms fields with clearly distinct proportion differences between groups and judge them as significantly associated fields.
+
+#### Path 2.2.C Proportion analysis using each symptoms field as the grouping basis (4 points)
+- Sub-standard 2.2.C.1 [1 point | Completeness]: Group independently by each categorical symptoms field and compute the death/recovery proportions within each group.
+- Sub-standard 2.2.C.2 [1 point | Completeness]: For numeric fields, perform interval binning first, then group independently and compute death/recovery proportions, or directly compare means (or similar statistics).
+- Sub-standard 2.2.C.3 [1 point | Accuracy]: Within-group death/recovery proportion calculations for each field are correct; missing one required field deducts 1 point, deduct until zero. Reference answers below (data scope as above, same error requirements; moreover, if 1.1 and 1.2 did not achieve full points, this accuracy item is also 0 points):
+
+  - **Complication Type**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | Skin Infection | 0.119048         | 0.880952                  |
+  | Pneumonia      | 0.4              | 0.6                       |
+  | Encephalitis   | 0.416667         | 0.583333                  |
+
+  - **Associated Symptoms**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | Vomiting       | 0.428571         | 0.571429                  |
+  | Cough          | 0.0789474        | 0.921053                  |
+  | Headache       | 0.4              | 0.6                       |
+
+  - **Rash Distribution**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | Limbs          | 0.538462         | 0.461538                  |
+  | Head & Face    | 0.269231         | 0.730769                  |
+  | Trunk          | 0.0666667        | 0.933333                  |
+
+  - **Rash Morphology**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | Papule         | 0.137931         | 0.862069                  |
+  | Macule         | 0.153846         | 0.846154                  |
+  | Vesicle        | 0.571429         | 0.428571                  |
+
+  - **Highest Body Temperature (°C)_binned**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | 37.5-38.4      | 0.0526316        | 0.947368                  |
+  | 38.5-39.4      | 0.222222         | 0.777778                  |
+  | <37.5          | 0.470588         | 0.529412                  |
+  | ≥39.5          | 0.166667         | 0.833333                  |
+
+  - **Severity grading**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | Moderate       | 0.363636         | 0.636364                  |
+  | Mild           | 0.1              | 0.9                       |
+  | Severe         | 0.333333         | 0.666667                  |
+
+- Sub-standard 2.2.C.4 [1 point | Conclusion soundness]: Considering the influence of differences in the number of deaths vs recoveries on the proportions, identify symptoms fields with clearly distinct death/recovery proportion differences and judge them as significantly associated fields.
+
+
+## Requirement 3: Cover the prevention/control dimension and complete correlation testing (maximum 8 points)
+### Standard 3.1 Field selection and derivation/numeric extraction (maximum 3 points)
+#### Path 3.1.A Complete field coverage and normalization (3 points)
+- Sub-standard 3.1.A.1 [1 point | Completeness]: Cover at least four required fields (Isolation Type, Disinfectant Type, Disinfection Effectiveness, Personal protective equipment usage), and explain the analytical relationship of each field with the outcome variable.
+- Sub-standard 3.1.A.2 [1 point | Completeness]: Encode each categorical field, and perform numeric extraction for potential numeric fields.
+- Sub-standard 3.1.A.3 [1 point | Accuracy]:
+  - Categorical fields use standard encodings (e.g., one-hot/ordinal encoding), in which “Disinfection Effectiveness” is an ordered variable and its ordered levels must be specified.
+  - Numeric fields (e.g., Isolation Site Temperature & Humidity) must be extracted with units harmonized correctly (example: “28/70” requires extracting 28 as temperature and 70 as humidity), with no omissions.
+
+### Standard 3.2 Correlation testing (maximum 5 points)
+#### Path 3.2.A Correlation coefficient methods (5 points)
+- Sub-standard 3.2.A.1 [1 point | Completeness]: For each selected prevention/control field, select and compute an appropriate correlation coefficient/test method, and provide the basis and rationale for selection.
+- Sub-standard 3.2.A.2 [1 point | Accuracy]: Method choice is reasonable; reference rules are as follows:
+  - Binary variables → Fisher’s exact test; multicategorical variables → χ² test; ordered variables → trend test; numeric variables → Mann-Whitney or Welch’s t-test; all use **two-sided tests**.
+- Sub-standard 3.2.A.3 [2 points | Accuracy]: Statistics/coefficients are computed correctly; missing one required field deducts 1 point, deduct until zero. Reference answers below (using the clinical_manifestations sheet as the base, multi-table joins without removing nulls, 211 valid rows, including 69 Hand, Foot, and Mouth Disease rows; when metric definitions are consistent, permissible error ≤1%; otherwise validate by code. In addition, if 1.1 and 1.2 did not achieve full points, this accuracy item is also 0 points):
+
+| Field                         | Category/Overall               | Method                                | Statistic/Coefficient | Degrees of freedom | Cramér's V | p-value     | Significance (p<0.05) |
+|-------------------------------|--------------------------------|---------------------------------------|-----------------------|--------------------|------------|-------------|------------------------|
+| Disinfectant Type             | (Binary: Peracetic acid=1)    | Fisher’s exact test (two-sided)       | 0.101382             | -                  | -          | 0.00143729  | Significant            |
+| Disinfection Effectiveness    | (Ordered)                      | Spearman rank correlation (two-sided) | -0.41107             | -                  | -          | 0.00502973  | Significant            |
+| Personal protective equipment usage | (Binary: Complete=1)    | Fisher’s exact test (two-sided)       | 0.101382             | -                  | -          | 0.00143729  | Significant            |
+| Isolation Type                | (Binary: Home=1)              | Fisher’s exact test (two-sided)       | 0.180879             | -                  | -          | 0.00825369  | Significant            |
+
+- Sub-standard 3.2.A.4 [1 point | Conclusion soundness]: Based on p<0.05, judge each item’s significance and briefly describe the direction of the association (example: standardized personal protective equipment usage is associated with lower death risk).
+
+#### Path 3.2.B Proportion analysis grouped by patient outcome (4 points)
+- Sub-standard 3.2.B.1 [1 point | Completeness]: Group by Deceased/Cured, and compute within-group proportions for categorical prevention/control fields (Isolation/Disinfectant/Personal protective equipment, etc.). If numeric prevention/control fields exist (e.g., Disinfection Frequency/Area), first perform binning, then compute within-group proportions for the two groups; or directly compare means (or similar statistics).
+- Sub-standard 3.2.B.2 [2 points | Accuracy]: Within-group proportion calculations for each field are correct; missing one required field deducts 1 point, deduct until zero. Reference answers below (data scope as above, same error requirements; moreover, if 1.1 and 1.2 did not achieve full points, this accuracy item is also 0 points):
+
+  - **Isolation Type**
+  | Category   | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |------------|-------------------------------------------|-------------------------|
+  | Hospital   | 0                                         | 0.188679               |
+  | Hospital   | 1                                         | 0.5625                 |
+  | Home       | 0                                         | 0.811321               |
+  | Home       | 1                                         | 0.4375                 |
+
+  - **Disinfectant Type**
+  | Category       | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |----------------|-------------------------------------------|-------------------------|
+  | Chlorine-based | 0                                         | 0.243902               |
+  | Chlorine-based | 1                                         | 0.5                    |
+  | Peracetic acid | 0                                         | 0.756098               |
+  | Peracetic acid | 1                                         | 0.5                    |
+
+  - **Disinfection Effectiveness**
+  | Category   | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |------------|-------------------------------------------|-------------------------|
+  | General    | 0                                         | 0.195122               |
+  | General    | 1                                         | 0.5                    |
+  | Good       | 0                                         | 0.682927               |
+  | Poor       | 0                                         | 0.121951               |
+  | Poor       | 1                                         | 0.5                    |
+
+  - **Personal protective equipment usage**
+  | Category   | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |------------|-------------------------------------------|-------------------------|
+  | Missing    | 0                                         | 0.243902               |
+  | Missing    | 1                                         | 0.5                    |
+  | Complete   | 0                                         | 0.756098               |
+  | Complete   | 1                                         | 0.5                    |
+
+- Sub-standard 3.2.B.3 [1 point | Conclusion soundness]: Based on between-group differences for each field’s proportion, designate prevention/control fields with clear discriminatory power as “significantly associated”.
+
+#### Path 3.2.C Proportion analysis using each prevention/control field as the grouping basis (3 points)
+- Sub-standard 3.2.C.1 [1 point | Completeness]: Group independently for each selected prevention/control field; if numeric (e.g., frequency/area), first bin then group, computing death/recovery proportions within each group, or directly compare means (or similar statistics).
+- Sub-standard 3.2.C.2 [1 point | Accuracy]: Within-group death/recovery proportion calculations for each field are correct; missing one required field deducts 1 point, deduct until zero. Reference answers below (data scope as above, same error requirements; moreover, if 1.1 and 1.2 did not achieve full points, this accuracy item is also 0 points):
+
+  - **Isolation Type**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | Hospital       | 0.473684         | 0.526316                  |
+  | Home           | 0.14             | 0.86                      |
+
+  - **Disinfectant Type**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | Chlorine-based | 0.166667         | 0.833333                  |
+  | Peracetic acid | 0.0606061        | 0.939394                  |
+
+  - **Disinfection Effectiveness**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | General        | 0.2              | 0.8                       |
+  | Good           | 0                | 1                         |
+  | Poor           | 0.285714         | 0.714286                  |
+
+  - **Personal protective equipment usage**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | Missing        | 0.166667         | 0.833333                  |
+  | Complete       | 0.0606061        | 0.939394                  |
+
+- Sub-standard 3.2.C.3 [1 point | Conclusion soundness]: Based on within-group proportion differences, and considering the impact of the numbers of deaths vs recoveries on proportions, identify prevention/control fields with clear discriminatory power as “significantly associated”.
+
+
+## Requirement 4: Cover the treatment dimension and complete correlation testing (maximum 8 points)
+### Standard 4.1 Field selection and numeric extraction (maximum 3 points)
+#### Path 4.1.A Complete parsing and normalization (3 points)
+- Sub-standard 4.1.A.1 [1 point | Completeness]: Cover at least three required fields (Treatment, Dosage, Management measures).
+- Sub-standard 4.1.A.2 [1 point | Completeness]: Encode each categorical field, and perform numeric extraction for potential numeric fields.
+- Sub-standard 4.1.A.3 [1 point | Accuracy]:
+  - Categorical fields use correct standard encodings (e.g., one-hot/ordinal); among them, “Management measures” is an ordered variable and its ordered levels must be specified.
+  - Numeric fields (e.g., Dosage) must be extracted with units harmonized correctly (example: “Dosage: 63/272mg” requires extracting 63 as a numeric variable), with no omissions.
+  - If only the code logic meets the requirements but does not successfully run, no points will be awarded.
+
+
+### Standard 4.2 Correlation testing (maximum 5 points)
+#### Path 4.2.A Correlation coefficient methods (5 points)
+- Sub-standard 4.2.A.1 [1 point | Completeness]: For each selected treatment field, select and compute an appropriate correlation coefficient or a specific correlation test method, and provide the basis and rationale for selection.
+- Sub-standard 4.2.A.2 [1 point | Accuracy]: The choice of test method is appropriate and reasonable; reference rules are as follows:
+  - Binary variables → Fisher’s exact test; multicategorical variables → χ² test; non-normal numeric → Mann-Whitney test; normal variables with unequal variances → Welch’s t-test; all use **two-sided tests**. If deviating from the reference choice, logic must be validated; if reasonable, points can be awarded.
+- Sub-standard 4.2.A.3 [2 points | Accuracy]: Correlation coefficients/statistics are computed correctly; missing one required field deducts 1 point, deduct until zero. Reference answers below (using the clinical_manifestations sheet as the base, multi-table joins without removing nulls, 211 valid rows, including 69 Hand, Foot, and Mouth Disease rows; when metric definitions are consistent, permissible error ≤1%; otherwise validate by code. In addition, if 1.1 and 1.2 did not achieve full points, this accuracy item is also 0 points):
+
+| Field                 | Category/Overall             | Method                                  | Statistic/Coefficient | Degrees of freedom | Cramér's V | p-value     | Significance (p<0.05) |
+|-----------------------|------------------------------|-----------------------------------------|-----------------------|--------------------|------------|-------------|------------------------|
+| Management measures   | (Overall multicategorical)   | χ² test of independence (two-sided)     | 9.73655               | 3                  | 0.375645   | 0.0209435   | Significant            |
+| Treatment             | (Binary: Antiviral=1)        | Fisher’s exact test (two-sided)         | 2.93333               | -                  | -          | 0.0955215   | Not significant        |
+| Dosage                | (Continuous)                 | Mann-Whitney U (two-sided)              | 479.5                 | -                  | -          | 0.433492    | Not significant        |
+
+- Sub-standard 4.2.A.4 [1 point | Conclusion soundness]: Strictly based on the correlation results per field, determine whether each treatment field is significantly associated according to the p<0.05 criterion.
+
+#### Path 4.2.B Proportion analysis grouped by patient outcome (4 points)
+- Sub-standard 4.2.B.1 [1 point | Completeness]: Group by patient outcome (Deceased/Cured), and compute within-group proportions for each categorical treatment field in each group. For numeric fields, first perform interval binning, then compute within-group proportions for the two groups; or directly compare means (or similar statistics).
+- Sub-standard 4.2.B.2 [2 points | Accuracy]: Within-group proportion calculations for each field are correct; missing one required field deducts 1 point, deduct until zero. Reference answers below (data scope as above, same error requirements; moreover, if 1.1 and 1.2 did not achieve full points, this accuracy item is also 0 points):
+
+  - **Treatment**
+  | Category     | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |--------------|-------------------------------------------|-------------------------|
+  | Symptomatic  | 0                                         | 0.830189               |
+  | Symptomatic  | 1                                         | 0.625                  |
+  | Antiviral    | 0                                         | 0.169811               |
+  | Antiviral    | 1                                         | 0.375                  |
+
+  - **Dosage (binned)**
+  | Category         | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |------------------|-------------------------------------------|-------------------------|
+  | (1.999, 36.0]    | 0                                         | 0.188679               |
+  | (1.999, 36.0]    | 1                                         | 0.5                    |
+  | (36.0, 40.0]     | 0                                         | 0.283019               |
+  | (36.0, 40.0]     | 1                                         | 0.125                  |
+  | (40.0, 54.0]     | 0                                         | 0.320755               |
+  | (40.0, 54.0]     | 1                                         | 0                      |
+  | (54.0, 95.0]     | 0                                         | 0.207547               |
+  | (54.0, 95.0]     | 1                                         | 0.375                  |
+
+  - **Management measures**
+  | Category     | Death flag (0=Cured/Improved, 1=Deceased) | Within-group proportion |
+  |--------------|-------------------------------------------|-------------------------|
+  | nan          | 0                                         | 0.283019               |
+  | nan          | 1                                         | 0.4375                 |
+  | Treatment    | 0                                         | 0.0566038              |
+  | Treatment    | 1                                         | 0.25                   |
+  | Observation  | 0                                         | 0.584906               |
+  | Observation  | 1                                         | 0.1875                 |
+  | Referral     | 0                                         | 0.0754717              |
+  | Referral     | 1                                         | 0.125                  |
+
+- Sub-standard 4.2.B.3 [1 point | Conclusion soundness]: Strictly based on within-group proportion results for each field, designate treatment fields with clearly distinct between-group proportion differences as significantly associated fields.
+
+#### Path 4.2.C Proportion analysis using each treatment field as the grouping basis (3 points)
+- Sub-standard 4.2.C.1 [1 point | Completeness]: Group independently by each categorical treatment field; for numeric fields, first perform interval binning, then group or directly compare means (or similar statistics); compute death/recovery proportions independently for each field.
+- Sub-standard 4.2.C.2 [1 point | Accuracy]: Within-group death/recovery proportion calculations for each field are correct; missing one required field deducts 1 point, deduct until zero. Reference answers below (data scope as above, same error requirements; moreover, if 1.1 and 1.2 did not achieve full points, this accuracy item is also 0 points):
+
+  - **Treatment**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | Symptomatic    | 0.185185         | 0.814815                  |
+  | Antiviral      | 0.4              | 0.6                       |
+
+  - **Dosage (binned)**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | (1.999, 36.0]  | 0.444444         | 0.555556                  |
+  | (36.0, 40.0]   | 0.117647         | 0.882353                  |
+  | (40.0, 54.0]   | 0                | 1                         |
+  | (54.0, 95.0]   | 0.352941         | 0.647059                  |
+
+  - **Management measures**
+  | Category value | Death proportion | Cured/Improved proportion |
+  |----------------|------------------|---------------------------|
+  | nan            | 0.318182         | 0.681818                  |
+  | Treatment      | 0.571429         | 0.428571                  |
+  | Observation    | 0.0882353        | 0.911765                  |
+  | Referral       | 0.333333         | 0.666667                  |
+
+- Sub-standard 4.2.C.3 [1 point | Conclusion soundness]: Strictly based on within-group proportion results for each field, considering the impact of differences in the number of deaths vs recoveries on proportions, designate treatment fields with clearly distinct death/recovery proportion differences as significantly associated fields.
+
+
+## Requirement 5: Formulate non-exaggerated conclusion statements based on actual computed results (maximum 5 points)
+### Standard 5.1 Structured conclusions and significance annotation (maximum 2 points)
+#### Path 5.1.A Standardized conclusion output (2 points)
+- Sub-standard 5.1.A.1 [1 point | Completeness]: Produce structured conclusion outputs that include field, direction/comparison, statistic/effect size, p-value, significance marker, and dimensional attribution.
+- Sub-standard 5.1.A.2 [1 point | Conclusion soundness]: Statistics in the conclusions correspond one-to-one with the aforementioned test results and are non-contradictory; provide only “significant/not significant/uncertain” judgments based on computed results, avoiding exaggerated causal statements.
+
+### Standard 5.2 Causal analysis (maximum 3 points)
+#### Path 5.2.A Only path (3 points)
+- Sub-standard 5.2.A.1 [1 point | Completeness]: Conduct causal logic analysis for significantly associated variables, analyze whether variables are true lethal triggers, and require analysis with reasons; include causal logic analysis and avoid survivorship bias.
+- Sub-standard 5.2.A.2 [2 points | Conclusion soundness]: Clearly identify variables that may be lethal proximate causes/triggers, while explaining why other significantly associated variables are not lethal triggers. Reference conclusions below:
+
+  **Significant variables that may be “proximate cause/trigger of death”**:
+  - Complication Type (χ²=7.68288, Cramér’s V=0.333686, p=0.0214627, significant)
+    - Judgment: It has a clear pathophysiological pathway (complications can directly lead to organ functional impairment). Under the premise of significance based solely on correlation testing, it can be considered a candidate variable for the “proximate cause/trigger in the chain of death”.
+    - Note: Further validation in multivariable/time-window models is needed to control for disease severity and co-causes, to verify its independent effect.
+
+  **Variables with obvious differences but cannot be identified as “lethal triggers” (with explanations)**:
+  - Severity grading (Spearman=0.297216, p=0.0424742, significant)
+    - Judgment: It is a disease state/mediating indicator (only reflects disease severity), not an exogenous cause of death.
+  - Associated Symptoms (χ²=11.138, Cramér’s V=0.401772, p=0.00381421, significant)
+    - Judgment: It is a disease phenotype/affected system marker, lacking direct evidence of an independent mechanism of lethality; it should not be interpreted as a lethal trigger.
+  - Rash Distribution (χ²=11.6613, Cramér’s V=0.411101, p=0.0029362, significant)
+    - Judgment: It represents differences in disease course phenotype and has no direct causal link to death; not an external cause of death.
+  - Rash Morphology (χ²=11.3882, Cramér’s V=0.406259, p=0.0033658, significant)
+    - Judgment: It represents differences in disease course phenotype and has no direct causal link to death; not an external cause of death.
+  - Disinfectant Type (Fisher statistic=0.101382, p=0.00143729, significant), Disinfection Effectiveness (Spearman=-0.41107, p=0.00502973, significant), Personal protective equipment usage (Fisher statistic=0.101382, p=0.00143729, significant), Isolation Type (Fisher statistic=0.180879, p=0.00825369, significant)
+    - Judgment: All of the above are management/process variables, typically determined by treatment workflows and disease severity after diagnosis, and are susceptible to indication bias/reverse causality (e.g., more severe patients are more likely to use advanced protection or specific isolation types); they should not be interpreted as lethal triggers.
+  - Management measures (χ²=9.73655, Cramér’s V=0.375645, p=0.0209435, significant)
+    - Judgment: The association is driven by treatment indications (severe patients are more likely to receive active “management measures”); it does not have exogenous trigger attributes and should not be considered a lethal trigger.
+
+  **Other variables not reaching significance** (e.g., Highest Body Temperature, Treatment, Dosage, etc.): no causal judgment is made.
+
+
+## Additional Notes
+### How to use the reference answers
+- If indicators appearing in the analysis have the same meaning as those in the reference answers, or indicators that the problem requires must be addressed, their results should be close to the reference answers.
+- If indicator meanings are completely different from the reference answers, the reference answers are not applicable; validate the computation logic via the “code validation method”.
+
+### Code validation method (applicable when reference answers cannot be exhaustively covered)
+By default “code correct implies result correct”; validation steps are as follows:
+1. Read through code comments and core logic to assess whether they are consistent with the analytical approach;
+2. Validate the code line by line to confirm whether each line achieves the functionality described in the corresponding comment;
+4. Verify the correctness of key steps in the computation process, including data cleaning, variable encoding, and statistical testing logic.

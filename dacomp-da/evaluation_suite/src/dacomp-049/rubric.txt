@@ -1,0 +1,107 @@
+# [Total score | 25 points] The solution must meet the following four core requirements:
+- Requirement 1: Correctly filter the industry and identify the target position
+- Requirement 2: Quantitative comparison and insights on compensation and benefits
+- Requirement 3: Quantitative comparison and insights on age and job requirements
+- Requirement 4: Structured presentation with effective conclusions and recommendations
+
+## Requirement 1: Correctly filter the industry and identify the target position (up to 5 points)
+**Goal**: Accurately extract "insurance industry-related positions" from the dataset and precisely locate the user’s target position "PICC Life Insurance Xiamen Haicang and Jimei After-sales Department Establishment Manager".
+
+### Criterion 1.1: Correct filtering and categorization of the Industry (up to 3 points)
+- **Path 1.1.A (complete path, 3 points)**: Multi-label industry parsing with cross-tagging
+  - Sub-criterion 1.1.A.1 (1 point, completeness): Implement multi-value parsing of the Industry column (e.g., "Insurance, Finance/Investment/Securities, …"), supporting multi-labels.
+  - Sub-criterion 1.1.A.2 (1 point, accuracy): The filtering logic is robust to Chinese separators (enumeration comma '、', commas '，' and ',', full-width/half-width) and parentheses; this path requires multi-label implementation—if only "Insurance" is included without multi-label parsing, choose other paths.
+  - Sub-criterion 1.1.A.3 (1 point, conclusiveness): Clearly state the sample size for "insurance industry related" (reference value ≈ 459 entries, allowed 450–500), and explain the existence and significance of "Insurance + Finance cross-category".
+- **Path 1.1.B (simplified path, 2 points)**: Single-label filtering using keywords
+  - Sub-criterion 1.1.B.1 (1 point, completeness): Execute a filter on the Industry column for "contains 'Insurance'"; the implementation of "contains Insurance → classify as insurance-related" is correct (according to the code verification method).
+  - Sub-criterion 1.1.B.2 (1 point, accuracy): Code implementation and results are correct (according to the code verification method), without cross-tagging.
+
+### Criterion 1.2: Precise identification of the target position and field reading (up to 2 points)
+- **Path 1.2.A (complete path, 2 points)**: Triple check using "Job Title + Company Name + Work Location"
+  - Sub-criterion 1.2.A.1 (1 point, completeness): Locate the target position 'Manager'/'management position' (or equivalent description) in the data and read the fields needed for comparison (Salary Range, Benefits, Work Experience Requirement, Age Requirement, Education Requirement, Work Location, Working Hours, Job Description, etc.).
+  - Sub-criterion 1.2.A.2 (1 point, accuracy): When identical or similar positions exist, use Company Name and Work Location to disambiguate and ensure the target position is identified; code logic can be validated by the code verification method.
+- **Path 1.2.B (simplified path, 1 point)**: Fuzzy match using only "Job Title"
+  - Sub-criterion 1.2.B.1 (1 point, completeness): Filter by Job Title only and read the main fields; if multiple results are returned, select the most relevant one for subsequent comparison.
+
+## Requirement 2: Quantitative comparison and insights on compensation and benefits (up to 9 points)
+**Goal**: Parse Salary Range and provide industry distribution (mean/median); extract benefit item frequencies and high-frequency combinations; conduct evidence-based horizontal comparison with the target position.
+
+### Criterion 2.1: Salary Range parsing and industry statistics (up to 4 points)
+- **Path 2.1.A (complete path, 4 points)**: Interval parsing + robustness control for statistics
+  - Sub-criterion 2.1.A.1 (1 point, completeness): Implement interval parsing of the Salary Range column (lower bound, upper bound), compatible with formats like "5,000-8,000 yuan/month" and single-value formats.
+  - Sub-criterion 2.1.A.2 (2 points, accuracy): Compute the industry lower-bound mean/median and upper-bound mean/median (accuracy verified by the code verification method); implement outlier filtering and unit unification (handling month/year confusion), and correctly add 2 points.
+  - Sub-criterion 2.1.A.3 (1 point, conclusiveness): Based on statistical results, point out the difference for the target position as "3–5 times the industry level" (according to code results; if the statistics do not support that magnitude, provide the actual multiple truthfully and score accordingly—do not force 3–5 times). The conclusion must be based on computed results.
+- **Path 2.1.B (simplified path, 3 points)**: Interval parsing + median/mean comparison
+  - Sub-criterion 2.1.B.1 (1 point, completeness): Parse the interval and compute at least the median/mean (for either lower or upper bound).
+  - Sub-criterion 2.1.B.2 (1 point, accuracy): Median result is correct (reference standards/tolerance as above).
+  - Sub-criterion 2.1.B.3 (1 point, conclusiveness): Indicate the multiple-level advantage of the target position relative to the industry median.
+- **Path 2.1.C (1 point)**: Direct aggregation statistics on the Salary Range column for comparison
+  - Sub-criterion 2.1.C.1 (1 point, completeness): Directly aggregate and count the Salary Range column, and state the descriptive advantage of the target position relative to the industry median.
+
+### Criterion 2.2: Benefit extraction and high-frequency combination identification (up to 4 points)
+- **Path 2.2.A (complete path, 4 points)**: Multi-source extraction + frequency statistics + combination identification
+  - Sub-criterion 2.2.A.1 (2 points, completeness): Split benefits from the Benefits column (support separators such as '、', '，', ',', '；', ';', spaces), and additionally supplement missing benefits from the Job Description (JD) (e.g., "three insurances and one fund (housing provident fund) / housing provident fund"), then de-duplicate and merge to form the complete set of benefits for the position.
+  - Sub-criterion 2.2.A.2 (1 point, accuracy): Produce a top-10 frequency ranking of benefits and identify high-frequency combinations (e.g., "Five social insurances + housing provident fund", "holiday benefits + paid annual leave + performance bonus"); among the top 5 high-frequency items, include at least 3 of "Five social insurances, commercial insurance, housing provident fund, holiday benefits, employee travel". Numerical accuracy is checked according to the code verification method and logic inspection.
+  - Sub-criterion 2.2.A.3 (1 point, conclusiveness): Clearly state the alignment/gaps between the target position and industry high-frequency combinations (based on the supplemented complete set of benefits; do not misjudge due to missing fields).
+- **Path 2.2.B (simplified path, 3 points)**: Single-source extraction + frequency ranking
+  - Sub-criterion 2.2.B.1 (1 point, completeness): Extract only from the Benefits column and compute the top-10 frequency ranking (no hard requirement on the exact count).
+  - Sub-criterion 2.2.B.2 (1 point, accuracy): Among the top 5 high-frequency items, include at least 3 of "Five social insurances, commercial insurance, housing provident fund, holiday benefits, employee travel". Numerical accuracy is checked according to the code verification method and logic inspection.
+  - Sub-criterion 2.2.B.3 (1 point, conclusiveness): Indicate the overlap rate between the target position and the industry high-frequency items (single-source extraction may miss benefits present in the JD).
+- **Path 2.2.C (textual comparison path, 1 point)**: Filter similar positions and compare benefits in text form
+  - Sub-criterion 2.2.C.1 (1 point, completeness): Filter positions that have comparative significance, compare their Benefits with the target position, and clearly point out the advantages/disadvantages of the target position in Benefits.
+
+### Criterion 2.3: Quantitative presentation of horizontal comparison (up to 1 point)
+- **Path 2.3.A (1 point)**: Structured comparison
+  - Sub-criterion 2.3.A.1 (1 point, conclusiveness): Generate a clear comparison (industry average/mainstream vs target position), including conclusive comparisons for Salary and Benefits.
+
+## Requirement 3: Quantitative comparison and insights on age and job requirements (up to 7 points)
+**Goal**: Count opportunities by each age (year-by-year), aggregate to the coverage ratio for the "25–50 years" interval; provide industry comparisons and conclusions for education, experience, foreign language, and gender requirements.
+
+### Criterion 3.1: Analysis from the age dimension (up to 4 points)
+- **Path 3.1.A (complete path, 4 points)**: Interval expansion + coverage determination
+  - Sub-criterion 3.1.A.1 (1 point, completeness): Perform age analysis, e.g., extract min/max from the Age Requirement, expand each position’s age coverage set year-by-year, and accumulate "opportunities by age".
+  - Sub-criterion 3.1.A.2 (2 points, accuracy): Compute the "coverage ratio of positions in the 25–50-year interval" using interval intersection (count positions where the lower bound ≤ 50 and the upper bound ≥ 25); reference value ≈ 49.24% (allowed deviation ≤ 1%). The approach to sample de-duplication/missing value handling (e.g., handling abnormal/missing ages) is accepted if it passes the code verification method.
+  - Sub-criterion 3.1.A.3 (1 point, conclusiveness): Clearly indicate the relationship between the target position (25–50 years) and the industry’s core interval (e.g., "highly aligned"), based on computed results.
+- **Path 3.1.B (simplified path, 2 points)**: Direct interval coverage estimation
+  - Sub-criterion 3.1.B.1 (1 point, completeness): Count the proportion of positions explicitly in the "25–50 years" or similar intervals (without year-by-year expansion).
+  - Sub-criterion 3.1.B.2 (1 point, conclusiveness): Provide a judgment of alignment based on the proportion.
+
+### Criterion 3.2: Industry comparison of job requirements (education/experience/foreign language/gender/skills) (up to 3 points)
+- **Path 3.2.A (complete path, 3 points)**: Distribution statistics + comparative conclusions
+  - Sub-criterion 3.2.A.1 (1 point, completeness): Provide the count/proportion distributions for Education Requirement, Work Experience Requirement (including "No limit/1–3 years/3 years or more", etc.), Foreign Language Requirement, and Gender Requirement (provide proportions for at least two items).
+  - Sub-criterion 3.2.A.2 (1 point, completeness): Additionally extract mainstream skills for the insurance industry from the Job Description (JD), and provide count/proportion distributions.
+  - Sub-criterion 3.2.A.3 (1 point, conclusiveness): Compare the target position ("Associate degree or above, 3 years or more in the same industry or 1 year or more as a supervisor, foreign language/gender: none") with industry distributions, and provide clear interpretations (e.g., "education threshold lower than industry mainstream, experience requirement relatively high").
+
+## Requirement 4: Structured presentation with effective conclusions and recommendations (up to 4 points)
+**Goal**: Generate a structured comparison table suitable for reading/reporting; ensure conclusions are primarily verified, supplemented, or corrected using Job Description information.
+
+### Criterion 4.1: Structured comparison table and reusable output (up to 2 points)
+- **Path 4.1.A (complete path, 2 points)**: Table/dataframe output + full field coverage
+  - Sub-criterion 4.1.A.1 (1 point, completeness): Output a side-by-side comparison table (industry average/mainstream vs target position), covering at least "Salary, Education Requirement, Work Experience Requirement, Age Requirement, Benefits".
+  - Sub-criterion 4.1.A.2 (1 point, conclusiveness): Include a concise conclusion column in the table (e.g., "significant advantage/shortcoming/well-matched").
+- **Path 4.1.B (simplified path, 1 point)**: Pure text structured comparison
+  - Sub-criterion 4.1.B.1 (1 point, completeness): Use lists/subsections to compare, with field coverage as above, without a table.
+
+### Criterion 4.2: Provide effective conclusions and recommendations (up to 2 points)
+- **Path 4.2.A (complete path, 2 points)**: Data-backed + actionable recommendations
+  - Sub-criterion 4.2.A.1 (1 point, completeness): Summarize quantitative conclusions (salary multiple advantage, 25–50-year coverage ratio, benefit high-frequency items and combination differences, education/experience/skill differences), clearly summarizing strengths/weaknesses for each dimension. Complete coverage is not required; conclusions based on available information are sufficient to score.
+  - Sub-criterion 4.2.A.2 (1 point, conclusiveness): Propose executable recommendations (e.g., "add housing provident fund, moderately lower experience threshold, optimize messaging points"), and ensure recommendations have clear causal links to the data above (based on computed results; no fabrication).
+- **Path 4.2.B (simplified path, 1 point)**: Bullet-point summary
+  - Sub-criterion 4.2.B.1 (1 point, completeness): Provide a bullet-point summary, but with weaker correspondence to the data or less specific recommendations.
+
+# Evaluation and Verification Instructions
+
+## 1. Code verification method (for flexible/hard-to-enumerate indicators)
+1. Read code comments and the overall approach first, then verify functionality line by line:
+   - Whether multi-label parsing of the Industry column correctly splits and checks for "contains Insurance";
+   - Whether Salary Range interval parsing is robust (supports multiple formats and unit unification);
+   - Whether benefit splitting supports multiple separators, and whether the Job Description and Benefits columns are merged and de-duplicated;
+   - Whether year-by-year age expansion and interval intersection coverage determination are correct;
+   - Whether aggregation/distribution statistics and table output are complete.
+2. Conclusions must be strictly based on computed results; no "hallucinated data".
+
+## 2. Scoring and hierarchical constraints
+- Each sub-criterion (completeness/accuracy/conclusiveness) has a score range of 1–2 points (as specified within each criterion).
+- Paths under the same criterion are in an "OR" relationship; only the best-implemented path is scored. Sub-criteria scores within a criterion are summed to produce the criterion’s total score.
+- Scores for each criterion are summed to produce the corresponding requirement score; all requirements (in an "AND" relationship) are summed to produce the final total score (maximum 25 points).
+- Implementing the "complete path" yields the highest score; the "simplified path" yields mid-level scores; the "incorrect path" yields zero or very low scores.

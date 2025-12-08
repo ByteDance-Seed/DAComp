@@ -1,0 +1,124 @@
+# [Total Score | 17 points] The solution must satisfy two core requirements: accurate analysis of overall development, comprehensive evaluation of multidimensional changes. The following are the detailed scoring criteria:
+
+- **Requirement 1: Analysis of overall development**
+- **Requirement 2: Assessment of changes across different dimensions of education**
+
+### Requirement 1: Analysis of overall development (maximum 7 points for this requirement)
+- **Criterion 1.1 [3 points]: Clearly identify the improvement in overall educational level**
+    - **Path 1.1.A [3 points]: Analysis from the scale of higher education**
+        - **Sub-criterion 1.1.A.1 [1 point | Completeness]**: Analyze the overall educational level trend from the perspective of the scale of higher education (share of Junior College and above).
+        - **Sub-criterion 1.1.A.2 [1 point | Accuracy]**: The share calculation is correct (all standardized to population aged 6 and over), yielding the trend of increasing educational level. After rounding, deviations from the baseline must not exceed the precision. Verify against the following baseline values:
+|Year|Number with Junior College and above|Denominator population|Share (%)|
+|2000|44020145|1156700293|3.805665587|
+|2010|118374897|1242546122|9.52680105|
+|2020|217224651|1315347565|16.51461992|
+        - **Sub-criterion 1.1.A.3 [1 point | Conclusiveness]**: Provide the computed data as support and clearly state the manifestations of overall educational level improvement.
+    - **Path 1.1.B [3 points]: Analysis from the illiteracy rate**
+        - **Sub-criterion 1.1.B.1 [1 point | Completeness]**: Analyze the overall educational level trend from the illiteracy rate (defined as “Never Attended School” or a similar reasonable definition).
+        - **Sub-criterion 1.1.B.2 [1 point | Accuracy]**: The share calculation is correct (all standardized to population aged 6 and over), yielding the trend of increasing educational level. After rounding, deviations from the baseline must not exceed the precision. Verify against the following baseline values:
+|Year|Number who Never Attended School|Denominator population|Share (%)|
+|2000|89629436|1156700293|7.748717325|
+|2010|62136405|1242546122|5.000732279|
+|2020|41543985|1315347565|3.158403612|
+        - **Sub-criterion 1.1.B.3 [1 point | Conclusiveness]**: Provide the computed data as support and clearly state the manifestations of overall educational level improvement.
+    - **Path 1.1.C [3 points]: Analysis from compulsory education**
+        - **Sub-criterion 1.1.C.1 [1 point | Completeness]**: Analyze the overall educational level trend from the perspective of compulsory education.
+        - **Sub-criterion 1.1.C.2 [1 point | Accuracy]**: The share calculation is correct (all standardized to population aged 6 and over), yielding the trend of increasing educational level. After rounding, deviations from the baseline must not exceed the precision. Verify against the following baseline values:
+|Year|Compulsory education population (Primary + Junior High)|Denominator population|Share (%)|
+|2000|863999958|1156700293|74.69523119|
+|2010|875387955|1242546122|70.45114378|
+|2020|834505513|1315347565|63.4437266|
+        - **Sub-criterion 1.1.C.3 [1 point | Conclusiveness]**: Provide the computed data as support and clearly state the manifestations of overall educational level improvement.
+    - **Path 1.1.D [3 points]: Analysis from postgraduate education**
+        - **Sub-criterion 1.1.D.1 [1 point | Completeness]**: Analyze the overall educational level trend from postgraduate education (Master’s and above or a similar reasonable definition).
+        - **Sub-criterion 1.1.D.2 [1 point | Accuracy]**: The share calculation is correct (all standardized to population aged 6 and over), yielding the trend of increasing educational level. After rounding, deviations from the baseline must not exceed the precision. Baseline values for verification are as follows: (all to be verified)
+|Year|Number of postgraduates|Denominator population|Share (%)|
+|2000|883933|1156700293|0.076418499|
+|2010|4138585|1242546122|0.333072948|
+|2020|10765577|1315347565|0.818458732|
+        - **Sub-criterion 1.1.D.3 [1 point | Conclusiveness]**: Provide the computed data as support and clearly state the manifestations of overall educational level improvement.
+    - **Path 1.1.E [3 points | Soft approach]: Other analytical angles that reasonably reflect educational level**
+        - **Sub-criterion 1.1.E.1 [1 point | Completeness]**: Analyze the overall educational level trend from angles other than the above, but that do reasonably reflect China’s educational level (it cannot be only counts, since China’s population is also growing; carefully validate reasonableness).
+        - **Sub-criterion 1.1.E.2 [1 point | Accuracy]**: The share calculation is correct (all standardized to population aged 6 and over), yielding the trend of increasing educational level. Given high uncertainty, accuracy will be assessed by verifying code logic and correctness. Please focus on whether the selected tables match the needs of the analysis.
+        - **Sub-criterion 1.1.E.3 [1 point | Conclusiveness]**: Provide the computed data as support and clearly state the manifestations of overall educational level improvement.
+- **Criterion 1.2 [4 points]: Analyze the optimization of the education level structure**
+    - **Path 1.2.A [4 points]: Conventional analysis of the education level structure**
+        - **Sub-criterion 1.2.A.1 [1 point | Completeness]**: Cover at least three levels among Primary School, Junior High School, Senior High School, Undergraduate, Postgraduate, and analyze trends in the shares of each level.
+        - **Sub-criterion 1.2.A.2 [2 points | Accuracy]**: The share calculations for each level are correct (all standardized to population aged 6 and over) (full marks if all are correct; at least 2 correct earns 1 point). After rounding, deviations from the baseline must not exceed the precision. Verify against the following baseline values:
+|Year|Primary share (%)|Junior High share (%)|Senior High share (%)|Undergraduate share (%)|Postgraduate share (%)|
+|2000|38.17871869|36.51651249|8.565213098|1.223370141|0.076418499|
+|2010|28.7483681|41.70277568|15.02132289|3.671959712|0.333072948|
+|2020|26.41206874|37.03165786|16.13337247|7.15826558|0.818458732|
+        - **Sub-criterion 1.2.A.3 [1 point | Conclusiveness]**: Provide the computed data as support, and clearly point out that the education level structure is gradually being optimized, together with the corresponding analysis of reasons.
+    - **Path 1.2.B [4 points | Soft approach]: Analysis of the education level structure (soft)**
+        - **Sub-criterion 1.2.B.1 [1 point | Completeness]**: Cover at least three different education levels (for example, share of Undergraduate and above, share of higher education, share of illiteracy, share of secondary education, share of Postgraduate, etc.), and analyze the trend changes in the shares of each level.
+        - **Sub-criterion 1.2.B.2 [2 points | Accuracy]**: The share calculations for each level are correct (all standardized to population aged 6 and over) (full marks if all are correct; at least 2 correct earns 1 point). After rounding, deviations from the baseline must not exceed the precision; use the baseline values referenced in the various paths of Criterion 1.1. If indicators/shares appear that are not in the reference answers, carefully verify whether the code logic is correct.
+        - **Sub-criterion 1.2.B.3 [1 point | Conclusiveness]**: Provide the computed data as support, and clearly point out that the education level structure is gradually being optimized, together with the corresponding analysis of reasons.
+
+### Requirement 2: Assessment of changes across different dimensions of education (maximum 10 points for this requirement)
+- **Criterion 2.1 [4 points]: Analysis of progress by region**
+    - **Path 2.1.A [4 points]: Comparative analysis of City vs Town vs Rural**
+        - **Sub-criterion 2.1.A.1 [1 point | Completeness]**: For each year, compute the “share of Junior College and above” (or compulsory education share, illiteracy rate, or other indicators that reflect educational level) for City, Town, and Rural respectively, and compute the gaps among City, Town, and Rural and the changes in these gaps.
+        - **Sub-criterion 2.1.A.2 [2 points | Accuracy]**: Data must be computed based on the City/Town/Rural sub-tables (all standardized to population aged 6 and over). After rounding, deviations from the baseline must not exceed the precision. If other reasonable indicators are used, carefully verify code logic and correctness. Example baseline values:
+|Year|Region type|Denominator population|Number with Junior College and above|Share of Junior College and above (%)|Compulsory education population (Primary + Junior High)|Compulsory education share (%)|Number who Never Attended School|Share who Never Attended School (%)|
+|2000|City|276608948|32479306|11.74195782|162772902|58.84585556|11651951|4.212427358|
+|2000|Town|154912145|7748598|5.00193061|107388987|69.32250987|8674839|5.59984435|
+|2000|Rural|725179200|3792241|0.522938468|593838069|81.8884586|69302646|9.556623521|
+|2010|City|384147858|82609537|21.50461997|199871137|52.02974137|8034432|2.091494677|
+|2010|Town|248689641|23211949|9.3337016|169636269|68.21203662|9927309|3.991846609|
+|2010|Rural|609708623|12553411|2.058919708|505880549|82.97087001|44174664|7.245208996|
+|2020|City|538489518|151601269|28.1530585|261214152|48.50867905|7170833|1.331656933|
+|2020|Town|301375243|42101784|13.96988803|195716261|64.94105456|8029157|2.664172717|
+|2020|Rural|475482804|23521598|4.946887206|377575100|79.40878131|26343995|5.540472711|
+|Year|Indicator|Gap (City - Rural)|Gap (City - Town)|Gap (Town - Rural)|
+|2000|Share of Junior College and above (%)|11.21901935|6.740027209|4.478992142|
+|2000|Compulsory education share (%)|-23.04260305|-10.47665431|-12.56594874|
+|2000|Share who Never Attended School (%)|-5.344196164|-1.387416993|-3.956779171|
+|2010|Share of Junior College and above (%)|19.44570027|12.17091837|7.274781892|
+|2010|Compulsory education share (%)|-30.94112863|-16.18229525|-14.75883338|
+|2010|Share who Never Attended School (%)|-5.153714319|-1.900351932|-3.253362387|
+|2020|Share of Junior College and above (%)|23.20617129|14.18317047|9.023000824|
+|2020|Compulsory education share (%)|-30.90010226|-16.43237552|-14.46772675|
+|2020|Share who Never Attended School (%)|-4.208815778|-1.332515784|-2.876299994|
+        - **Sub-criterion 2.1.A.3 [1 point | Conclusiveness]**: Strictly based on the computed three-year City/Town/Rural gap data (also display as data support), clearly point out how the City/Town/Rural gaps changed over these years, to reflect regional progress in China’s education.
+- **Criterion 2.2 [3 points]: Analysis of progress by gender**
+    - **Path 2.2.A [3 points]: Fairness analysis by computing indicators separately for males and females**
+        - **Sub-criterion 2.2.A.1 [1 point | Completeness]**: Separately compute, for 2000, 2010, and 2020, the “share of Junior College and above” (or compulsory education share, illiteracy rate, or other indicators that reflect educational level) for all males and all females aged 6 and over, and their differences; derive the changes in each year and changes in the differences.
+        - **Sub-criterion 2.2.A.2 [1 point | Accuracy]**: The annual male–female indicator differences are computed correctly (all standardized to population aged 6 and over). After rounding, deviations from the baseline must not exceed the precision. If other reasonable indicators are used, carefully verify code logic and correctness. Example baseline values:
+|Year|Gender|Denominator population|Number with Junior College and above|Share of Junior College and above (%)|Compulsory education population (Primary + Junior High)|Compulsory education share (%)|Number who Never Attended School|Share who Never Attended School (%)|Undergraduate share (%)|Postgraduate share (%)|
+| 2000 | Male   | 593469678  | 27146772        | 4.574247515        | 455060650            | 76.677995       | 25386944     | 4.277715432      | 1.551681972       | 0.104007336       |
+| 2000 | Female | 563230615  | 16873373        | 2.995819572        | 408939308            | 72.60601557     | 64242492     | 11.40607245      | 0.877431707       | 0.047348456       |
+| 2010 | Male   | 633278387  | 64438709        | 10.17541579        | 447329108            | 70.63704007     | 17503480     | 2.763947161      | 3.981990151       | 0.371282369       |
+| 2010 | Female | 609267735  | 53936188        | 8.852625029        | 428058847            | 70.2579215      | 44632925     | 7.325666934      | 3.349711273       | 0.29335773        |
+| 2020 | Male   | 671681215  | 111859915       | 16.65372092        | 427145444            | 63.59347775     | 10730917     | 1.597620532      | 7.092205489       | 0.81814749        |
+| 2020 | Female | 643666350  | 105364736       | 16.36946471        | 407360069            | 63.2874577      | 30813068     | 4.787118046      | 7.227200863       | 0.81878352        |
+| Year | Difference in share of Junior College and above (Male - Female) | Difference in compulsory education share (Male - Female) | Difference in share who Never Attended School (Male - Female) | Difference in Undergraduate share (Male - Female) | Difference in Postgraduate share (Male - Female) |
+| 2000 | 1.578427943              | 4.07197943            | -7.128357017          | 0.674250264        | 0.05665888           |
+| 2010 | 1.322790764              | 0.37911857            | -4.561719772          | 0.632278879        | 0.077924639          |
+| 2020 | 0.284256209              | 0.306020046           | -3.189497515          | -0.134995374       | -0.000636031         |
+        - **Sub-criterion 2.2.A.3 [1 point | Conclusiveness]**: Strictly based on the computed indicator data for males and females across the three years (also display as data support), clearly point out how educational fairness between males and females changed over these years, to reflect progress by gender in China’s education.
+    - **Path 2.2.B [3 points]: Fairness analysis of male–female proportions within certain education levels**
+        - **Sub-criterion 2.2.B.1 [1 point | Completeness]**: Compute the male–female share differences among people who reached certain education levels in 2000, 2010, and 2020, and analyze how the differences changed over these years.
+        - **Sub-criterion 2.2.B.2 [1 point | Accuracy]**: If computing the male–female shares and differences for Undergraduate, then after rounding, deviations from the baseline must not exceed the precision (all standardized to population aged 6 and over). If other reasonable education levels are used, carefully verify code logic and correctness. Reference answers:
+| Year | Undergraduate count_Male  | Undergraduate count_Female  | Undergraduate count_Total | Undergraduate_Male share (%)     | Undergraduate_Female share (%)     | Share difference (Male - Female, percentage points) |
+| 2000 | 9208762      | 4941964      | 14150726     | 65.07625121       | 34.92374879       | 30.15250242           |
+| 2010 | 25217083     | 20408710     | 45625793     | 55.26935828       | 44.73064172       | 10.53871655           |
+| 2020 | 47637012     | 46519060     | 94156072     | 50.59366963       | 49.40633037       | 1.187339251           |
+        - **Sub-criterion 2.2.B.3 [1 point | Conclusiveness]**: Strictly based on the computed three-year male–female share differences (also display as data support), clearly point out the changes over these years, to reflect progress by gender in China’s education.
+- **Criterion 2.3 [3 points]: Analysis of progress by age**
+    - **Path 2.3.A [3 points]: Analysis of education indicators by age group**
+        - **Sub-criterion 2.3.A.1 [1 point | Completeness]**: Perform age binning, and for 2000, 2010, and 2020 respectively, compute for each age group the “share of Junior College and above” (or compulsory education share, illiteracy rate, or other indicators that reflect educational level), and conduct progress analysis on this basis.
+        - **Sub-criterion 2.3.A.2 [1 point | Accuracy]**: Age binning has no omissions, and the indicator computations for each age group are correct for each year. Given the uncertainty in binning, accuracy will be assessed by verifying code logic and correctness in conjunction with the following pseudocode:
+1. Select, for 2000, 2010, and 2020, the respective national tables of “population by age, gender, and education level for * years old and over”
+2. Consider only data for population aged 6 and over (2020 includes ages 3–5; ensure consistency by standardizing to aged 6 and over)
+3. Perform age binning with no omissions
+4. For each of the three years, compute for each age group the selected indicator that reflects educational level
+        - **Sub-criterion 2.3.A.3 [1 point | Conclusiveness]**: Strictly based on the indicator data for each age group across the three years (also display as data support), clearly analyze and state how the educational level of each age group changed over these years, as progress in China’s educational level by age.
+    - **Path 2.3.B [3 points]: Age-dimension analysis of the proportions by age group within certain education levels**
+        - **Sub-criterion 2.3.B.1 [1 point | Completeness]**: Perform age binning, and for 2000, 2010, and 2020 respectively, compute the shares of each age group among people who reached certain education levels, and conduct progress analysis on this basis.
+        - **Sub-criterion 2.3.B.2 [1 point | Accuracy]**: Age binning has no omissions, and the share computations by age group are correct for each year. Given the uncertainty in binning, accuracy will be assessed by verifying code logic and correctness in conjunction with the following pseudocode:
+1. Select, for 2000, 2010, and 2020, the respective national tables of “population by age, gender, and education level for * years old and over”
+2. Consider only data for population aged 6 and over (2020 includes ages 3–5; ensure consistency by standardizing to aged 6 and over)
+3. Perform age binning with no omissions
+4. For each of the three years, compute the share of each age group among people at the selected education level
+        - **Sub-criterion 2.3.B.3 [1 point | Conclusiveness]**: Strictly based on the share data by age group across the three years (also display as data support), clearly analyze and state how the educational level of each age group changed over these years, as progress in China’s educational level by age.

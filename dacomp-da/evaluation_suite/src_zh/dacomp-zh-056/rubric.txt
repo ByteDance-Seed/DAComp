@@ -1,0 +1,121 @@
+# [总分 | 30分] “低一致性但高价值”客户洞察 Rubric
+
+———
+
+## 需求1：数据准备与分群界定（最高 6 分）
+
+### 标准1.1：构建可复现的数据底座并完成客户分群
+
+#### 路径1.1.A：单表校验与规则化分群
+
+- 标准1.1.A.1 [1分 | 完备性]：确认唯一有效数据源为 customer360__customer_value_analysis（5001 条），明确关键字段 primary_email、customer_tier、portfolio_contribution_pct、recency_score、frequency_score、monetary_score、rfm_avg_score、estimated_customer_ltv、customer_health_score、churn_probability、recommended_engagement_model、lifecycle_stage、account_age_days、days_since_last_activity，并说明后续分析均以该表为底座。
+- 标准1.1.A.2 [4分 | 精确性]：全部完成以下校验：1）portfolio_contribution_pct 数值范围= [0.000400318586, 0.5]，全表均值= 0.009133645071（允许误差≤1e-6）；2）primary_email 无缺失（0条），去重后 4734 条，存在 111 条重复记录且最高重复次数 24 次，需在分析中说明去重/聚合逻辑；3）customer360__conversion_funnel_analysis 与 customer360__customer_activity_metrics 记录数均为 0；4）按 customer_tier∈{Gold,Platinum} 且 portfolio_contribution_pct>5% 判定 HV=103、customer_tier∈{Basic,Bronze,Silver} 且≤5% 判定 SMB=4875，剩余 Other=23（允许误差±1）。
+- 标准1.1.A.3 [1分 | 结论性]：明确指出漏斗与活动表为空，需以 RFM/LTV 代理衡量一致性与价值；阐述在存在 111 条重复邮箱的情况下如何通过去重聚合确保结论可信。
+
+#### 路径1.1.B：代理指标数据底座构建
+
+- 标准1.1.B.1 [1分 | 完备性]：给出完整代理指标体系：rfm_mean=mean(R,F,M)、rfm_variance=var(R,F,M)、consistency_proxy=1/(1+rfm_variance)、ltv_velocity=estimated_customer_ltv/(account_age_days/30.44)、inactivity_ratio=days_since_last_activity/account_age_days，并说明全部源自 customer360__customer_value_analysis。
+- 标准1.1.B.2 [4分 | 精确性]：计算逻辑正确，HV/SMB 指标均落入以下范围（允许误差±0.002）：avg_consistency_proxy(HV)=0.749，avg_consistency_proxy(SMB)=0.805；avg_ltv_velocity(HV)=1046.6，avg_ltv_velocity(SMB)=142.0；avg_inactivity_ratio(HV)=0.790，avg_inactivity_ratio(SMB)=0.933。
+- 标准1.1.B.3 [1分 | 结论性]：分析 proxy 的业务合理性（如高 inactivity_ratio 代表触达断层），并指出缺乏 funnel/activity 明细导致对一致性诊断的潜在偏差。
+
+#### 路径1.1.C：分位数与多条件分群
+
+- 标准1.1.C.1 [1分 | 完备性]：提出基于百分位的口径：HV=customer_tier∈{Gold,Platinum} 且 portfolio_contribution_pct≥P98（0.051471937），SMB=customer_tier∈{Basic,Bronze,Silver} 且≤P80（0.011773760），并说明 P 分位取自全样本 5001 行。
+- 标准1.1.C.2 [4分 | 精确性]：提供 SQL/伪代码展示如何提取分位值并打标，校验样本量 HV=101、SMB=4001（允许误差±5）；如 primary_email 重复导致冲突，需描述去重优先级规则。
+- 标准1.1.C.3 [1分 | 结论性]：比较规则法与分位法的适用场景，说明策略协同时如何保持指标口径一致。
+
+———
+
+## 需求2：RFM 综合评分模型构建（最高 6 分）
+
+### 标准2.1：形成可区分客群价值结构的 RFM 体系
+
+#### 路径2.1.A：等权 RFM 校验
+
+- 标准2.1.A.1 [1分 | 完备性]：明确 RFM 计算公式 rfm_calculated=(recency_score+frequency_score+monetary_score)/3，并逐行对比 rfm_avg_score。
+- 标准2.1.A.2 [4分 | 精确性]：1）|rfm_calculated-rfm_avg_score| 最大值=0.0（需≤0.05）；2）HV 平均 R=4.0291、F=4.0485、M=4.5340、RFM=4.203883；3）SMB 平均 R=1.8082、F=1.8484、M=1.8326、RFM=1.829744，误差允许±0.02。
+- 标准2.1.A.3 [1分 | 结论性]：总结 HV 呈“高 M、R/F 中高”而 SMB 为“均衡低值”，并指出对价值判断的意义。
+
+#### 路径2.1.B：差异化加权 RFM
+
+- 标准2.1.B.1 [1分 | 完备性]：说明 HV 权重 (0.2,0.3,0.5) 强调货币价值，SMB 权重 (0.4,0.4,0.2) 关注活跃频次。
+- 标准2.1.B.2 [4分 | 精确性]：按权重计算加权 RFM，验证 HV 均值=4.2874、SMB 均值=1.8292、差异倍数=2.344（允许误差±0.02），并提供伪代码/SQL 展示计算。
+- 标准2.1.B.3 [1分 | 结论性]：阐明加权模型在区分“高货币价值”与“高活跃度”路径上的优势。
+
+#### 路径2.1.C：RFM 标准化或聚类建模
+
+- 标准2.1.C.1 [1分 | 完备性]：描述流程：对 R/F/M 做 z-score → 以 KMeans(k=6, random_state=42) 聚类 → 标注高价值簇。
+- 标准2.1.C.2 [4分 | 精确性]：复现 KMeans 结果，指出高价值簇样本量=259，其质心约为[z(R)=2.094, z(F)=2.108, z(M)=2.500]；簇内 HV 占比=39.768%，SMB 占比=60.232%（允许误差±2pct），并说明标签映射逻辑。
+- 标准2.1.C.3 [1分 | 结论性]：解释高价值簇虽含部分 SMB，但可揭示潜在升阶客户及后续运营优先级。
+
+———
+
+## 需求3：“低一致性高价值”现象验证（最高 6 分）
+
+### 标准3.1：通过多角度指标佐证现象成立
+
+#### 路径3.1.A：RFM 失衡度 + 价值指标联动
+
+- 标准3.1.A.1 [1分 | 完备性]：定义 rfm_imbalance = monetary_score - (recency_score+frequency_score)/2，并关联一致性/频率解释。
+- 标准3.1.A.2 [4分 | 精确性]：验证指标：HV avg_imbalance=0.495、SMB=0.004308；HV avg_estimated_customer_ltv=7205.13、SMB=1285.47；HV avg_ltv_velocity=1046.56、SMB=142.01；并给出倍数：失衡≈114.9×、LTV≈5.61×、速度≈7.37×（允许误差±0.1）。
+- 标准3.1.A.3 [1分 | 结论性]：说明“失衡度越高、价值实现越快”的正向关系成立，从而验证低一致性但高价值。
+
+#### 路径3.1.B：失衡度分桶稳健性检验
+
+- 标准3.1.B.1 [1分 | 完备性]：设置三档桶：≤0、0~0.5、>0.5，对应 Low/Mid/High，并解释业务含义。
+- 标准3.1.B.2 [4分 | 精确性]：输出各桶统计（允许误差±0.05 for health，±100 for LTV）：HV Low count=42，LTV≈7903.9，Health≈3.057；Mid count=21，LTV≈6592.6；High count=40，LTV≈6793.1；SMB Low count=2998，LTV≈1273.2；Mid count=992，LTV≈1111.4；High count=885，LTV≈1522.1，并强调 HV 桶对比 SMB 桶仍保持 ≥5× 的 LTV 差距。
+- 标准3.1.B.3 [1分 | 结论性]：指出现象在不同桶内均成立，排除极端值主导的可能。
+
+#### 路径3.1.C：一致性代理与速度的相关性分析
+
+- 标准3.1.C.1 [1分 | 完备性]：构建 consistency_proxy 与 ltv_velocity 的相关分析框架，可使用协方差/相关系数。
+- 标准3.1.C.2 [4分 | 精确性]：给出结果：HV 相关系数=0.175、SMB 相关系数=-0.212（允许误差±0.01），并附伪代码：先计算均值、方差、协方差 → corr=cov/(σ_x·σ_y)。
+- 标准3.1.C.3 [1分 | 结论性]：解释 HV 小幅正相关与 SMB 负相关对“低一致性反伴随高速度”的结构性说明。
+
+———
+
+## 需求4：客户健康度与生命周期特征分析（最高 6 分）
+
+### 标准4.1：多维健康指数与生命周期/渠道画像
+
+#### 路径4.1.A：复合健康指数
+
+- 标准4.1.A.1 [1分 | 完备性]：明确指数公式 0.5*health_norm + 0.3*(1-churn_probability) + 0.2*min(LTV/10000,1)，并说明 health_norm 来自对 customer_health_score 的 Min-Max 归一化。
+- 标准4.1.A.2 [4分 | 精确性]：验证指标（允许误差±0.01）：HV health_norm=0.759、risk_norm=0.588、value_norm=0.688、composite=0.693；SMB 分别为 0.184/0.236/0.129/0.188，并计算复合指数倍数≈3.68。
+- 标准4.1.A.3 [1分 | 结论性]：总结 HV 在健康、稳定、价值三维显著领先，并说明对价值判断的支撑。
+
+#### 路径4.1.B：活动效率代理与健康度联动
+
+- 标准4.1.B.1 [1分 | 完备性]：activity_efficiency=1-inactivity_ratio，说明源自 account_age_days 与 days_since_last_activity。
+- 标准4.1.B.2 [4分 | 精确性]：输出 HV avg_activity_efficiency=0.210、customer_health_score=2.970、churn_probability=0.412；SMB 对应 0.067/1.704/0.764（允许误差±0.005），并讨论低效率与高流失概率的联动。
+- 标准4.1.B.3 [1分 | 结论性]：说明该代理可识别潜在风险客户并支撑触达策略。
+
+#### 路径4.1.C：生命周期 + 渠道偏好剖析
+
+- 标准4.1.C.1 [1分 | 完备性]：分别统计 lifecycle_stage 与 recommended_engagement_model 分布，组合成矩阵。
+- 标准4.1.C.2 [4分 | 精确性]：给出分布（允许误差±1人）：HV Retention=46、Dormant=45、Growth=6、Maturity=5、Activation=1；SMB Dormant=4119、Retention=584、Growth=127、Maturity=28、Activation=17。渠道方面：HV Executive=52、Standard=44、Retention&Recovery=6、Dedicated=1；SMB Standard=4875。同时提供代表性组合均值：如 HV·Executive avg_health≈3.160、avg_ltv≈7812，HV·Standard avg_health≈2.757、avg_ltv≈6268.4，Retention 阶段 avg_health≈2.811、avg_ltv≈7684.435；SMB·Standard avg_health≈1.704、avg_ltv≈1285.472。
+- 标准4.1.C.3 [1分 | 结论性]：解释 HV 生命周期与多渠道组合导致阶段性触达，说明“一致性较低但价值高”的结构性原因。
+
+———
+
+## 需求5：差异化运营策略与资源配置（最高 6 分）
+
+### 标准5.1：基于洞察制定执行策略与监控闭环
+
+#### 路径5.1.A：分层运营策略
+
+- 标准5.1.A.1 [1分 | 完备性]：分别提出 HV 与 SMB 的核心运营框架，并关联生命周期、渠道、时间效率要素（需引用上述分布与 proxy 结果）。
+- 标准5.1.A.2 [4分 | 精确性]：量化目标需覆盖：HV Executive 覆盖率≥80%（当前 52/103≈50.5%）、Dedicated 试点≥头部前10% 客户、健康度目标≥3.5、流失率（以 churn_probability）≤25%、LTV≥7205、失衡度保持 0.3~0.8、CSM 覆盖 1:20、QBR 100%、定制方案≥2次/年；SMB 30天活跃率（以 activity_efficiency proxy）提升至≥60%、核心功能使用≥80%、LTV 目标≥1600、健康度≥2.0、自动化覆盖≥95%、人工干预阈值 health<1.5、CSM 池化 1:500、社区自助≥70%。
+- 标准5.1.A.3 [1分 | 结论性]：明确“HV=高价值高接触，SMB=规模化效率”原则，并说明当 marketing_to_sales_days 缺失时，以 rfm_velocity、account_age_days/days_since_last_activity 作为时间效率代理。
+
+#### 路径5.1.B：KPI 监控与动态资源优化
+
+- 标准5.1.B.1 [1分 | 完备性]：构建分层（HV/SMB）KPI、预警、资源调整三段式闭环。
+- 标准5.1.B.2 [4分 | 精确性]：阐明关键阈值：HV 健康度≥3.0 预警<2.5；Executive 覆盖≥80% 预警<70%；失衡度正常 0.3~0.8 预警>1.0/<0.2；季度 LTV≥7205 预警下降>10%；续约率≥95% 预警<90%；SMB 活跃率≥60% 预警<50%；功能采用≥80% 预警<60%；自动化≥95% 预警<90%；季度 LTV 增长≥25% 预警<15%；健康度≥2.0 预警<1.8；自助≥70% 预警<60%；并说明 ROI=增量LTV/增量投入 的计算与资源迁移策略。
+- 标准5.1.B.3 [1分 | 结论性]：强调“策略→监控→调优”的闭环，描述黄色/红色预警分别触发资源调整与紧急介入。
+
+#### 路径5.1.C：时间效率与渠道协同策略
+
+- 标准5.1.C.1 [1分 | 完备性]：提出围绕 marketing_to_sales_days、sales_to_support_days 的效率分层流程；若字段缺失，需记录并使用 ltv_velocity、inactivity_ratio 作为替代。
+- 标准5.1.C.2 [4分 | 精确性]：给出阈值建议：当原始字段存在时 HV 应≤45/≤30，SMB ≤30/≤14；字段缺失场景需在报告中记录并以 rfm_velocity>1000（HV）/≥150（SMB）及 inactivity_ratio<0.75（HV）/<0.90（SMB）等 proxy 打标；渠道偏好结合 recommended_engagement_model（如 Executive 模式须覆盖≥3种高价值触达、Standard 模式自动化≥90%），并以伪代码展示效率+渠道打标逻辑。
+- 标准5.1.C.3 [1分 | 结论性]：阐明时间效率与渠道协同如何驱动资源再配置，确保低一致性客户在关键节点获得针对性干预。

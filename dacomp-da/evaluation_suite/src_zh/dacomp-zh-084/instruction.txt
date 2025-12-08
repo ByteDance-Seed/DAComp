@@ -1,0 +1,1 @@
+公司正在重新设计组织架构，我希望你从数据角度找出最优的组织规模和管理配置模式。请按current_active_employees将所有组织划分为小型（30人以下）、中型（30-120人）、大型（120-300人）、超大型（300人以上）四个层级，然后为每个层级计算organization_health_score的分布特征和performance_category的构成比例。重点分析management_ratio在不同组织规模下的最优区间，通过对比avg_employee_performance_score、position_fill_rate、annual_turnover_rate等关键指标，找出每个规模层级下表现最优的10%组织的共同特征。最后基于这些发现，为不同规模的组织提供量化的管理配置建议，包括最优管理比例、人员配置密度等具体数值。

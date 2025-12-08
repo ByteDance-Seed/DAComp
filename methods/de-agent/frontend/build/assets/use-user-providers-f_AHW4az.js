@@ -1,0 +1,1 @@
+import{R as e}from"./chunk-ZYFC6VSF-CV8XXl5-.js";import{u as o}from"./use-settings-BH-CDrc3.js";const i=s=>{if(!s)return[];const t=[];for(const r of Object.keys(s))r&&t.push(r);return t},u=()=>{const{data:s}=o();return{providers:e.useMemo(()=>i(s?.PROVIDER_TOKENS_SET),[s?.PROVIDER_TOKENS_SET])}};export{u};

@@ -1,0 +1,6 @@
+For customers whose contracts are due for renewal within the next 90 days, build a renewal risk prediction framework. Using the provided data marts, define the following features:
+- **Communication & Interaction Features**: average number of conversations and the proportion of negative sentiment over the last 30 days.
+- **Support Experience Features**: average resolution time for conversations (close time - creation time, averaged at the company level) and the proportion of reopened conversations (number of reopened conversations ÷ total conversations).
+- **Product Value Features**: key feature adoption coverage (number of core features used ÷ total number of core features) and time since last value milestone (current date - date of most recent milestone achievement).
+
+Analyze historical renewal cycles to compare the differences in these features between successfully renewed customers and churned customers. Calculate their discriminative power (e.g., using AUC or quantile differences). Finally, provide operational recommendations segmented by **industry and contract size**, such as improving feature coverage, arranging for early consultant intervention, or adjusting communication cadence. The conclusion should focus on **which features are the strongest leading indicators of renewal risk**.

@@ -1,0 +1,137 @@
+# [Total Score | 38 points]  The solution must satisfy the following four core requirements:
+- Requirement 1: Identify top employees
+- Requirement 2: Analyze demographic characteristics of top employees
+- Requirement 3: Analyze work-related characteristics of top employees
+- Requirement 4: Provide recruitment recommendations
+
+---
+
+## Requirement 1: Identify top employees (up to 7 points)
+### Criterion 1.1: Method for identifying top employees
+#### Path 1.1.A [7 points | Comprehensive weighted ranking]
+- Sub-criterion 1.1.A.1 [2 points | Completeness]: Clearly state that a weighted composite scoring method is used, and list the indicators used (at least including Effective Working Hours, Units Produced, Pass Rate) and their weights (e.g., Effective Working Hours weight 0.4, Units Produced weight 0.4, Pass Rate weight 0.2).
+- Sub-criterion 1.1.A.2 [3 points | Accuracy]: (Total employee count is 68; no points if incorrect) Correctly compute each employee’s composite score and accurately select the top 20% (7%–30% acceptable) as top employees. Code validation logic as follows:
+  ```Pseudo-code: validate composite scoring
+  1. Compute each employee’s “Effective Working Hours” = 8 hours − Total Time Away (converted to hours), then take the average (or another reasonable statistic)
+  2. Each employee’s average (or median or other reasonable statistic) “Pass Rate” should be weighted by Units Produced; a simple mean is also acceptable
+  3. Standardize “Effective Working Hours,” “Units Produced,” and “Pass Rate” (e.g., Z-score)
+  4. Apply the weights to compute the weighted composite score
+  5. Sort by score and take the top 20% (7%–30% acceptable) as top employees
+  ```
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness]: Clearly state the number of top employees (e.g., 20%, 13 people), or list their Employee ID and Name.
+- Sub-criterion 1.1.A.4 [1 point | Conclusiveness]: Clearly explain the selection logic of the indicators included in the comprehensive weighted scoring and the rationale for each weight (must be realistic).
+
+#### Path 1.1.B [4 points | Sorting + filtering]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Use at least two key indicators to sort and filter (e.g., sort by Units Produced, filter by Pass Rate).
+- Sub-criterion 1.1.B.2 [1 point | Accuracy]: Correctly perform sorting or filtering operations and list the top employee roster. Code validation logic as follows:
+  ```Pseudo-code: validate simplified ranking
+  1. Sort by “Units Produced” in descending order
+  2. Filter employees with “Pass Rate” ≥ 70% (other reasonable percentages are acceptable)
+  3. Take the top 20% (10%–30% acceptable) as top employees
+  ```
+- Sub-criterion 1.1.B.3 [1 point | Conclusiveness]: Clearly state the number of top employees (e.g., 20%, 13 people), and list their Employee ID and Name.
+- Sub-criterion 1.1.B.4 [1 point | Conclusiveness]: Clearly explain the selection logic for the sorting column and filtering column (points awarded only if aligned with actual factory/workshop needs).
+
+---
+
+## Requirement 2: Demographic characteristic analysis of top employees (up to 13 points)
+### Criterion 2.1: Gender dimension analysis (up to 3 points)
+#### Path 2.1.A [3 points | Proportion analysis]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Analyze the proportion of male vs. female among top employees.
+- Sub-criterion 2.1.A.2 [1 point | Completeness]: Analyze all employees (or non-top employees), provide the male/female proportions or corresponding gender counts, and compare with top employees to derive gender-dimension characteristics.
+- Sub-criterion 2.1.A.3 [1 point | Accuracy]: Among top employees, the vast majority (greater than 80%) are female. In all employees, male employees are 32 (47.06%), female employees are 36 (52.94%)—report either counts or proportions; deviation must not exceed 0.01%. If analyzing the male/female proportion of non-top employees or using a different statistical scope for top employees, the values are invalid and must be verified via code logic and correctness. Therefore, conclude both the absolute and relative gender characteristics of top employees as female.
+
+### Criterion 2.2: Age dimension analysis (up to 3 points)
+#### Path 2.2.A [3 points | Statistic analysis]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Compute the mean age of top employees (or another meaningful statistic).
+- Sub-criterion 2.2.A.2 [1 point | Completeness]: Compute the mean age of all employees (or non-top employees) and compare to derive age-dimension characteristics.
+- Sub-criterion 2.2.A.3 [1 point | Accuracy]: The mean age of top employees is computed correctly (aggregate/dedupe by Employee ID first, then compute age). The mean age of all employees is 24.8; deviation must not exceed 1%. If computing the mean age/other statistics of non-top employees, code logic and correctness must be validated (aggregate/dedupe by Employee ID first, then compute). Conclude that the difference in age dimension between top and all employees is small, both around 24 years old. That is, the age dimension has only an absolute characteristic around 24, with no relative characteristic.
+
+#### Path 2.2.B [3 points | Binned proportion analysis]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Perform age binning for all employees, and compute the proportion of top employees in each age band.
+- Sub-criterion 2.2.B.2 [1 point | Completeness]: Compute the proportion of all employees (or non-top employees) in each age band; compare to derive age-dimension characteristics.
+- Sub-criterion 2.2.B.3 [1 point | Accuracy]: Partial code logic is correct. Conclude that the age-dimension differences between top and all/non-top employees are small, with no relative characteristic, and provide the concentrated age band(s) (including age 24) as absolute characteristics. Pseudo-code:
+  ```
+  Perform age binning; aggregate/dedupe by Employee ID; compute proportions
+  ```
+
+### Criterion 2.3: Education Level dimension analysis (up to 3 points)
+#### Path 2.3.A [3 points | Proportion analysis]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Analyze the proportion of each education level among top employees.
+- Sub-criterion 2.3.A.2 [1 point | Completeness]: Analyze the proportions of each education level for all employees (or non-top employees) and compare with top employees to derive education-dimension characteristics.
+- Sub-criterion 2.3.A.3 [1 point | Accuracy]: Under the scope of “Comprehensive weighted Top 20%,” the proportions of High School and Junior college among top employees should both be 38%, with a ±2% tolerance. If the statistical scope for top employees differs, the values are not referenceable and must be validated via code logic and correctness. The counts and proportions by education level for all employees must match the answer exactly; if proportions for non-top employees are computed, those values are not referenceable and must be validated via code logic and correctness (aggregate/dedupe by Employee ID first, then compute). Conclude that High School and Junior college have larger shares as absolute characteristics, and the relative characteristic is that Junior college is higher relative to overall. Answer:
+
+| Education Level | Count | Percentage    |
+|-----------------|-------|---------------|
+| High School     | 31    | 45.588235     |
+| Technical secondary school | 19 | 27.941176 |
+| Junior college  | 12    | 17.647059     |
+| Junior high school | 6  | 8.823529      |
+
+### Criterion 2.4: Accommodation dimension analysis (up to 4 points)
+#### Path 2.4.A [4 points | Proportion analysis]
+- Sub-criterion 2.4.A.1 [1 point | Completeness]: Analyze the proportion of top employees who live in company accommodation/dormitory.
+- Sub-criterion 2.4.A.2 [1 point | Completeness]: Analyze the proportion of all employees (or non-top employees) who live in company accommodation/dormitory; compare with top employees to derive accommodation-dimension characteristics.
+- Sub-criterion 2.4.A.3 [1 point | Accuracy]: At least 70% of top employees live in company accommodation. For all employees, the counts for living vs. not living in company accommodation are each 34, accounting for 50% respectively. If computing accommodation proportions for non-top employees or using different statistical scope for top employees, the values are not referenceable and must be validated via code logic and correctness. Conclude that top employees have a higher accommodation rate.
+---
+
+## Requirement 3: Work-related characteristic analysis of top employees (up to 12 points)
+### Criterion 3.1: Effective Working Hours dimension analysis (up to 6 points)
+#### Path 3.1.A [6 points | Statistic analysis]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Compute the mean Away-from-Station Count of top employees (or another meaningful statistic).
+- Sub-criterion 3.1.A.2 [1 point | Completeness]: Compute the mean Away-from-Station Count of all employees (or non-top employees) and compare to derive characteristics of away counts for top employees.
+- Sub-criterion 3.1.A.3 [1 point | Completeness]: Compute the mean Total Time Away/Effective Working Hours (Effective Working Hours = Legal Working Hours − Total Time Away; Legal Working Hours = 8 hours) of top employees (or another meaningful statistic).
+- Sub-criterion 3.1.A.4 [1 point | Completeness]: Compute the mean Total Time Away/Effective Working Hours (Effective Working Hours = Legal Working Hours − Total Time Away; Legal Working Hours = 8 hours) of all employees (or non-top employees) and compare to derive characteristics of away durations for top employees.
+- Sub-criterion 3.1.A.5 [1 point | Accuracy]: The mean Away-from-Station Count for all employees is 6.206; deviation must not exceed 1%, otherwise deduct points. The mean Away-from-Station Count for top employees is between 5.1–5.2. If computing statistics for non-top employees, code logic and correctness must be validated (aggregate by Employee ID first, then compute). Conclude that the absolute characteristic for top employees is about 5 away events per shift, and the relative characteristic is fewer away events (about 1 fewer).
+- Sub-criterion 3.1.A.6 [1 point | Accuracy]: The mean Total Time Away for all employees is 73.19 minutes or provide the working hours utilization rate; deviation must not exceed 0.1. The mean Effective Working Hours for all employees is 6.78h or provide a working hours utilization rate of 84.8%; deviation must not exceed 0.05. Top employees have shorter Total Time Away/higher working hours utilization.
+If computing statistics for non-top employees, code logic and correctness must be validated (aggregate by Employee ID first, then compute). Conclude that the absolute characteristic of top employees’ Total Time Away is the computed mean (or other statistic), and the relative characteristic is shorter away duration (less by about 10–30 minutes). Alternatively, conclude that the absolute characteristic of top employees’ Effective Working Hours is the computed mean (or other statistic), and the relative characteristic is longer Effective Working Hours (more by about 0.2–0.5h).
+
+### Criterion 3.2: Disciplinary dimension analysis (up to 3 points)
+#### Path 3.2.A [3 points | Statistic analysis]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Compute the mean count of Disciplinary Issue incidents for top employees (or another meaningful statistic).
+- Sub-criterion 3.2.A.2 [1 point | Completeness]: Compute the mean count of Disciplinary Issue incidents for all employees (or non-top employees) and compare to derive disciplinary-dimension characteristics for top employees.
+- Sub-criterion 3.2.A.3 [1 point | Accuracy]: The mean count of Disciplinary Issue incidents for all employees is 0.53; deviation must not exceed 0.01. The mean count for top employees is between 0.12–0.20. If computing statistics for non-top employees, code logic and correctness must be validated (aggregate by Employee ID first, then compute). Conclude that the absolute characteristic of top employees on the disciplinary dimension is the computed mean of disciplinary incidents, which is very low; the relative characteristic is fewer disciplinary incidents than all employees (about 0.35 fewer on average).
+
+#### Path 3.2.B [3 points | Proportion analysis]
+- Sub-criterion 3.2.B.1 [1 point | Completeness]: Compute the proportion of top employees with any Disciplinary Issue record.
+- Sub-criterion 3.2.B.2 [1 point | Completeness]: Compute the proportion of all employees (or non-top employees) with any Disciplinary Issue record and compare to derive disciplinary-dimension characteristics for top employees.
+- Sub-criterion 3.2.B.3 [1 point | Accuracy]: Among all employees, there are 23 people with Disciplinary Issue records, accounting for 33.82%; deviation must not exceed 1%. Among top employees, the proportion with any Disciplinary Issue record is about 15%, with a ±3% tolerance. If computing the proportion for non-top employees or using a different statistical scope for top employees, the values are not referenceable and must be validated via code logic and correctness. Conclude that top employees have a lower proportion with disciplinary records.
+
+### Criterion 3.3: Group dimension analysis (up to 3 points)
+#### Path 3.3.A [3 points | Proportion analysis]
+- Sub-criterion 3.3.A.1 [1 point | Completeness]: Compute the proportion of top employees in each group.
+- Sub-criterion 3.3.A.2 [1 point | Completeness]: Compute the proportion of all employees (or non-top employees) in each group; after comparison, derive group-dimension characteristics of top employees.
+- Sub-criterion 3.3.A.3 [1 point | Accuracy]: Among all employees, 24 are in Group 1, 22 in Group 2, and 22 in Group 3—this must match exactly. Among top employees, 70%–80% are in Electrical Appliance Production Group 2. If computing proportions for non-top employees, code logic and correctness must be validated (aggregate/dedupe by Employee ID first, then compute proportions by “Team”). Conclude that both the absolute and relative characteristics for top employees are that most are in Electrical Appliance Production Group 2.
+
+---
+
+## Requirement 4: Provide recruitment recommendations (up to 7 points)
+### Criterion 4.1: Provide candidate profile recommendations (up to 7 points)
+#### Path 4.1.A [7 points | Propose profile based on relative characteristics]
+- Sub-criterion 4.1.A.1 [1 point | Conclusiveness]: Based on the absolute and relative characteristics derived from the comparative analyses in Requirements 2 & 3, clearly provide the recommended employee characteristics and rationale for each sub-dimension, aligned to the on-the-job employee profile.
+- Sub-criterion 4.1.A.2 [3 points | Accuracy]: For each demographic dimension (Requirement 2), stay broadly consistent with the reference conclusions (all 4 dimensions consistent = full points; 3 dimensions consistent = 2 points; 2 dimensions consistent = 1 point). Reference conclusions:
+  Target candidates who, compared to all employees, are closer to top employees; used to improve hit rate.
+  - Demographics (relative characteristics)
+    - Gender: When other conditions are comparable, prioritize reaching female candidates (currently, the vast majority of top employees are female, >80%; overall: male 32 at 47.06%, female 36 at 52.94%). Operationally, reflect this in channel placement and messaging emphasis, but do not set gender thresholds.
+    - Age: Small difference between top and overall; mean about 24.8 years, concentrated band includes 24. Focus on the 22–26 age range to improve fit, but do not set a hard age threshold.
+    - Education Level: Under the “Comprehensive weighted Top 20%” scope, top employees have High School/Junior college each at about 38%; overall structure is High School 45.59%, Technical secondary school 27.94%, Junior college 17.65%, Junior high school 8.82%. Prefer High School or Junior college backgrounds (easier to learn new processes), but do not exclude other education levels.
+    - Accommodation: ≥70% of top employees live in company accommodation; overall, live/not live are each 34 (50%/50%). Prefer candidates willing to live in company accommodation or with a short commuting radius.
+  - Compliance note: Gender and age reflect only the statistical characteristics of current top employees and are used to optimize channel and profile tendencies; they must not be used as hiring thresholds or exclusionary conditions. Hiring decisions should be based on job fit and quantified performance during the probation period.
+- Sub-criterion 4.1.A.3 [3 points | Accuracy]: For each work-related dimension (Requirement 3), stay broadly consistent with the reference conclusions (all 3 dimensions consistent = full points; 2 dimensions consistent = 2 points; 1 dimension consistent = 1 point). Because these are work-related rather than observable pre-hire, propose a “probation” approach and the metrics to assess during probation (or other reasonable methods). Reference conclusions:
+ - Work-related (relative characteristics; require validation during probation)
+    - Effective Working Hours/Away-from-Station: Top employees’ Away-from-Station Count ≈ 5.1–5.2 per shift, Total Time Away < 60 minutes, Effective Working Hours > 7h; overall values are 6.206 counts, 73.19 minutes, 6.78h. Probation targets: Away-from-Station Count ≤ 5 per shift; Total Time Away ≤ 55–60 minutes; Effective Working Hours ≥ 7.0–7.2h.
+    - Disciplinary: Top employees’ mean ≈ 0.12–0.20, significantly lower than overall 0.53; probation target: Disciplinary Issue = 0; after conversion to regular, rolling mean ≤ 0.2 per person·month.
+    - Group: 70%–80% of top employees are concentrated in Electrical Appliance Production Group 2; recommend assigning new hires first to Group 2 or equivalent takt/intensity lines, with mentorship by key personnel to accelerate ramp-up.
+
+#### Path 4.1.B [5 points | Propose profile based on absolute characteristics]
+- Sub-criterion 4.1.B.1 [1 point | Conclusiveness]: (Strictly per the absolute characteristics in each dimension from Requirements 2 & 3) Clearly provide the recommended employee characteristics and rationale for each dimension, aligned to the on-the-job employee profile.
+- Sub-criterion 4.1.B.2 [2 points | Accuracy]: For each demographic dimension (Requirement 2), stay broadly consistent with the reference conclusions (all 4 dimensions consistent = full points; 3 dimensions consistent = 1 point). Reference conclusions:
+  - Gender: Current absolute characteristic is “female-majority,” but open to all genders without restriction.
+  - Age: Absolute characteristic is about 24 years old; concentrated band includes age 24. Focus outreach and campus recruiting cycles on this age band.
+  - Education Level: Absolute characteristic is that High School and Junior college account for the largest shares (overall: High School 45.59%, Technical secondary school 27.94%, Junior college 17.65%, Junior high school 8.82%); highlight learning of processes and discipline execution in the JD; education level is a preference only.
+  - Accommodation: Absolute characteristic is living in company accommodation; mark “can live in company accommodation/can accept collective schedule” as a priority condition.
+  - Compliance note: Gender and age reflect only the statistical characteristics of current top employees and are used to optimize channel and profile tendencies; they must not be used as hiring thresholds or exclusionary conditions. Hiring decisions should be based on job fit and quantified performance during the probation period.
+- Sub-criterion 4.1.B.3 [2 points | Accuracy]: For each work-related dimension (Requirement 3), stay broadly consistent with the reference conclusions (all 3 dimensions consistent = full points; 2 dimensions consistent = 1 point). Because these are work-related rather than observable pre-hire, propose “probation” and the metrics to assess during probation (or other reasonable methods). Reference conclusions:
+  - Effective Working Hours: Absolute characteristics are Effective Working Hours ≥ 7h, Total Time Away < 60 minutes, Away-from-Station Count ≈ 5 per shift; use for probation quantification.
+  - Disciplinary: Absolute characteristic is very low mean of disciplinary incidents (≈0.15); probation requirement: Disciplinary Issue = 0.
+  - Group: Absolute characteristic is concentration in Electrical Appliance Production Group 2; prioritize assignment to that group or equivalent lines.

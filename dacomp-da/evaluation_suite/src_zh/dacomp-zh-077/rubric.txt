@@ -1,0 +1,118 @@
+# [总分 | 60分] 功能对客户生命周期价值（CLV）贡献度量化与“隐藏价值功能”识别评分标准
+---
+## 需求1：数据准入与分析口径统一（最高可得 18分）
+### 标准1.1：核心表与字段映射（最高6分）
+#### 路径1.1.A [6分 | 四表闭环映射]
+- 小标准1.1.A.1 [1分 | 完备性]：明确四张核心表的字段用途：`pendo__customer_lifecycle_insights`（visitor_id、account_id、last_event_on、comprehensive_customer_value、overall_health_score、sum_events、average_daily_minutes、sum_minutes、usage_intensity）、`pendo__visitor_feature`（visitor_id、feature_id、last_click_at、sum_clicks、sum_minutes、count_active_days）、`pendo__feature`（feature_id、feature_name、product_area_name、is_core_event）、`pendo__feature_daily_metrics`（date_day、feature_id、count_visitors）。
+- 小标准1.1.A.2 [4分 | 精确性]：按照“功能定义→访客使用明细→访客价值”三步阐述联结流程：1) 以 visitor_id 连接 `pendo__visitor_feature` 与 `pendo__customer_lifecycle_insights`，限定最后点击时间处于窗口内；2) 使用 feature_id 联结 `pendo__feature` 同步功能名称、产品域及核心事件标签；3) 若需日活校验，继续以 feature_id 连到 `pendo__feature_daily_metrics` 汇总 30 天内的 count_visitors。全流程仅依赖示例字段，不做删行或额外清洗。
+- 小标准1.1.A.3 [1分 | 结论性]：说明上述映射形成“功能-使用者-客户价值”闭环；若 `predicted_clv_tier`、`account_retention_30d` 等字段为空则保持 NULL，避免人工填补。
+
+#### 路径1.1.B [6分 | 扩展到采用画像]
+- 小标准1.1.B.1 [1分 | 完备性]：在路径1.1.A基座上补充 `pendo__product_adoption_analytics`（feature_id、total_users_tried、regular_users、avg_minutes_per_user、regular_share）刻画采纳深度。
+- 小标准1.1.B.2 [4分 | 精确性]：说明以 feature_id 连接 adoption 表与 visitor_feature 的逻辑，并用 `regular_share = regular_users / total_users_tried`、`avg_minutes_per_user` 推导“尝试→常规使用”转化率的 SQL 步骤；强调维持原始口径，不另做去极值或替换。
+- 小标准1.1.B.3 [1分 | 结论性]：指出 regular_share、avg_minutes_per_user 如何佐证隐藏价值功能的体验黏性，例如 Shipping Calculator regular_share=0.719、avg_minutes=11.78。
+
+### 标准1.2：时间窗口与活跃样本构造（最高6分）
+#### 路径1.2.A [6分 | 统一30天窗口]
+- 小标准1.2.A.1 [1分 | 完备性]：声明以 MAX(last_event_on)=2025-10-14 为参考日，分析窗口固定为 [2025-09-15, 2025-10-14]（含端点）。
+- 小标准1.2.A.2 [4分 | 精确性]：复现30天活跃样本 SQL：`WITH active_30 AS (SELECT visitor_id, account_id, comprehensive_customer_value, overall_health_score, sum_events, average_daily_minutes, sum_minutes, usage_intensity FROM pendo__customer_lifecycle_insights WHERE date(last_event_on) BETWEEN '2025-09-15' AND '2025-10-14') SELECT COUNT(*) FROM active_30;` 结果应为 7749（容差±2%），并要求保留 comprehensive_customer_value、usage_intensity 原始值，无任何清洗。
+- 小标准1.2.A.3 [1分 | 结论性]：强调后续所有 MAU、uplift、分层与加权计算均复用 active_30 集合，避免窗口漂移。
+
+#### 路径1.2.B [6分 | 30天 + 90天双窗口]
+- 小标准1.2.B.1 [1分 | 完备性]：说明价值分析仍基于 30 天活跃集合，但处理标签可延伸至 [2025-07-17, 2025-10-14] 的 90 天窗口。
+- 小标准1.2.B.2 [4分 | 精确性]：描述构造：1) 90 天活跃访客 `COUNT(DISTINCT visitor_id)=8000`（容差±1%）；2) 处理组=90天内使用功能（`usage90_matrix.parquet` 中取 feature 列=1），对照组=30天活跃但同一功能列=0；3) 30天 MAU、last_click_at 均取 `pendo__visitor_feature` 口径。
+- 小标准1.2.B.3 [1分 | 结论性]：解释 90 天窗口用于稳定处理判定，30 天窗口用于 MAU 与价值统计，两者需保持口径衔接。
+
+### 标准1.3：MAU与基线校验（最高6分）
+#### 路径1.3.A [6分 | visitor_feature 直接去重]
+- 小标准1.3.A.1 [1分 | 完备性]：定义 MAU_30d：`COUNT(DISTINCT visitor_id)`，限定 last_click_at 落入 30 天窗口并按 feature_id 聚合。
+- 小标准1.3.A.2 [4分 | 精确性]：验证锚点（容差±2个功能）：MAU<50 的功能=14，MAU 50–99 的功能=154，MAU 100–199 的功能=12，MAU≥200 的功能=0，总计 180 个功能；同时给出 30 天内人均功能数=1.74（`AVG(feature_cnt)`，feature_cnt 为每位活跃访客 30 天内使用的 DISTINCT 功能数）。
+- 小标准1.3.A.3 [1分 | 结论性]：指出全集功能 MAU 均低于 200，采纳度整体偏低，为隐藏价值功能筛查奠定背景。
+
+#### 路径1.3.B [6分 | feature_daily_metrics 近似校验]
+- 小标准1.3.B.1 [1分 | 完备性]：描述用 `pendo__feature_daily_metrics` 聚合 30 日 `SUM(count_visitors)` 再除以 30 得到 MAU 近似，并说明跨日重复计数的偏差。
+- 小标准1.3.B.2 [4分 | 精确性]：要求展示“日度求和→除以 30 →对比 MAU_30d”的步骤；需要给出近似结果的分位：ratio 中位数≈1.02、P25≈0.32、P75≈2.59，与路径1.3.A 保持同向趋势。
+- 小标准1.3.B.3 [1分 | 结论性]：声明该近似仅用于外推或 visitor_feature 缺失场景，一旦 visitor_feature 可用，应以路径1.3.A 口径为准。
+
+---
+## 需求2：功能对CLV贡献度估计（最高可得 18分）
+### 标准2.1：原始均值差估计（最高6分）
+#### 路径2.1.A [6分 | 30天活跃对比]
+- 小标准2.1.A.1 [1分 | 完备性]：定义处理组=近30天使用指定功能的活跃访客，对照组=同窗活跃但未使用该功能的访客。
+- 小标准2.1.A.2 [4分 | 精确性]：复现 Welch 均值差流程（含样本量、均值、标准误、t 值），并校准锚点（容差≤1%）：Shipping Calculator uplift=254.02，t=2.31；Customer Segmentation uplift=235.61，t=3.23；Two-Factor Auth uplift=177.92，t=2.23。
+- 小标准2.1.A.3 [1分 | 结论性]：列出按 uplift 降序的至少 5 个功能（Shipping Calculator、Customer Segmentation、Two-Factor Auth、Advanced Reporting、Customer Surveys），并指出均值差可能受高活跃用户集中影响。
+
+#### 路径2.1.B [6分 | 账户内去中心化]
+- 小标准2.1.B.1 [1分 | 完备性]：说明在 account_id 内对 CLV 去中心化（ccv_centered = CCV − account 平均）后比较使用/未使用差异。
+- 小标准2.1.B.2 [4分 | 精确性]：输出与路径2.1.A 对齐的锚点（容差≤2%）：Shipping Calculator uplift_within=255.51，t=2.48；Customer Segmentation uplift_within=226.33，t=3.24；Two-Factor Auth uplift_within=190.14，t=2.55；Advanced Reporting uplift_within=174.32，t=2.16；Customer Surveys uplift_within=129.56，t=2.08。
+- 小标准2.1.B.3 [1分 | 结论性]：解释账户内方法可缓解高价值账户集中带来的偏差，并列出仍显著的功能（上述五项）。
+
+### 标准2.2：分层与逆方差加权估计（最高6分）
+#### 路径2.2.A [6分 | usage_intensity 加权差]
+- 小标准2.2.A.1 [1分 | 完备性]：说明按 usage_intensity（Heavy=1992，Light=1963，Moderate=1912，Power User=1882）分层，权重为各层占 active_30 的比例。
+- 小标准2.2.A.2 [4分 | 精确性]：给出分层均值差与加权求和公式，验证锚点（容差≤1%）：Shipping Calculator 加权 uplift=268.21；Customer Segmentation=233.57；Two-Factor Auth=175.03；Advanced Reporting=165.46；Quick Actions=142.99。
+- 小标准2.2.A.3 [1分 | 结论性]：比较加权结果与原始均值差，说明对重度用户偏移的修正效果（如 Shipping Calculator 254→268，Two-Factor Auth 178→175）。
+
+#### 路径2.2.B [6分 | 逆方差综合]
+- 小标准2.2.B.1 [1分 | 完备性]：在分层结果基础上，使用逆方差权重得到全局 uplift，并计算标准误与 z 值。
+- 小标准2.2.B.2 [4分 | 精确性]：验算锚点（容差≤1%）：Shipping Calculator uplift=237.52，se=108.57，z=2.19；Customer Segmentation uplift=204.91，se=69.18，z=2.96；Email Campaigns uplift=109.13，se=54.46，z=2.00；Two-Factor Auth z=1.81（未跨 1.96）。
+- 小标准2.2.B.3 [1分 | 结论性]：说明 z≥1.96 作为显著阈值时需重点关注 Shipping Calculator、Customer Segmentation、Email Campaigns，同时提醒 Two-Factor Auth 仍具边际价值但显著性不足。
+
+### 标准2.3：高级估计路径（最高6分）
+#### 路径2.3.A [6分 | 回归残差 + Lasso + 稳健OLS]
+- 小标准2.3.A.1 [1分 | 完备性]：按以下流程复现：① 用 overall_health_score、sum_events、average_daily_minutes、sum_minutes 拟合 CCV（`OLS` 控制模型）；② 构造残差后对 180 个功能指示进行 Frisch–Waugh 残差化；③ 以 LassoCV 选特征，再用 HC3 稳健标准误估计系数。
+- 小标准2.3.A.2 [4分 | 精确性]：报告控制模型 R²=0.605，加入功能后 R²=0.615；列出显著系数示例（p<0.05）：Advanced Reporting +119.97（p=0.041）、Password Reset −79.94（p=0.032）、Report Builder −93.58（p=0.017）、Support Analytics −84.79（p=0.018）、Security Audit −143.25（p=0.020）。
+- 小标准2.3.A.3 [1分 | 结论性]：说明该残差化结果与均值差、分层法互证：Advanced Reporting 在三条路径中均表现为高价值功能，而 Security Audit 在所有路径均呈负向贡献。
+
+#### 路径2.3.B [6分 | 倾向匹配或双重稳健]
+- 小标准2.3.B.1 [1分 | 完备性]：使用 overall_health_score、sum_events、average_daily_minutes、sum_minutes、usage_intensity 哑变量建模使用倾向，执行 0.05 caliper 的最近邻匹配。
+- 小标准2.3.B.2 [4分 | 精确性]：提供匹配质量与效应：Email Campaigns max 标准化差异由 0.261 降至 0.103（n_pairs=113，ATE=+56.68，t=0.89）；Customer Segmentation 从 0.307 降至 0.209（n_pairs=88，ATE=+104.91，t=1.71）；Shipping Calculator 由于基准差异大，匹配后仍为 0.308（需在结论中说明限制）。
+- 小标准2.3.B.3 [1分 | 结论性]：总结倾向匹配与分层/逆方差结果方向一致（优势功能 uplift>0，Security 类功能为负），并指出匹配质量不足时须结合其它口径做判断。
+
+---
+## 需求3：“隐藏价值功能”筛选与增量测算（最高可得 12分）
+### 标准3.1：筛选规则与榜单输出（最高6分）
+#### 路径3.1.A [6分 | MAU + uplift + 显著性判定]
+- 小标准3.1.A.1 [1分 | 完备性]：定义隐藏价值功能：MAU_30d <200、分层加权 uplift>0、z_invvar≥1.96、n_treat_30≥40。
+- 小标准3.1.A.2 [4分 | 精确性]：列出满足条件的功能（容差≤10%）：Shipping Calculator（MAU=49，uplift=268.21，z=2.19）、Customer Segmentation（89，233.57，2.96）、Email Campaigns（116，115.80，2.00）。
+- 小标准3.1.A.3 [1分 | 结论性]：总结其共性（履约/运营效率、营销精度、外呼自动化），说明“MAU 较低但单位价值高”对业务的意义。
+
+#### 路径3.1.B [6分 | 多维评分或排名]
+- 小标准3.1.B.1 [1分 | 完备性]：构建多指标评分：score = 0.4·Z(uplift_weighted) + 0.3·Z(z_invvar) + 0.2·Z(regular_share) + 0.1·Z(avg_minutes_per_user)。
+- 小标准3.1.B.2 [4分 | 精确性]：计算得分并排序（容差≤1e-3）：Customer Segmentation=0.880>Shipping Calculator=0.658>Email Campaigns=0.029；结果应与路径3.1.A 前列一致。
+- 小标准3.1.B.3 [1分 | 结论性]：阐述多维评分有助于识别虽显著但常规使用率偏低的功能，并筛除采纳基础不足者。
+
+### 标准3.2：潜在增益与风险对照（最高6分）
+#### 路径3.2.A [6分 | MAU 提升至 200 的情景]
+- 小标准3.2.A.1 [1分 | 完备性]：定义 `potential_gain_to_200 = (200 − MAU_30d) × uplift_weighted_usage`，对 MAU≥200 功能不做补偿。
+- 小标准3.2.A.2 [4分 | 精确性]：给出计算结果（容差±15%）：Shipping Calculator≈40,499；Customer Segmentation≈25,926；Two-Factor Auth≈23,103；Advanced Reporting≈21,841；Cloud Storage≈10,528；Email Campaigns≈9,727。按 product_area 聚合：E-commerce≈40,499，CRM & Sales≈25,926，Marketing≈9,727。
+- 小标准3.2.A.3 [1分 | 结论性]：建议优先投资履约（Shipping Calculator）与客户洞察（Customer Segmentation），并强调需逐步抬高 MAU 以验证边际效应。
+
+#### 路径3.2.B [6分 | 未使用者 10% 转化情景 + 负向功能治理]
+- 小标准3.2.B.1 [1分 | 完备性]：设定 `potential_gain_10pct = 0.10 × 未使用者数量 × uplift_within`，基于 30 天窗口。
+- 小标准3.2.B.2 [4分 | 精确性]：输出示例（容差±15%）：Shipping Calculator≈196,822；Customer Segmentation≈173,389；Two-Factor Auth≈146,120；Advanced Reporting≈133,910；Customer Surveys≈99,296；Kanban Board≈89,374。列出至少两项负向 uplift 功能：Security Audit≈−101,982（uplift_weighted=−130.19，z=−11.18）；Report Builder≈−99,658（−132.80，z=−8.86）。
+- 小标准3.2.B.3 [1分 | 结论性]：依据正向/负向清单提出“加速推广 vs 谨慎治理”双向策略，并注明负向功能须先改善体验后再扩散。
+
+---
+## 需求4：领域洞察、策略与实验规划（最高可得 12分）
+### 标准4.1：领域聚合与相关性分析（最高6分）
+#### 路径4.1.A [6分 | 领域潜力聚合]
+- 小标准4.1.A.1 [1分 | 完备性]：按 product_area_name 聚合隐藏价值功能，统计数量、平均 MAU、平均 uplift、潜在增量总和。
+- 小标准4.1.A.2 [4分 | 精确性]：验证锚点（容差±15%）：E-commerce 潜在增量≈40,499；CRM & Sales≈25,926；Marketing≈9,727。
+- 小标准4.1.A.3 [1分 | 结论性]：说明优先投放领域（履约、电商转化、营销自动化），并关联相应业务场景。
+
+#### 路径4.1.B [6分 | 相关性与敏感性]
+- 小标准4.1.B.1 [1分 | 完备性]：计算 MAU 与 uplift 的皮尔逊相关，报告样本覆盖(n_treat_30 ≥5)。
+- 小标准4.1.B.2 [4分 | 精确性]：给出相关系数≈0.120（容差±0.02），并说明 90 天处理标签复算 uplift 与 30 天口径差异中位为 0（典型功能差异绝对值<5%）。
+- 小标准4.1.B.3 [1分 | 结论性]：总结“规模与价值弱相关”，提示需平衡激活隐藏价值与扩大基础功能。
+
+### 标准4.2：策略落地与风险边界（最高6分）
+#### 路径4.2.A [6分 | 激活策略 + 实验计划]
+- 小标准4.2.A.1 [1分 | 完备性]：提出至少 3 条与 Top 功能匹配的激活策略，例如：Shipping Calculator（MAU=49）上线履约向导与默认弹窗；Customer Segmentation（MAU=89）嵌入行业模板与营销漏斗推荐；Email Campaigns（MAU=116）提供一键复用模板及跨渠道自动化。
+- 小标准4.2.A.2 [4分 | 精确性]：把策略与 uplift 数据绑定，并给出实验设计：如 Shipping Calculator uplift=268→设置履约路径实验，主要指标=CLV uplift、次要指标=履约转化率，观测周期≥30天，分层随机（使用强度）。
+- 小标准4.2.A.3 [1分 | 结论性]：设定下一季度量化目标（如上述功能 MAU 各提升 ≥+50，整体 CLV 增量≥20 万），并强调需通过实验验证因果。
+
+#### 路径4.2.B [6分 | 负向功能治理与风险提示]
+- 小标准4.2.B.1 [1分 | 完备性]：针对负向 uplift 功能制定治理路径（体验调研、限定曝光、灰度修复）。
+- 小标准4.2.B.2 [4分 | 精确性]：结合数据说明：Security Audit uplift_weighted=−130.19（z=−11.18）、Report Builder=−132.80（z=−8.86）、Document Templates=−131.21（z=−5.10）；提出针对性 AB 测试或流程重构，并监测问题率、健康分、CLV。
+- 小标准4.2.B.3 [1分 | 结论性]：总结风险边界（相关≠因果、边际递减、交叉使用重叠），并要求建立持续监控节奏（例如月度复盘 + 季度回归）。

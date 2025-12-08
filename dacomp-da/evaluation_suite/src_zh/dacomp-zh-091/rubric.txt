@@ -1,0 +1,43 @@
+# [总分 | 36分] QuickBooks 高质量缩减型供应商诊断评分标准
+---
+## 需求1：高质量缩减型供应商识别与基础量化（最高 6分）
+### 标准1.1：双条件筛选与规模对账
+#### 路径1.1.A [6分 | 定值口径核验]
+- 小标准1.1.A.1 [1分 | 完备性]：明确说明筛选条件为 `annual_spend_growth_pct < 0` 且 `overall_performance_score ≥ 7`，以 `vendor_id` 去重作为唯一标识，并限定源表 `quickbooks__vendor_performance`。
+- 小标准1.1.A.2 [4分 | 精确性]：锚点须在误差≤0.5%（均值类≤0.01）内复现：`COUNT(DISTINCT vendor_id)=342`；`SUM(spend_current_year)=15,052,480.58`；`SUM(spend_prev_year)=13,419,846.71`；`AVG(overall_performance_score)=7.87`；`AVG(annual_spend_growth_pct)=-16.032%`。计算需严格按照 `SUM(spend_current_year)`、`SUM(spend_prev_year)` 与 `AVG(...)` 口径执行。
+- 小标准1.1.A.3 [1分 | 结论性]：指出该供应商群体对年度支出结构的实际占比（`15,052,480.58 / 60,966,493.01 ≈ 24.69%`），并强调“负增长+高绩效”带来的潜在优化空间与集中度风险。
+
+## 需求2：波动系数与综合风险评分（最高 6分）
+### 标准2.1：指标计算与稳定性识别
+#### 路径2.1.A [6分 | 公式严校]
+- 小标准2.1.A.1 [1分 | 完备性]：逐供应商声明并实现 `spend_volatility_coeff = spend_volatility / NULLIF(total_lifetime_spend, 0)` 与 `composite_risk_score = payment_completion_rate*0.4 + (business_value_score/10)*0.6`，需要使用 `COALESCE/NULLIF` 防止除零。
+- 小标准2.1.A.2 [4分 | 精确性]：锚点（误差≤0.0005）必须同时满足：`AVG(spend_volatility_coeff)=0.944823`；`MIN=0.0008`；`MAX=28.8445`；`AVG(composite_risk_score)=0.781549`；`MIN=0.462261`；`MAX=0.939387`；并给出 `PearsonCorr(spend_volatility_coeff, composite_risk_score)≈-0.0087`。需附等价 SQL 或伪代码展示聚合与相关系数计算过程。
+- 小标准2.1.A.3 [1分 | 结论性]：解释“风险评分与波动系数几乎无相关（≈0）”且极值来自低基数供应商（例：`VEN77516240714` 波动系数≈28.84），提出需对极端低 `total_lifetime_spend` 个体做单独审视。
+
+## 需求3：科目维度支出变动率（最高 6分）
+### 标准3.1：近12个月 vs 前12个月对比
+#### 路径3.1.A [6分 | 时间窗差分复算]
+- 小标准3.1.A.1 [1分 | 完备性]：明确时间窗为 `2024-10-15`～`2025-10-14`（近12个月）对比 `2023-10-15`～`2024-10-14`（前12个月），仅针对选定供应商的 `quickbooks__general_ledger`，以 `CASE WHEN amount<0 THEN -amount ELSE 0 END` 计入支出，并按 `vendor_id+account_type` 聚合。
+- 小标准3.1.A.2 [4分 | 精确性]：锚点须在误差≤0.5%（比率≤0.0005）内：`SUM_last12 = 98,518,359.24`；`SUM_prev12 = 102,209,553.43`；`Δ = -3,691,194.19`；加权变化率 `(SUM_last12 - SUM_prev12)/SUM_prev12 = -0.0361`；供应商层面 `change_rate<0` 数量=189，`>0`=152，`不可判定`=1。需给出等价 SQL 片段展示窗口划分与聚合逻辑。
+- 小标准3.1.A.3 [1分 | 结论性]：归纳“整体科目支出同比下滑约3.61%，近一半供应商仍保持增长，提示结构性流失主要由特定科目驱动”，并点明需重点巡检连续为负的账户段。
+
+## 需求4：交易频次密度监测（最高 6分）
+### 标准4.1：活跃天数法频度统计
+#### 路径4.1.A [6分 | 周期频次校核]
+- 小标准4.1.A.1 [1分 | 完备性]：定义 `transaction_frequency_density = txn_count_last12 / active_days_last12`，其中 `txn_count_last12` 为窗口内笔数，`active_days_last12` 为同窗 DISTINCT 交易日期数，按 `vendor_id+account_type` 计算。
+- 小标准4.1.A.2 [4分 | 精确性]：锚点（误差≤0.0005）：整体 `AVG(frequency_density)=1.0049`；分科目 `Expense=1.0044 (min=1.0,max=1.3333)`、`Liability=1.0039 (min=1.0,max=1.3333)`、`Asset=1.0056 (min=1.0,max=2.0)`、`Revenue=1.0057 (min=1.0,max=1.25)`。需说明活跃天数为零时结果置 NULL。
+- 小标准4.1.A.3 [1分 | 结论性]：指出“密度约等于1说明多为单日单笔，需关注密度>1.25 的异常波动”，并将密度监控纳入后续巡检建议。
+
+## 需求5：科目结构与极值暴露（最高 6分）
+### 标准5.1：科目贡献与异常组合
+#### 路径5.1.A [6分 | 结构占比核验]
+- 小标准5.1.A.1 [1分 | 完备性]：按 `account_type` 聚合近12个月支出，计算 `total_spend` 与科目占比，需覆盖全部存在记录的科目并说明计算基于负向金额取绝对值。
+- 小标准5.1.A.2 [4分 | 精确性]：锚点（误差≤0.5%）：`Expense` 近12个月支出=58,523,319.71（占59.40%）；`Liability`=39,995,039.53（占40.60%）；其余科目≈0。需列出至少两类极值组合：① 支出断崖式下降（`spend_prev12>0 & spend_last12=0`）前5名 `vendor_id={VEN04283498201, VEN05614179201, VEN20357503951, VEN24666133990, VEN29422500294}`（`change_rate=-1.0`）；② 最大增长组合（示例 `VEN63441206835` `Expense` `change_rate=221.5981`、`VEN62817879979` `Expense` `change_rate=199.6012`、`VEN29716582887` `Liability` `change_rate=46.1697`）。
+- 小标准5.1.A.3 [1分 | 结论性]：阐释“Expense+Liability 占比>99%，多起断崖式下降集中在 Expense 科目，需校验是否为业务压缩还是记账缺口”，并提出对极值组合的复盘要求。
+
+## 需求6：30%供应商合作缩减现金流情景（最高 6分）
+### 标准6.1：场景计算与风险指数对比
+#### 路径6.1.A [6分 | 情景推演对账]
+- 小标准6.1.A.1 [1分 | 完备性]：声明高质量缩减型供应商年度支出占比 `segment_share = 15,052,480.58 / 60,966,493.01 ≈ 0.2469`，并以 `adjust_factor = 1 - segment_share*0.3 ≈ 0.92593` 修正 `forecasted_outflows`；`adjusted_net_cash_flow = forecasted_inflows - forecasted_outflows*adjust_factor`；`liquidity_risk_index = (outflows - inflows)/inflows`。
+- 小标准6.1.A.2 [4分 | 精确性]：锚点（误差≤0.5%，比率≤0.0005）：`AVG(adjusted_outflows - forecasted_outflows) = -222,973.17`；`AVG(adjusted_net_cash_flow - forecasted_net_cash_flow) = 222,973.17`；`SUM(adjusted_net_cash_flow - forecasted_net_cash_flow) = 4,013,517.12`；`AVG(adjusted_risk_index - baseline_risk_index) = -0.0755`；`baseline_risk_index>0` 月份由8降至6，其中2个月（例：2025-10-01、2025-11-01）转为非正值；`max baseline risk_index = 0.5838 (2026-10-01)` 降至 `0.4665`。需给出可复算 SQL。
+- 小标准6.1.A.3 [1分 | 结论性]：总结“供应商压降方案平均每月释放约22.3万净现金、显著压低流动性风险指数，并将最危险月份风险幅度削减约0.1173”，并提出应结合回款节奏检视后续资金策略。

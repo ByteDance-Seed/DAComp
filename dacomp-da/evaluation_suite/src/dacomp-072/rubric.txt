@@ -1,0 +1,114 @@
+# [Total Score | 42 Points] Scoring Rubric for Hiring Manager Performance Evaluation based on lever__hiring_manager_scorecard
+
+---
+
+## Requirement 1: Data Scope and Sample Inclusion
+
+### Criterion 1.1: Field Mapping, Units, and Inclusion Criteria
+
+#### Path 1.1.A [6 Points | Recommended: Standard Field Definitions]
+- Sub-criterion 1.1.A.1 [1 Point | Completeness] Clearly use the table `lever__hiring_manager_scorecard` from path `/Users/bytedance/workspace/dacomp-release/dacomp-da/tasks/dacomp-072/dacomp-072.sqlite`. Include only records where `total_requisitions_owned` ≥ 5 (the observed minimum is 9), resulting in a qualified sample of 235 (tolerance ±0). The four metrics are mapped to `candidate_hire_rate` (0–1), `avg_total_days_to_hire` (days), `avg_candidate_experience_score` (1–5), and `feedback_completion_rate_managed` (percentage).
+- Sub-criterion 1.1.A.2 [4 Points | Accuracy] Field scales and threshold directions must adhere to their original definitions: `candidate_hire_rate` is a continuous value where higher is better; `avg_total_days_to_hire` is better when lower; `avg_candidate_experience_score` is better when higher; `feedback_completion_rate_managed` is a percentage where higher is better. Verify anchor points (tolerances: `candidate_hire_rate` ±0.5pp, duration ±0.1 days, experience ±0.01 points, feedback ±0.5pp): `candidate_hire_rate` ∈ [23.136%, 65.000%], `avg_total_days_to_hire` ∈ [15.0, 84.7868], `avg_candidate_experience_score` ∈ [1.50, 4.8601], `feedback_completion_rate_managed` ∈ [36.1182%, 98.0%].
+- Sub-criterion 1.1.A.3 [1 Point | Conclusion] Reiterate in the methodology section that "no additional data cleaning is performed" and map the four metrics to the business dimensions of hire success rate, hiring cycle, candidate experience, and feedback discipline, clarifying their contribution to the composite efficiency score.
+
+#### Path 1.1.B [6 Points | Equivalent Percentage-Based Explanation]
+- Sub-criterion 1.1.B.1 [1 Point | Completeness] Explain that, while keeping the sample and thresholds unchanged, `candidate_hire_rate` can first be converted to a percentage scale (by multiplying by 100) before being weighted.
+- Sub-criterion 1.1.B.2 [4 Points | Accuracy] Prove that the percentage-based treatment is fully equivalent to Path 1.1.A: the total sample is still 235, the ranges of the four fields are consistent with the anchor points above (same tolerances), and the ranking and threshold judgments remain unchanged.
+- Sub-criterion 1.1.B.3 [1 Point | Conclusion] Clearly state that using a percentage scale is merely a change in presentation and does not affect subsequent scoring, tiering, or insights.
+
+---
+
+## Requirement 2: Composite Efficiency Score Calculation and Tiering
+
+### Criterion 2.1: Composite Score Construction
+
+#### Path 2.1.A [6 Points | Recommended: Threshold + Linear Score]
+- Sub-criterion 2.1.A.1 [1 Point | Completeness] Provide the strict formula: total_score = `candidate_hire_rate` × 30 + 25 × I(`avg_total_days_to_hire` < 45) + 25 × I(`avg_candidate_experience_score` > 3.5) + 20 × I(`feedback_completion_rate_managed` > 85), where `I()` is the indicator function.
+- Sub-criterion 2.1.A.2 [4 Points | Accuracy] Using strict inequalities (<45, >3.5, >85), recalculate key anchor points (tolerance ±0.1): Top 5 total scores ≈ 89.39 / 88.69 / 86.86 / 86.54 / 86.02 (corresponding to Lorraine Gibbs / Melissa Russell / Kyle Andrews / Erin Walters / Victoria Valdez); the min/max scores are approximately 89.39 and 6.94.
+- Sub-criterion 2.1.A.3 [1 Point | Conclusion] Explain the design logic: `candidate_hire_rate` continuously measures hiring ability, while the three threshold-based metrics represent process efficiency, candidate experience, and feedback discipline, where meeting the target earns the full points for that dimension.
+
+#### Path 2.1.B [6 Points | Equivalent Percentage-Based Weighting]
+- Sub-criterion 2.1.B.1 [1 Point | Completeness] Express the calculation as converting all four metrics to a percentage scale first, then multiplying by 0.30/0.25/0.25/0.20 respectively and summing them up.
+- Sub-criterion 2.1.B.2 [4 Points | Accuracy] Verify that the total scores after conversion are identical to Path 2.1.A (including the Top 5 and min/max anchor points, tolerance ±0.1).
+- Sub-criterion 2.1.B.3 [1 Point | Conclusion] State that both calculation methods are equivalent in terms of ranking and tiering results.
+
+#### Path 2.1.C [6 Points | Optional: Continuous Mapping Scheme]
+- Sub-criterion 2.1.C.1 [1 Point | Completeness] Propose a continuous mapping, such as: Hiring Cycle Score = clip((55 - `avg_total_days_to_hire`)/10, 0, 1) × 25; Candidate Experience Score = clip((`avg_candidate_experience_score` - 3.0)/1.5, 0, 1) × 25; Feedback Score = clip((`feedback_completion_rate_managed` - 70)/30, 0, 1) × 20; Hire Rate is still multiplied by 30.
+- Sub-criterion 2.1.C.2 [4 Points | Accuracy] Explain the steps: ① generate continuous scores using the functions above; ② calculate the weighted sum; ③ ensure the sum of weights is 100%; ④ clarify the relationship between the gradients and threshold positions (45 days, 3.5 points, 85%) and the original system, and avoid post-hoc parameter tuning.
+- Sub-criterion 2.1.C.3 [1 Point | Conclusion] Evaluate the pros and cons of continuous mapping: it can differentiate between borderline samples but needs to align with the fixed-threshold system to avoid confusing communication standards.
+
+### Criterion 2.2: Tiering and Size Verification
+
+#### Path 2.2.A [6 Points | Recommended: Fixed Threshold Tiering]
+- Sub-criterion 2.2.A.1 [1 Point | Completeness] Apply the fixed rules "Excellent ≥ 80, Good 60–<80, Needs Improvement < 60" to classify only the 235 qualified samples.
+- Sub-criterion 2.2.A.2 [4 Points | Accuracy] Reproduce the count anchor points (tolerance ±1): Excellent 13, Good 37, Needs Improvement 185; corresponding proportions are approx. 5.53% / 15.74% / 78.72%.
+- Sub-criterion 2.2.A.3 [1 Point | Conclusion] Describe the tier structure: the Excellent group is small, while the Needs Improvement group is very large, indicating a need for systemic improvement.
+
+#### Path 2.2.B [6 Points | Fault-tolerant: Boundary Condition Explanation]
+- Sub-criterion 2.2.B.1 [1 Point | Completeness] Clearly state that ≥80 is classified as Excellent and ≥60 is classified as Good, and maintain this consistency in the report and code.
+- Sub-criterion 2.2.B.2 [4 Points | Accuracy] Verify that no samples have a total score of exactly 80 or 60 (i.e., `np.isclose` yields an empty set), ensuring zero ambiguity in boundary classification. If boundary samples exist, explain the classification method and ensure the counts match Path 2.2.A.
+- Sub-criterion 2.2.B.3 [1 Point | Conclusion] Emphasize that boundary consistency promotes transparency in performance communication and rewards/consequences.
+
+---
+
+## Requirement 3: Baseline Distribution and Tier-based Insights
+
+### Criterion 3.1: Overall and Tier-based Statistics
+
+#### Path 3.1.A [6 Points | Recommended: Consistent Metrics for Overall + Tiers]
+- Sub-criterion 3.1.A.1 [1 Point | Completeness] Output the key averages (total score, `candidate_hire_rate`, `avg_total_days_to_hire`, `avg_candidate_experience_score`, `feedback_completion_rate_managed`) and the achievement rates for the three thresholds for the overall sample and for each of the Excellent/Good/Needs Improvement tiers.
+- Sub-criterion 3.1.A.2 [4 Points | Accuracy] Anchor points (tolerances: averages ±0.1, total score/hire rate ratios ±0.5pp): Overall average total score ≈ 40.30, hire rate ≈ 46.60%, `avg_total_days_to_hire` ≈ 45.99 days, experience ≈ 3.12 points, feedback ≈ 71.33%; threshold achievement rates are 48.94% for cycle, 36.60% for experience, and 24.68% for feedback. Tier-based averages: Excellent 84.57 / 48.58% / 30.31 / 4.15 / 93.80; Good 64.35 / 50.54% / 30.66 / 3.72 / 77.62; Needs Improvement 32.38 / 45.68% / 50.16 / 2.93 / 68.50. Tier-based threshold achievement rates: Excellent 100% on all three; Good approx. 91.89% / 81.08% / 29.73%; Needs Improvement approx. 36.76% / 23.24% / 18.38%.
+- Sub-criterion 3.1.A.3 [1 Point | Conclusion] Summarize the differences between tiers: the Excellent group leads across the board, the Good group's main weakness is feedback, and the Needs Improvement group is weak on all three metrics and has a longer hiring cycle.
+
+#### Path 3.1.B [6 Points | Alternative: Tier-based Pivot Table Presentation]
+- Sub-criterion 3.1.B.1 [1 Point | Completeness] Present the key averages and achievement rates for the overall sample and each tier using a pivot table or visualization, ensuring the metrics are consistent with Path 3.1.A.
+- Sub-criterion 3.1.B.2 [4 Points | Accuracy] The numerical values must satisfy the same anchor points and tolerances. If using charts, provide the corresponding data table or labels.
+- Sub-criterion 3.1.B.3 [1 Point | Conclusion] Interpret the visualization results, ensuring the insights are consistent with those in Path 3.1.A.
+
+---
+
+## Requirement 4: Threshold Combination and Weakness Diagnosis
+
+### Criterion 4.1: Threshold Impact and Combination Structure
+
+#### Path 4.1.A [6 Points | Recommended: Pass/Fail Differences + Combination Distribution]
+- Sub-criterion 4.1.A.1 [1 Point | Completeness] For each of the three thresholds, output the average total score for those who "Passed" vs. those who "Failed". Also, count the number of managers in each of the eight pass/fail combination groups (000 to 111).
+- Sub-criterion 4.1.A.2 [4 Points | Accuracy] Anchor points (tolerances: avg score ±0.5, counts ±1): Experience pass 58.34 vs. fail 29.89; Cycle pass 54.68 vs. fail 26.52; Feedback pass 57.76 vs. fail 34.58. Combination counts: 000=64, 100=51, 010=28, 001=18, 110=34, 101=16, 011=10, 111=14.
+- Sub-criterion 4.1.A.3 [1 Point | Conclusion] Point out that the feedback achievement rate is the lowest and that combination 110 (Cycle + Experience Pass, Feedback Fail) is the largest group (34 people), making it the primary breakthrough opportunity for promotion to the Excellent tier.
+
+#### Path 4.1.B [6 Points | Near-Threshold and Borderline Identification]
+- Sub-criterion 4.1.B.1 [1 Point | Completeness] Count the size of key near-threshold populations: cycle 45–50 days, experience 3.3–3.5 points, feedback 80–85%, total score 55–<60, total score 80–≤85.
+- Sub-criterion 4.1.B.2 [4 Points | Accuracy] Verify anchor points (tolerance ±1 person): 14 / 19 / 21 / 21 / 7, corresponding to the five borderline groups listed above.
+- Sub-criterion 4.1.B.3 [1 Point | Conclusion] Explain that these borderline groups are high-leverage targets for focused intervention, especially managers with feedback scores of 80–85% and total scores of 55–60, who could move up a tier with targeted coaching.
+
+---
+
+## Requirement 5: Scenario Simulation and Improvement Potential
+
+### Criterion 5.1: Dual Scenario Simulation (Good → Excellent & Needs Improvement → Good/Excellent)
+
+#### Path 5.1.A [6 Points | Recommended: Threshold Score Completion Method]
+- Sub-criterion 5.1.A.1 [1 Point | Completeness] Complete both simulations simultaneously: ① For the Good group, uniformly give them credit for meeting the feedback > 85% threshold. ② For the Needs Improvement group, calculate the number who would be promoted after meeting one, two, or all three thresholds.
+- Sub-criterion 5.1.A.2 [4 Points | Accuracy] Verify anchor points (tolerances: counts ±1, avg score ±0.1): The Good group has 37 members; after completing the feedback requirement, their new average score is ≈78.40, and ≈26 are promoted to Excellent. The Needs Improvement group has 185 members; number promoted to ≥60 by meeting a single threshold: Cycle 40, Experience 64, Feedback 44, any single one 103. Number promoted to >80 by meeting two thresholds: Cycle+Experience 30, Cycle+Feedback 30, Experience+Feedback 53. Number promoted to >80 by meeting all three: 151.
+- Sub-criterion 5.1.A.3 [1 Point | Conclusion] Summarize the leverage ranking: for the Good group, prioritize improving feedback. For the Needs Improvement group, the "Experience + Feedback" or "Experience + Cycle" combinations yield the greatest benefit, significantly increasing the number of promotions.
+
+#### Path 5.1.B [6 Points | Alternative: Continuous Score Increase Scenario]
+- Sub-criterion 5.1.B.1 [1 Point | Completeness] Define a continuous scenario based on incremental improvements (e.g., each +5pp in feedback adds 5 × 0.20 points to the score), covering both the Good and Needs Improvement groups.
+- Sub-criterion 5.1.B.2 [4 Points | Accuracy] Provide a reproducible process: baseline score → add corresponding points → count number of promotions. Verify that the trend is consistent with Path 5.1.A (feedback is most effective, followed by experience).
+- Sub-criterion 5.1.B.3 [1 Point | Conclusion] Output the priorities for different improvement increments and suggest resource allocation.
+
+---
+
+## Requirement 6: Advanced Diagnostics and Actionable Recommendations
+
+### Criterion 6.1: Correlation Analysis, Borderline Cases, and Strategy Output
+
+#### Path 6.1.A [6 Points | Recommended: Correlation + Borderline + Recommendations]
+- Sub-criterion 6.1.A.1 [1 Point | Completeness] Simultaneously complete the following: ① Calculate the Pearson correlation between `total_requisitions_owned` and `total_score`. ② Identify the borderline case of a manager in the "Good" tier who meets all three thresholds but has a score < 80. ③ Output at least three data-driven action recommendations covering feedback, experience/cycle, and operational governance.
+- Sub-criterion 6.1.A.2 [4 Points | Accuracy] Align with anchor points: Correlation coefficient r ≈ −0.2757 (tolerance ±0.02). The borderline case is David Bird, with a total score ≈ 79.854 and `candidate_hire_rate` ≈ 32.85%; the required increase in hire rate to reach Excellent is ≈0.49pp. Action recommendations must reference the quantitative results from previous sections (e.g., completing the feedback requirement can create 26 new Excellent managers, completing experience+feedback can move 53 managers to >80, and there are 21 managers in the 80–85% borderline feedback group).
+- Sub-criterion 6.1.A.3 [1 Point | Conclusion] Translate the diagnosis into a closed-loop process: propose phased goals (e.g., feedback achievement rate ≥ 60%, Excellent tier proportion ≥ 20%, targeted coaching for borderline groups within the quarter) and emphasize monitoring key metrics.
+
+#### Path 6.1.B [6 Points | Extended: Tier-based Comparison or Benchmarking]
+- Sub-criterion 6.1.B.1 [1 Point | Completeness] Conduct additional analysis segmented by department, access role, or workload, and propose at least three action recommendations based on the results.
+- Sub-criterion 6.1.B.2 [4 Points | Accuracy] Provide a clear process: deduplicate data → segment → calculate averages/proportions → compare. Recommendations must be supported by corresponding data. If anchor points cannot be reproduced, verify that the trend is consistent with Path 6.1.A.
+- Sub-criterion 6.1.B.3 [1 Point | Conclusion] Output executable goals or a monitoring plan to make the recommendations trackable.

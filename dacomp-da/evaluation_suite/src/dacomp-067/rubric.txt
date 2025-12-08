@@ -1,0 +1,94 @@
+# [Total Score | 34 Points] 2024 Recruiting Efficiency Improvement and Cost Optimization Strategy Scoring Rubric
+---
+## Requirement 1: Data Scope Unification and Baseline Validation (Max 8 Points)
+### Criterion 1.1: Data Table Selection and Time Window Definition (Max 4 Points)
+#### Path 1.1.A [4 Points] (Direct Annual Aggregation Method)
+- Sub-criterion 1.1.A.1 [1 Point | Completeness] Must state that only the annual aggregated data for `application_year = 2024` from `greenhouse__talent_pipeline_simplified` and `greenhouse__diversity_metrics` will be used as the sole baseline for channel efficiency, diversity, and process timeliness; must also state that detailed data from other years is for reference on mechanisms only.
+- Sub-criterion 1.1.A.2 [2 Points | Accuracy] Must provide a verifiable SQL framework: `SELECT ... FROM greenhouse__talent_pipeline_simplified WHERE application_year = 2024` to obtain `source_id/source_name/source_type/total_applications/total_hires/applications_with_interviews/avg_process_days/hire_rate/interview_rate/interview_to_hire_rate/efficiency_score`; and `SELECT ... FROM greenhouse__diversity_metrics WHERE application_year = 2024` to obtain `total_hires/female_hire_representation/non_white_hire_representation/overall_hire_rate`. Must explain that `source_id` is for channel mapping, `total_applications/total_hires` support efficiency metrics, `avg_process_days` aligns with duration, and `female_hire_representation` and `non_white_hire_representation` align with diversity targets.
+- Sub-criterion 1.1.A.3 [1 Point | Conclusion] Must clearly state that the annual aggregated scope can be directly compared against the CEO's goals and caution that interview/scorecard data from other years is only for process insights and must not be mixed into the annual quantitative analysis.
+#### Path 1.1.B [4 Points] (Hybrid Method: Annual Aggregation + Recent Detailed Mechanism)
+- Sub-criterion 1.1.B.1 [1 Point | Completeness] While maintaining the `application_year = 2024` annual baseline, must declare that detailed data from the 2025-09-01 to 2025-10-31 period will be used for process diagnostics: `greenhouse__application_enhanced` (for `count_interviews`, `has_interviewed_w_hiring_manager`), `greenhouse__interview_enhanced` (for `start_at`, `duration_interview_minutes`), and `greenhouse__interview_scorecard_detail` (for `rating`, `overall_recommendation`).
+- Sub-criterion 1.1.B.2 [2 Points | Accuracy] Must provide pseudo-code for window filtering: `WHERE start_at BETWEEN '2025-09-01' AND '2025-10-31'` (for interview logs), `WHERE applied_at BETWEEN '2025-09-01' AND '2025-10-31'` (for application details), and state that this data will not be mixed with the annual aggregated calculations.
+- Sub-criterion 1.1.B.3 [1 Point | Conclusion] Must summarize the rationale and risk boundaries of the dual-scope approach (“annual baseline + recent mechanism”): annual aggregates are for goal alignment, while recent detailed data only supports diagnostics of the process and interviewer configuration.
+
+### Criterion 1.2: Annual Diversity and Satisfaction Baseline Validation (Max 4 Points)
+#### Path 1.2.A [4 Points] (Aggregated Table Verification Method)
+- Sub-criterion 1.2.A.1 [1 Point | Completeness] Must output the core metrics for 2024: `total_hires = 4432`, `overall_hire_rate ≈ 24.4%`, `female_hire_representation ≈ 42.0%`, `non_white_hire_representation ≈ 32.0%`, and state that satisfaction is proxied by `AVG(rating)` from `greenhouse__interview_scorecard_detail`.
+- Sub-criterion 1.2.A.2 [2 Points | Accuracy] Values must fall within tolerance: `total_hires = 4432` (tolerance 0), `female_hire_representation = 42.0% ±0.1pp`, `non_white_hire_representation = 32.0% ±0.1pp`, `overall_hire_rate = 24.4% ±0.1pp`, and the average scorecard rating `AVG(rating) = 2.698 ±0.01`.
+- Sub-criterion 1.2.A.3 [1 Point | Conclusion] The conclusion must point out that the diversity baseline meets the ≥40% / ≥30% constraints, but the scorecard satisfaction is below 4.0 (current state ≈2.70), and thus improving the interview experience must be prioritized in the strategy.
+
+---
+## Requirement 2: Recruiting Channel Mix Optimization (Max 10 Points)
+### Criterion 2.1: Current Channel Efficiency and Diversity Contribution Profile (Max 4 Points)
+#### Path 2.1.A [4 Points] (Channel-by-Channel Indicator Method)
+- Sub-criterion 2.1.A.1 [1 Point | Completeness] Must list key metrics for the eight main channels in 2024: `total_applications`, `total_hires`, `hire_rate`, `interview_rate`, `interview_to_hire_rate`, `avg_process_days`, `efficiency_score`.
+- Sub-criterion 2.1.A.2 [2 Points | Accuracy] Metrics must be consistent with database calculations (tolerance ±0.5 units), for example: University Recruiting (2447 | 693 | 28.3% | 61.7% | 45.9% | 41.7 days | 300.4), Headhunter (2580 | 647 | 25.1% | 44.3% | 56.6% | 22.0 days | 237.3), Indeed (2695 | 545 | 20.2% | 52.7% | 38.4% | 22.3 days | 242.9), Employee Referral (2471 | 404 | 16.3% | 50.4% | 32.4% | 18.4 days | 221.6), AngelList (1787 | 284 | 15.9% | 69.8% | 22.8% | 42.5 days | 275.2), Company Website (983 | 280 | 28.5% | 42.8% | 66.5% | 43.5 days | 244.5), Glassdoor (940 | 259 | 27.6% | 41.8% | 65.9% | 36.1 days | 238.1), LinkedIn (843 | 197 | 23.4% | 47.8% | 48.9% | 18.8 days | 241.7).
+- Sub-criterion 2.1.A.3 [1 Point | Conclusion] Must identify high-efficiency + low-time-cost channels (Company Website, Glassdoor, Headhunter, LinkedIn) and caution against high-time-cost channels (AngelList, University Recruiting), while also pointing out that Referrals have a below-average conversion rate and AngelList consumes a large part of the recruiting cycle.
+#### Path 2.1.B [4 Points] (Weighted by Channel Type Method)
+- Sub-criterion 2.1.B.1 [1 Point | Completeness] Must provide weighted `hire_rate`, `avg_process_days`, and `interview_to_hire_rate` by `source_type` (job_board / agency / referral / university / direct / social_media).
+- Sub-criterion 2.1.B.2 [2 Points | Accuracy] Must reproduce the anchor points by type: job_board (weighted hire rate 20.07% | 31.35 days | interview-to-hire 35.6%), agency (25.08% | 22.0 days | 56.6%), referral (16.35% | 18.4 days | 32.4%), university (28.32% | 41.7 days | 45.9%), direct (28.48% | 43.5 days | 66.5%), social_media (23.37% | 18.8 days | 48.9%); must also provide the overall weighted baselines: `weighted_hire_rate = 22.44%`, `weighted_avg_process_days = 29.35 days` (tolerance ±0.05pp / ±0.05 days).
+- Sub-criterion 2.1.B.3 [1 Point | Conclusion] Must leverage the type differences to point out that agency and social_media have the fastest response times, the job_board group has a longer duration, and university channels support diversity but significantly lengthen the cycle.
+
+### Criterion 2.2: Channel Weight Reallocation and Cost Proxy (Max 3 Points)
+#### Path 2.2.A [3 Points] (Minutes-per-Hire Proxy Method)
+- Sub-criterion 2.2.A.1 [1 Point | Completeness] Must define `minutes_per_hire_i = avg_interview_minutes × (applications_with_interviews_i / total_hires_i) × panel_factor`, and cite parameters from this database: `avg_interview_minutes = 62.83` (from the average of 2025-09/10 interview details), `panel_factor = 1.7` (an assumption for the number of interviewers on a panel, carried over across years).
+- Sub-criterion 2.2.A.2 [1 Point | Accuracy] Must reproduce the before-and-after comparison: baseline `weighted_minutes_per_hire = 251.19`, new weights scenario `weighted_minutes_per_hire = 207.63`, a reduction of `17.34%` (tolerance ±0.1%).
+- Sub-criterion 2.2.A.3 [1 Point | Conclusion] Must provide the new channel allocation (University Recruiting 24%, Employee Referral 10%, Headhunter 16%, Company Website 22%, Glassdoor 16%, LinkedIn 10%, Indeed 2%, AngelList 0%) and explain that: ① University+Referral weight is maintained at 34% ≥ baseline 33.16%, meeting the diversity floor; ② The reduction in interview labor time is >15%, meeting the CEO's cost reduction goal.
+#### Path 2.2.B [3 Points] (Efficiency Index Method)
+- Sub-criterion 2.2.B.1 [1 Point | Completeness] Must define a time efficiency index `eff_index_i = interview_to_hire_rate_i / avg_process_days_i`, and explain that a higher value represents more hires completed in a shorter cycle.
+- Sub-criterion 2.2.B.2 [1 Point | Accuracy] Must list the index ranking: LinkedIn 2.6011 > Headhunter 2.5727 > Glassdoor 1.8255 > Employee Referral 1.7609 > Indeed 1.7220 > Company Website 1.5287 > University Recruiting 1.1007 > AngelList 0.5365, and point out that under the new weights, the weighted index increases from 1.7053 to 1.7748.
+- Sub-criterion 2.2.B.3 [1 Point | Conclusion] Must use the index ranking to justify the weight adjustments (tilting towards LinkedIn/Headhunter/Glassdoor, compressing AngelList) and infer that the efficiency improvement will support a ≥15% cost reduction.
+
+### Criterion 2.3: Sensitivity Analysis and Constraint Robustness (Max 3 Points)
+#### Path 2.3.A [3 Points] (Parameter Perturbation Method)
+- Sub-criterion 2.3.A.1 [1 Point | Completeness] Must provide at least two scenarios: ① “+5pp to female hire target” corresponds to weights `{U=28%, R=12%, H=12%, CW=18%, G=14%, L=10%, Indeed=4%, AngelList=2%}`; ② “+10% to efficiency weighting” corresponds to `{U=27%, R=8%, H=14%, CW=20%, G=18%, L=11%, Indeed=1%, AngelList=1%}`.
+- Sub-criterion 2.3.A.2 [1 Point | Accuracy] Must provide key intermediate calculations: Scenario ① `minutes_per_hire = 221.26`, `cost_per_hire = 1612.45`; Scenario ② `minutes_per_hire = 208.37`, `cost_per_hire = 1636.19`; and explain that these are derived from `Σ weight_i × minutes_per_hire_i` and `Σ weight_i × (time_cost_i + channel_cash_i)`.
+- Sub-criterion 2.3.A.3 [1 Point | Conclusion] Must summarize the robust range: increasing the female target reduces the time savings to ≈11.9% but still meets the cost reduction of >18%; a +10% efficiency weighting maintains a cost reduction of >17%. Must identify high-cost channels (Headhunter, AngelList) as sensitive points that require quarterly monitoring.
+
+---
+## Requirement 3: Interview Process and Interviewer Configuration Optimization (Max 8 Points)
+### Criterion 3.1: Diagnosis of Interview Rounds vs. Conversion (Max 4 Points)
+#### Path 3.1.A [4 Points] (Analysis by Binning Interview Counts)
+- Sub-criterion 3.1.A.1 [1 Point | Completeness] Must bin samples by `count_interviews` (from 2025-09/10 application details) into ≤2, =3, =4, ≥5 rounds, and calculate `applications`, `hires`, `hire_rate`, and `avg_interview_minutes` for each bin.
+- Sub-criterion 3.1.A.2 [2 Points | Accuracy] Must match anchor points (tolerance ±0.5pp / ±5 minutes): ≤2 rounds (6952 samples | 1660 hires | 23.88% hire rate | 129.7 minutes), 3 rounds (194 | 58 | 29.90% | 320.4 minutes), 4 rounds (23 | 3 | 13.04% | 427.2 minutes), ≥5 rounds (3 | 0 | 0% | 534.1 minutes).
+- Sub-criterion 3.1.A.3 [1 Point | Conclusion] Must propose a limit on rounds: most roles should be limited to 2–3 rounds, senior roles to ≤4 rounds; reducing redundant or parallel interviews can save ≥120 minutes/hire.
+#### Path 3.1.B [4 Points] (Aggregation by Job/Department)
+- Sub-criterion 3.1.B.1 [1 Point | Completeness] Must aggregate major departments from `greenhouse__job_enhanced` (Engineering / Sales / Product / HR / Data / Marketing / Finance) and output `avg_interviews_per_application` and `interview_to_hire_rate`.
+- Sub-criterion 3.1.B.2 [2 Points | Accuracy] Must reproduce department anchor points (tolerance ±0.05 or ±1pp): Engineering (2.49 | 41.62%), Sales (2.03 | 49.88%), Product (2.29 | 36.50%), HR (2.34 | 44.09%), Data (2.24 | 39.38%), Marketing (2.28 | 41.56%), Finance (2.18 | 53.52%).
+- Sub-criterion 3.1.B.3 [1 Point | Conclusion] Must point out that Engineering/Product have high interview counts and low conversion, and should be prioritized for interview consolidation or batch technical screening; Sales/Finance can serve as best-practice benchmarks.
+
+### Criterion 3.2: Interviewer Configuration and Professional Alignment (Max 2 Points)
+#### Path 3.2.A [2 Points] (Impact of Match on Rating/Recommendation)
+- Sub-criterion 3.2.A.1 [1 Point | Completeness] Must define the matching strategy: if an `interviewer_name` appears in the `hiring_managers` list for the same interview, it is considered a “match”; otherwise, it is a “non-match”. Must state that the analysis is based on average scorecard ratings from the 2025-09/10 period.
+- Sub-criterion 3.2.A.2 [1 Point | Accuracy] Results must match the database: 4 matched samples, average rating 2.650, positive recommendation rate 100%; 7094 non-matched samples, average rating 2.670, positive recommendation rate 51.99%. Must emphasize the small sample size and the need to supplement data collection on alignment in the implementation plan.
+
+### Criterion 3.3: Interviewer Satisfaction Improvement Plan (Max 2 Points)
+#### Path 3.3.A [2 Points] (Structured Improvement Method)
+- Sub-criterion 3.3.A.1 [1 Point | Completeness] Using `AVG(rating) ≈ 2.70` as the current satisfaction state, must propose at least three structured initiatives (e.g., unified Rubric, interviewer training, standardized question banks/feedback templates, candidate experience SLA).
+- Sub-criterion 3.3.A.2 [1 Point | Conclusion] Must set SLAs/KPIs: e.g., scorecard submission rate ≥95%, feedback within ≤48 hours, standardized question coverage ≥90%, and explain how these metrics will support the goal of reaching a 4.0 satisfaction score.
+
+---
+## Requirement 4: Process Time Management and Funnel Optimization (Max 4 Points)
+### Criterion 4.1: Bottleneck Identification and SLA Setting (Max 3 Points)
+#### Path 4.1.A [3 Points] (Channel Funnel + Timeliness Diagnosis)
+- Sub-criterion 4.1.A.1 [1 Point | Completeness] Based on `greenhouse__talent_pipeline_simplified`, must output each channel's `interview_rate`, `interview_to_hire_rate`, and `avg_process_days` to locate slow or low-conversion segments.
+- Sub-criterion 4.1.A.2 [1 Point | Accuracy] Must confirm a weighted `avg_process_days = 30.23` (tolerance ±0.05 days) and call out the bottlenecks in AngelList/Company Website/University Recruiting (≥41.7 days).
+- Sub-criterion 4.1.A.3 [1 Point | Conclusion] Must propose stage-level SLAs: resume screening ≤48h, interview scheduling ≤72h, Offer approval ≤3 business days, and quantify a target: after “channel reallocation + process improvement,” the weighted `avg_process_days` should be compressed to ≈24.32 days (based on improved channel weights and timeliness parameters).
+
+### Criterion 4.2: Offer and Acceptance Rate Management (Max 1 Point)
+#### Path 4.2.A [1 Point] (Inference from Experience + Data)
+- Sub-criterion 4.2.A.1 [1 Point | Conclusion] Must use data to point out that longer interview cycles lead to lower hire rates (see hire rate dropping to 13.04% for ≥4 rounds), and emphasize the logic that accelerating offer delivery, running background checks in parallel, and pre-communicating salary ranges can improve acceptance rates and reduce costs.
+
+---
+## Requirement 5: ROI Calculation, Implementation Roadmap, and Risk Control (Max 4 Points)
+### Criterion 5.1: Cost Model and Cost Reduction Target Validation (Max 3 Points)
+#### Path 5.1.A [3 Points] (Joint Model of Time Cost and Channel Cost)
+- Sub-criterion 5.1.A.1 [1 Point | Completeness] Must build a cost model: `Total Cost = Interview Time Cost + Channel Cash Cost + Coordination Cost`. Parameters: Interviewer hourly rate `$85/hour`, coordination cost `avg_process_days × 15/60 × 55` (15 mins/day at coordinator rate of $55/hour), channel cash cost mapping `{AngelList=2000, Company Website=250, Employee Referral=300, Glassdoor=700, Headhunter=4000, Indeed=900, LinkedIn=600, University Recruiting=1800}`.
+- Sub-criterion 5.1.A.2 [1 Point | Accuracy] Must output four scenarios (unit: USD/hire): ① Current (`time 355.86 | channel 1627.26 | coordination 415.63 | total 2398.75`); ② Channel re-mix only (`294.14 | 1347.00 | 454.30 | total 2095.44`); ③ Process optimization only (`355.86 | 1627.26 | 321.37 | total 2304.49`); ④ Combined optimization (`294.14 | 1347.00 | 334.40 | total 1975.54`). Values may fluctuate by ±$1.
+- Sub-criterion 5.1.A.3 [1 Point | Conclusion] Must summarize the main drivers: channel reallocation contributes the largest reduction but lengthens the cycle, requiring process compression to achieve a total cost reduction of 17.6% > 15%. Drivers include compressing interview rounds and reducing weights of high-cost channels.
+
+### Criterion 5.2: Implementation Cadence, Monitoring Metrics, and Risk Mitigation Loop (Max 1 Point)
+#### Path 5.2.A [1 Point] (Dashboard and Alert Design)
+- Sub-criterion 5.2.A.1 [1 Point | Conclusion] Must define monthly/quarterly metrics: female hire %, non-white hire %, interview satisfaction, weighted `avg_process_days`, interview minutes per hire, channel hire rate, scorecard completion rate, feedback timeliness; must set thresholds (e.g., immediate alert if female hire % < 40%, trigger training if interview satisfaction < 3), and explain how A/B testing and channel redundancy strategies provide risk mitigation.
+
+---

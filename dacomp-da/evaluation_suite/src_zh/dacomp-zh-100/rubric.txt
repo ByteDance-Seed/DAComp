@@ -1,0 +1,54 @@
+# [总分 | 36分] 未来90天续约风险预测评分标准（Intercom 客户续约口径）
+
+---
+## 需求1：数据治理与续约样本界定（本需求最高可得 12分）
+### 标准1.1：底层数据核对与关联口径
+#### 路径1.1.A【6分｜1:4:1】使用 intercom__company_enhanced × intercom__company_metrics
+- 小标准1.1.A.1【1分｜完备性】列明两表字段职责与键：`company_id` 作为主键，`company_name`/`industry`/`plan_name` 为客户维度，metrics 表中的 `total_conversations`、`avg_conversation_rating`、`p50_time_to_first_close_min` 等为年度汇总指标；时间粒度为公司注册维度（enhanced 表 `created_at`/`updated_at`）与会话年度聚合（metrics）。
+- 小标准1.1.A.2【4分｜精确性】以 `company_id` 左连接核对基准计数：`SELECT COUNT(*) FROM intercom__company_enhanced` → **2,509**；`SELECT COUNT(*) FROM intercom__company_metrics` → **2,509**；`SELECT segment, COUNT(*) FROM ...` → `Enterprise=627`、`Upper Mid-Market=627`、`Mid-Market=627`、`SMB=628`；`SELECT contract_size, COUNT(*) ...` → `large=784`、`strategic=627`、`mid=585`、`small=513`。需给出可复制 SQL 并说明 join 不漏单。
+- 小标准1.1.A.3【1分｜结论性】说明 enhanced 与 metrics 汇总对齐：会话耗时等指标以年度聚合口径提供，金额字段 `acv_usd` 源自标签串；若后续按会话明细重算，应关注 metrics 中按月聚合与发票金额不存在直接一一对应。
+
+#### 路径1.1.B【6分｜1:4:1】构建去重 customer_base_view（公司名聚合）
+- 小标准1.1.B.1【1分｜完备性】基于 `company_name` 去重（全库仅 **75** 个唯一客户名），视图需声明来源字段、最新 `acv_usd`、`renewal_window` 与最近一次 `renewal_date`（`MAX`）。
+- 小标准1.1.B.2【4分｜精确性】验证视图计数：`SELECT COUNT(*) FROM customer_base_view` → **75**；`SUM(active_inside_90)` 等衍生字段需与原表聚合一致（例如 inside_90_days 总客户数仍为 **419**，但在视图中表现为 75 名客户、每名含多合同版本）。视图中 `segment`/`contract_size` 需保持原始计数分布的权重合计=1。
+- 小标准1.1.B.3【1分｜结论性】说明该视图用于加速会话 JOIN 并避免重复计量；指出按 `company_name` 聚合的前提是假设多合同共用同一交互数据，后续在财务对账时需回溯至合同级明细。
+
+### 标准1.2：未来90天到期客户圈定
+#### 路径1.2.A【6分｜1:4:1】基于标签字段 `renewal_window='inside_90_days'`
+- 小标准1.2.A.1【1分｜完备性】明确基准日取 2023-12-31（会话数据截至当日），窗内客户筛选条件：`renewal_window='inside_90_days'` 且 `DATE(renewal_date)` ∈ [2024-04-01, 2024-06-29]。
+- 小标准1.2.A.2【4分｜精确性】执行 `SELECT COUNT(*) ...` 得到 cohort 数量 **419**；需输出客户 ID+名称清单（75 个唯一客户名）及关键字段（`renewal_date`,`contract_size`,`acv_usd`）。校验统计：`AVG(acv_usd)=55,174.42`、`MIN(acv_usd)=5,508`、`MAX=177,792`。
+- 小标准1.2.A.3【1分｜结论性】说明该口径依赖 CRM 标签同步，适用于年付客户；若标签缺失需回退到 `renewal_date` 推算并标注风险（例如缺省或跨多年合同）。
+
+---
+## 需求2：沟通互动特征工程（过去30天）（本需求最高可得 6分）
+### 标准2.1：对话频次 & 消极情绪占比
+#### 路径2.1.A【6分｜1:4:1】基于 intercom__conversation_enhanced 明细
+- 小标准2.1.A.1【1分｜完备性】需提取字段：`conversation_id`、`conversation_created_at`、`all_conversation_tags`（解析 `sentiment`）、以及 `all_contact_company_names`；窗口范围 [2023-12-02, 2023-12-31]；负向情绪枚举为 `cautious_watch`/`data_required`/`escalation`/`risk_mitigation`。
+- 小标准2.1.A.2【4分｜精确性】计算逻辑：`avg_conversations_30d = COUNT(*)/30`，`negative_ratio_30d = neg_count/COUNT(*)`。需复核聚合结果：窗口内总会话 **1,783**、其中负向 **989**；cohort 平均 `avg_conversations_30d=0.1418`（≈4.25条/30天），中位数 0.1333；`negative_ratio_30d` 平均 0.5475。需给出 SQL 片段（字符串转 JSON）及导出客户级明细。
+- 小标准2.1.A.3【1分｜结论性】阐明分布特征：共有 **5** 家客户 30天内零对话；第80分位 `negative_ratio_30d=0.75`，高于该阈值的客户 **86/419 (20.5%)** 应列入预警名单。
+
+---
+## 需求3：支持体验特征工程（工单角度）（本需求最高可得 6分）
+### 标准3.1：平均解决时长 & 重复工单占比
+#### 路径3.1.A【6分｜1:4:1】使用 intercom__conversation_metrics 作为工单代理
+- 小标准3.1.A.1【1分｜完备性】限定窗口 [2023-01-01, 2023-12-31]，字段：`time_to_last_close_minutes`（换算小时）、`count_reopens`；通过 `conversation_id` × `company_name` 与会话明细关联。
+- 小标准3.1.A.2【4分｜精确性】公式：`avg_resolution_timeh = AVG(time_to_last_close_minutes)/60`，`repeat_ratio = AVG(count_reopens>0)`；需验证 cohort 12个月会话总量 **3,996**，平均 `avg_resolution_timeh=39.0061` 小时，`repeat_ratio=0.6675`。给出 SQL 并展示 `repeat_ratio>=0.8` 客户数 **140 (33.41%)**。
+- 小标准3.1.A.3【1分｜结论性】指出高风险阈值：`repeat_ratio≥0.80` 触发支援机制（140 家）；解决时长暂无>72h 客户，可设 45h 预警线并在报表中标明当前为 0。
+
+---
+## 需求4：产品价值特征工程（本需求最高可得 6分）
+### 标准4.1：核心功能覆盖率 & 价值里程碑时长
+#### 路径4.1.A【6分｜1:4:1】基于标签字段 + 里程碑会话解析
+- 小标准4.1.A.1【1分｜完备性】解析 `feature_adoption` 中百分比为 `core_feature_coverage`；以 `{workflow_expansion, adoption_health, feature_enablement, integration, renewal_strategy}` 主题的最新会话日期计算 `value_milestone_lag = julianday('2023-12-31') - MAX(convo_date)`。
+- 小标准4.1.A.2【4分｜精确性】需输出客户级明细并复核统计：覆盖率均值 **0.7449**、中位 **0.74**、`coverage<0.70` 客户 **158 (37.71%)**；`value_milestone_lag` 均值 **12.54** 天、P75=19天、最大 60 天。SQL 必须展示字符串转 JSON 与日期差计算。
+- 小标准4.1.A.3【1分｜结论性】提出判定逻辑：`coverage<0.70` 且 `lag>19` 视为产品价值弱信号；需在输出中罗列符合条件的客户及其 `expansion_signal` 以供运营跟进。
+
+---
+## 需求5：续约对比分析、区分度评估与运营建议（本需求最高可得 6分）
+### 标准5.1：续约标签、区分度指标、行业×合同规模建议
+#### 路径5.1.A【6分｜1:4:1】基于 expansion_signal 标签 + AUC
+- 小标准5.1.A.1【1分｜完备性】续约标签定义：`renewal_label=1` 当 `expansion_signal='Upsell Ready'`，`=0` 当 `'Risk Mitigation'`，忽略 `'Monitor'`。在 inside_90 cohort 内样本量：续约 **149**、未续约 **168**，留存监控 **102**。
+- 小标准5.1.A.2【4分｜精确性】按单变量 AUC 评估特征，需给出可复现脚本/SQL+Python 流程：`milestone_lag_days` AUC=**0.5796**（Top1）、`avg_resolution_hours`=**0.5057**、`feature_coverage`=**0.4910**；同时报告均值差：未续约组 `negative_ratio_30d=0.5830`、续约组 `0.4934`。合同规模三分位阈值：Tier1 `<22,040`、Tier2 `[22,040, 56,796]`、Tier3 `>56,796`，各自成功率：Tier1 **37.5% (36/96)**、Tier2 **45.79% (49/107)**、Tier3 **56.14% (64/114)**；行业 Top5（按客户数）需输出续约率与特征均值：制造业 63.16% 成功、平均覆盖率 0.7353；能源公用事业 41.67%、负向率 0.5226；SaaS 32.14%、负向率 0.5690；教育科技 46.43%、负向率 0.5927；金融服务 51.35%、覆盖率 0.7430。
+- 小标准5.1.A.3【1分｜结论性】形成行业×规模运营动作：例如 Tier3 制造业保持高成功率，应优先监测 `negative_ratio_30d≥0.75` 的 7 家（落入高负向阈值即触发顾问复盘）；Tier1 SaaS 因成功率仅 32.14% 且平均负向率 0.5690，需在 30 天内提升核心功能覆盖至 0.75+；全局预警阈值：`negative_ratio_30d≥0.75` 或 `milestone_lag_days>19` 时进入“重点跟进”清单。
+
+---

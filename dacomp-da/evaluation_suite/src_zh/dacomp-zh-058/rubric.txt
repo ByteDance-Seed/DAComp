@@ -1,0 +1,116 @@
+# [总分 | 38分] Google Ads 问题广告系列健康度评估与优化 评分标准
+---
+## 需求1：数据准备与风险广告系列筛选（最高可得 8分）
+### 标准1.1：库表映射与时间口径确认
+#### 路径1.1.A [4分 | 全量字段字典+时间核验]
+- 小标准1.1.A.1 [1分 | 完备性]：考察是否完整列出 `google_ads__campaign_report`（含 year_month、campaign_id、campaign_name、campaign_type、bidding_strategy、industry、impressions、clicks、cost、conversions、conversion_value、ctr、cpc、conversion_rate、cost_per_conversion、roas、quality_score、impression_share）、`google_ads__device_report`（需覆盖 device_type 维度指标）、`google_ads__geo_report`（需覆盖 geo_target 维度指标）、`google_ads__keyword_report`（需覆盖 year_quarter、avg_position 等字段）及它们共同通过 `campaign_id` 关联；需说明 2024-06 月度分析与 2024-Q2 关键词季度指标通过 `campaign_id+year_quarter` 对齐。
+- 小标准1.1.A.2 [2分 | 精确性]：必须复现时间核验：`google_ads__campaign_report` 的 year_month 最小值=2023-02、最大值=2024-06、distinct 月份=17；`google_ads__keyword_report` 的 year_quarter 覆盖 2023-Q1~2024-Q2 共 6 个季度；需给出 month→quarter 映射公式 `SUBSTR(year_month,1,4)||'-Q'||((CAST(SUBSTR(year_month,6,2) AS INTEGER)+2)/3)` 并校验 2024-06→2024-Q2、2023-02→2023-Q1。
+- 小标准1.1.A.3 [1分 | 结论性]：明确后续所有趋势/季节性分析统一采用 2023-02—2024-06 的月度口径，关键词竞争指标按季度归集并在季度内对月度保持一致基线，缺失 avg_position 时需回填 2024-Q2 的均值 2.452 保持可比性。
+
+#### 路径1.1.B [4分 | 指标-字段映射核查法]
+- 小标准1.1.B.1 [1分 | 完备性]：给出主要指标与字段对照关系：`CTR=clicks/impressions`、`Conversion Rate=conversions/clicks`、`Cost per Conversion=cost/conversions`、`ROAS` 以字段 roas 为准、`Value per Conversion=conversion_value/conversions`、`Avg Position` 来源 `google_ads__keyword_report.avg_position`。
+- 小标准1.1.B.2 [2分 | 精确性]：说明核查步骤并量化结果：2024-06 样本中 `MAX(|ctr - clicks/impressions|)=0.00005`、`MAX(|conversion_rate - conversions/clicks|)=0.000049`；强调 `roas` 字段为规范化值，与 `conversion_value/cost` 最大偏差 11.666321，应在分析中直接使用字段 roas；说明 `avg_position` 需按曝光加权聚合。
+- 小标准1.1.B.3 [1分 | 结论性]：总结字段口径与指标含义已统一，可直接支撑后续归一化评分、分组分析与诊断。
+
+### 标准1.2：问题广告系列初筛
+#### 路径1.2.A [2分 | 最新月固定阈值法（deterministic）]
+- 小标准1.2.A.1 [1分 | 完备性]：说明筛选逻辑——在 2024-06 以 `cost>1000` 且 `roas<0.8` 标记问题广告系列。
+- 小标准1.2.A.2 [1分 | 精确性]：正确列出 11 个问题广告系列及关键字段（campaign_id、campaign_name、campaign_type、bidding_strategy、industry、cost、roas），核验名单：27、36、56、69、97、105、135、148、178、180、184；成本/ROAS 需与数据库一致（示例：campaign 27：cost=59,711.44，roas=0.69；campaign 148：cost=27,450.14，roas=0.47）。
+
+### 标准1.3：季度映射与关键词指标接入
+#### 路径1.3.A [2分 | 月→季度映射法]
+- 小标准1.3.A.1 [1分 | 完备性]：描述 month→quarter 映射并以 `campaign_id+year_quarter` 将 `google_ads__keyword_report` 的 avg_position（需曝光加权）并入 2024-06 月度数据。
+- 小标准1.3.A.2 [1分 | 精确性]：需给出映射 SQL/伪代码（使用窗口函数按曝光加权）；对 `avg_position` 缺失值补齐 2024-Q2 曝光加权均值 2.452，并声明所有竞争指标保持季度级统一基线。
+
+---
+## 需求2：健康度评分模型设计与计算（最高可得 10分）
+### 标准2.1：指标体系与权重设定
+#### 路径2.1.A [4分 | P5-P95 截尾 + 固定内部权重]
+- 小标准2.1.A.1 [1分 | 完备性]：给出三维结构与内部权重：成本效率(40%)=0.6×ROAS_norm+0.4×InvCPA_norm；转化质量(35%)=0.5×CVR_norm+0.5×ValuePerConversion_norm；竞争力(25%)=0.3×QualityScore_norm+0.25×ImpressionShare_norm+0.25×CTR_norm+0.2×InvAvgPosition_norm。
+- 小标准2.1.A.2 [2分 | 精确性]：需明确截尾区间：ROAS[P5,P95]=[0.47,21.85]、Cost/Conv[P5,P95]=[24.55,112.86]、CVR[P5,P95]=[0.0079,0.0732]、Value/Conv[P5,P95]=[105.8,755.17]、Quality Score[P5,P95]=[4.5,9.8]、Impression Share[P5,P95]=[0.309,0.871]、CTR[P5,P95]=[0.0081,0.0556]、Avg Position[P5,P95]=[1.991,3.145]；说明归一化公式（超出区间截断，再做 (x-min)/(max-min)，逆向指标用 1 - ...）；缺失 avg_position 使用 2.452，缺失 value_per_conversion 置为 105.8，缺失 cost_per_conversion 置为 112.86。
+- 小标准2.1.A.3 [1分 | 结论性]：解释三维含义：成本效率优先反映 ROI 稳健性，转化质量区分结构性低效，竞争力指标用于识别竞价与质量短板；统一截尾窗口强化跨 campaign 可比性。
+
+#### 路径2.1.B [4分 | 稳健归一化与极值处理]
+- 小标准2.1.B.1 [1分 | 完备性]：说明采用 P5-P95 稳健截尾以降低异常值（如 campaign 97 avg_position 缺失、roas 极低）对评分的影响。
+- 小标准2.1.B.2 [2分 | 精确性]：阐述缺失与极值处理细节：零转化导致 cost_per_conversion 空值时使用 112.86，零点击导致 cvr/ctr 空值时下沉至各自 P5；avg_position 超出 3.145 时截为 3.145 并反向标准化；需提供伪代码示例展示 clamp → normalize → weight 的流水线。
+- 小标准2.1.B.3 [1分 | 结论性]：比较稳健归一化与直接 min-max 的差异，并指出在多渠道促销、极端 ROI campaign 并存时，P5-P95 截尾可避免健康度被极端样本挤压。
+
+### 标准2.2：评分落地与风险分层
+#### 路径2.2.A [3分 | 分位分段]
+- 小标准2.2.A.1 [1分 | 完备性]：基于 2024-06 全量 50 个 campaign 的健康度得分计算分位阈值：P20=27.803、P40=37.682；按照 ≤P20 为高风险、(P20,P40] 为中风险、>P40 为较低风险。
+- 小标准2.2.A.2 [1分 | 精确性]：校验分段样本量：高风险=10、 中风险=10、 较低风险=30；需说明分位计算使用 `PERCENT_RANK()` 并与 50 条样本匹配。
+- 小标准2.2.A.3 [1分 | 结论性]：输出风险分布，并总结高风险集中于 Video/Display/Target CPA/Target ROAS 组合（问题集 7/11 落入高风险分位）。
+
+#### 路径2.2.B [3分 | 固定阈值+业务红线]
+- 小标准2.2.B.1 [1分 | 完备性]：给出固定阈值：健康度<40 记高风险，40≤得分<70 记中风险，≥70 记低风险，并叠加业务红线 `roas<0.5 AND cost>3000` 直接判为高风险。
+- 小标准2.2.B.2 [1分 | 精确性]：说明阈值依据——结合得分分布（均值=43.81，标准差=18.27）与行业经验；核验 11 个问题 campaign 中共有 10 个因得分<40/红线被判为高风险，仅 campaign 148 得分=40.55 但因 roas=0.47<0.5 仍触发高风险。
+- 小标准2.2.B.3 [1分 | 结论性]：给出固定阈值下的风险结果，并指出 Video/Display 投放在双规则下“高风险”占比 100%。
+
+### 标准2.3：可复现性与异常处理
+#### 路径2.3.A [3分 | 计算流程说明]
+- 小标准2.3.A.1 [1分 | 完备性]：列出评分流水线：数据提取→稳健截尾→归一化→三维加权得分→总健康度→风险分级。
+- 小标准2.3.A.2 [1分 | 精确性]：明确异常策略：零点击 CTR/CR 置入 P5、零转化 cost_per_conversion/value_per_conversion 置为上限或下限、缺失 avg_position 用 2.452；展示 SQL/伪代码片段保证复现 (`CASE WHEN metric < p5 THEN p5 WHEN metric > p95 THEN p95 ELSE metric END`)。
+- 小标准2.3.A.3 [1分 | 结论性]：汇总关键参数（各维权重、截尾区间、P20/P40 阈值、固定红线）并说明评分脚本可重复运行，输出稳定。
+
+---
+## 需求3：多维差异分析与风险细分（最高可得 8分）
+### 标准3.1：渠道 / 策略 / 行业比较
+#### 路径3.1.A [4分 | 加权汇总法]
+- 小标准3.1.A.1 [1分 | 完备性]：分别按 campaign_type、bidding_strategy、industry 对 2024-06 的 11 个问题 campaign 做成本加权聚合，输出加权 ROAS、加权 CPA、加权 CVR、加权 CTR、样本量。
+- 小标准3.1.A.2 [2分 | 精确性]：锚点需要与实测一致（允许±5%）：
+  - 渠道：Video ROAS=3.311、CPA=71.959、CVR=0.0104、CTR=0.00795（4 个样本）；Display ROAS=3.999、CPA=68.25、CVR=0.0161、CTR=0.01219（3 个样本）；Search ROAS=5.752、CPA=65.91、CVR=0.0438、CTR=0.03263（2 个样本）；Performance Max ROAS=8.892、CPA=61.936、CVR=0.0321、CTR=0.02617（2 个样本）。
+  - 策略：Enhanced CPC ROAS=1.458（1 个样本）、Target ROAS=7.276（3 个样本）、Target CPA=6.037（3 个样本）、Manual CPC=4.74（3 个样本）、Maximize Conversions=2.085（1 个样本）。
+  - 行业：Finance=ROAS 9.255、Fashion=5.603、Travel=4.984、Real Estate=3.544、Healthcare=2.085、Education=3.214、SaaS=3.515、E-commerce=6.693。
+- 小标准3.1.A.3 [1分 | 结论性]：指出风险集中群组——Video/Display 渠道与 Target ROAS/Target CPA 策略、Travel/Fashion 行业占高风险大头。
+
+#### 路径3.1.B [4分 | 双样本对比（flagged vs non-flagged）]
+- 小标准3.1.B.1 [1分 | 完备性]：对比问题 campaign(11) 与非问题 campaign(39) 的均值差异，指标需包含健康度得分、ROAS、CVR、竞争指标，标注样本量。
+- 小标准3.1.B.2 [2分 | 精确性]：必须复现成本加权对比：flagged 平均健康度=23.80、ROAS=0.54、CVR=0.0182、质量分=5.193、展示份额=0.383、CTR=0.0110、成本均值=44,386；非问题广告平均健康度=49.13、ROAS=9.133、CVR=0.0309、质量分=7.156、展示份额=0.583、CTR=0.0137、成本均值=28,963。
+- 小标准3.1.B.3 [1分 | 结论性]：总结差异显著的维度（质量分、展示份额、ROAS 均大幅落后），指明资源重分配应优先支持 Search 与高质量分 campaign。
+
+### 标准3.2：设备维度风险识别
+#### 路径3.2.A [2分 | 成本占比阈值法]
+- 小标准3.2.A.1 [1分 | 完备性]：逐 campaign 输出 2024-06 各 device_type 的成本、ROAS、成本占比与 CVR，并标记 `成本占比>35% 且 ROAS<0.8 或 CVR 低于 campaign 平均` 的设备；需引用 Mobile、Desktop、Tablet 三个维度。
+- 小标准3.2.A.2 [1分 | 精确性]：核对锚点（允许±3pct）：Mobile 成本占比普遍 0.57~0.65 且 ROAS 0.3~0.83，例如 campaign 135：Mobile 占比 0.651、ROAS 0.50；campaign 69：Mobile 占比 0.602、ROAS 0.50；需列明 Desktop/Tablet 相对更优。
+
+### 标准3.3：地域维度风险识别
+#### 路径3.3.A [2分 | Top 成本分段法]
+- 小标准3.3.A.1 [1分 | 完备性]：对每个问题 campaign 抽取成本占比最高的前三地域，给出成本、ROAS、占比。
+- 小标准3.3.A.2 [1分 | 精确性]：锚点示例需吻合：campaign 184 德国占比 0.297、ROAS 0.71；campaign 36 日本占比 0.352、ROAS 0.69；campaign 148 日本占比 0.48、ROAS 0.53；需指出这些高消耗地域拖累整体效率。
+
+### 标准3.4：竞争指标诊断
+#### 路径3.4.A [2分 | 指标对比法]
+- 小标准3.4.A.1 [1分 | 完备性]：比较问题 campaign 与非问题 campaign 的质量分、展示份额、CTR、平均排名、关键词指标，并定位短板。
+- 小标准3.4.A.2 [1分 | 精确性]：需引用具体差值：flagged 质量分=5.193、展示份额=0.383、CTR=0.0110、成本加权平均排名=0.745（越大越差）；非问题分别为 7.156、0.583、0.0137、1.135；得出问题 campaign 在质量与曝光竞争上处于持续劣势。
+
+---
+## 需求4：趋势与季节性分析（最高可得 6分）
+### 标准4.1：同比（YoY）分析
+#### 路径4.1.A [3分 | 同月同比]
+- 小标准4.1.A.1 [1分 | 完备性]：计算 2024-06 vs 2023-06 的成本与 ROAS 同比，覆盖全部 11 个问题 campaign。
+- 小标准4.1.A.2 [1分 | 精确性]：需输出与数据库一致的同比（允许±2pct）：campaign27 成本YoY +32.77%、ROAS 持平；campaign97 成本YoY +1.33%、ROAS YoY -66.28%；campaign135 成本YoY +27.60%、ROAS 持平；对无 2023-06 数据的 campaign178 标注 “缺口”。
+- 小标准4.1.A.3 [1分 | 结论性]：指出“成本上升但 ROAS 無改善”的系列（27、135、184 等）应优先考虑预算回收或策略调整。
+
+#### 路径4.1.B [3分 | 季度同比/滚动窗口]
+- 小标准4.1.B.1 [1分 | 完备性]：对缺失月度同比的 campaign（如 178）采用 2024-Q2 vs 2023-Q2 或最近 3 个月滚动对比。
+- 小标准4.1.B.2 [1分 | 精确性]：给出季度对比锚点：campaign56 Q2 成本 YoY -5.25%、ROAS YoY -52.21%；campaign178 因 2023-Q2 缺失需注明 “无可比基准”；campaign184 Q2 成本 YoY +77.14%、ROAS YoY -35.53%。
+- 小标准4.1.B.3 [1分 | 结论性]：总结季度趋势（如 Video 系列 56/184 在 2024-Q2 ROAS 明显低于上年同季）。
+
+### 标准4.2：季节性与波动
+#### 路径4.2.A [3分 | 变异系数与季节指数]
+- 小标准4.2.A.1 [1分 | 完备性]：统计 2023-02—2024-06 的 ROAS、CVR 均值与标准差，计算每个问题 campaign 的变异系数（CV），并给出各行业 2024-06 的 ROAS 季节指数。
+- 小标准4.2.A.2 [1分 | 精确性]：锚点示例：campaign97 ROAS 均值=5.022、标准差=3.164、CV=0.630；多数 campaign CV(CVR) 落在 0.175~0.283（需给出至少三例：campaign69 CV(CVR)=0.212、campaign178=0.283、campaign27=0.182）。行业季节指数示例：Travel 2024-06 Index=1.069、SaaS=0.572、Healthcare=0.749。
+- 小标准4.2.A.3 [1分 | 结论性]：结合季节指数解释旺淡季差异（Travel 在旺季指数>1 但仍低效）并提出季节性预算/素材调优建议。
+
+---
+## 需求5：诊断输出与优化方案（最高可得 6分）
+### 标准5.1：风险诊断与行动建议（逐广告系列）
+#### 路径5.1.A [4分 | 数据驱动的差异化方案]
+- 小标准5.1.A.1 [1分 | 完备性]：为 11 个问题 campaign 逐一提供结构化诊断，至少包含：健康度得分、量化风险等级（分位 & 固定阈值）、三维子得分、关键设备/地域低效段、竞争力短板。
+- 小标准5.1.A.2 [2分 | 精确性]：必须引用硬数据支撑建议（示例：campaign97 健康度=10.06，成本效率=0.31、转化质量=0、竞争力=39.73；Mobile 成本占比 0.598、ROAS=6.12；日本地域占比 0.286、ROAS=6.7；质量分=8.4 但展示份额仅 0.436，需重点提升素材与竞价；campaign135 健康度=11.65，Mobile 占比 0.651、ROAS=0.50，法国/英国/澳洲合计占比 0.811 且 ROAS=0.49，需削减低效地域预算并提升 Search 竞争力）。
+- 小标准5.1.A.3 [1分 | 结论性]：形成差异化行动清单（预算重分配、关键词/素材优化、地域收缩、移动端出价下调、策略切换等），并给出执行优先级（优先处理健康度<20 且成本 YoY 上升的 56/135/105/180，其次处理健康度 20~40 的 36/178/69/27/148）。
+
+### 标准5.2：报告输出与监控机制
+#### 路径5.2.A [2分 | 结构化成果+监控]
+- 小标准5.2.A.1 [1分 | 完备性]：交付包含健康度评分、风险等级、渠道/策略/行业对比表、趋势与季节性表、地域/设备低效段、竞争指标诊断的综合报告框架。
+- 小标准5.2.A.2 [1分 | 精确性]：确保所有表格可复核（字段口径与前述锚点一致），并指定监控 KPI：健康度、ROAS、CTR、CVR、Quality Score、Impression Share、平均排名；建议月度复盘+季度趋势回顾，资源重分配需跟踪 `成本占比` 与 `健康度变化`。

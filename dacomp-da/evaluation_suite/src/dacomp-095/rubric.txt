@@ -1,0 +1,114 @@
+# [Total Score | 36 Points] Scoring follows the hierarchy: 'Requirement → Standard → Path → Sub-standard'; each path is scored for 'Completeness (1 pt) | Accuracy (4 pts) | Conclusion (1 pt)'. To earn points for any standard, completing just one of its paths is sufficient. Paths cannot be mixed.
+
+———
+
+## Requirement 1: Data Framework Alignment and Sample Availability Confirmation (Max 6 Points)
+
+### Standard 1.1: Core Table Structure, Primary Keys, and Time Scopes Verification
+
+#### Path 1.1.A [6 Points | Pure SQL Exploration + Verification]
+- Sub-standard 1.1.A.1 [1 Point | Completeness] Must list the table and field mappings for subsequent analysis: `klaviyo__campaigns (campaign_id/SENT_AT/updated_at/EMAIL_TEMPLATE_ID/source_relation/touchpoint counts)`, `klaviyo__person_campaign_flow (person_id/first_event_at/last_event_at/touch_span_days/window metrics)`, `klaviyo__persons (person_id/first_event_on/last_event_on/active_months/days_span/email_open_rate/paid_retention_rate_month)`. State that `person_id` is the cross-table join key, and `SENT_AT` and `first_event_at` are the time baselines for campaigns/windows.
+- Sub-standard 1.1.A.2 [4 Points | Accuracy] Use SQL to verify the following anchor points (allow a tolerance of ±1 row / ±1 day): `klaviyo__persons` has 1192 rows, with `first_event_on` earliest on 2021-01-01 and `last_event_on` latest on 2023-08-22; `klaviyo__person_campaign_flow` has 4 rows, with `first_event_at` between 2024-03-05 14:05 and 2024-05-02 10:05; `klaviyo__campaigns` has 184 rows, with `SENT_AT` ranging from 2023-01-05 10:20 to 2023-10-06 23:20. SQL logic must be shown, and it should be noted that no extra cleaning was performed.
+- Sub-standard 1.1.A.3 [1 Point | Conclusion] Provide a scope statement: the event detail table is missing, so the analysis must be approximated using aggregation layers (person/campaign_flow/campaigns); confirm that existing fields are sufficient to complete lifecycle, touchpoint efficiency, and anomaly detection tasks.
+
+#### Path 1.1.B [6 Points | Python/Pandas Sampling Verification]
+- Sub-standard 1.1.B.1 [1 Point | Completeness] After loading the three tables with pandas, describe the mapping of fields to business metrics and the join method using `person_id`. State that all columns are used directly without additional cleaning.
+- Sub-standard 1.1.B.2 [4 Points | Accuracy] Use DataFrames to calculate the key anchor points mentioned above (1192/4/184 rows, same time ranges as 1.1.A) and print `head()/describe()` to verify correct field types. The same tolerance applies.
+- Sub-standard 1.1.B.3 [1 Point | Conclusion] State the data coverage and limitations (no events table, `person_campaign_flow` has only 4 rows), and confirm that subsequent analysis needs to be supplemented with aggregated metrics from the `persons` table to assess behavioral intensity.
+
+———
+
+## Requirement 2: Correlation Analysis of User Activity/Payment Characteristics and Email Efficiency (Max 6 Points)
+
+### Standard 2.1: Correlation of Long-Term Activity Span vs. Email Efficiency/Retention
+
+#### Path 2.1.A [6 Points | Pearson Correlation Measurement]
+- Sub-standard 2.1.A.1 [1 Point | Completeness] State that the following variables will be calculated from `klaviyo__persons`: `days_span`, `active_months`, `email_open_rate`, `paid_retention_rate_month`, `paid_retained_month_count`, `count_received_email`. These will be used to measure "speed to peak activity," "email efficiency," and "long-term payment."
+- Sub-standard 2.1.A.2 [4 Points | Accuracy] Calculate and provide the following correlation coefficients (allow a tolerance of ±0.02; must declare the consistent use of Pearson correlation, population covariance, or the default method in pandas `corr()`):
+  - `corr(email_open_rate, days_span) ≈ -0.9185`
+  - `corr(email_open_rate, active_months) ≈ -0.8666`
+  - `corr(email_open_rate, paid_retention_rate_month) ≈ +0.0771`
+  - `corr(active_months, paid_retained_month_count) ≈ +1.0000`
+  - `corr(count_received_email, email_open_rate) ≈ -0.7163`
+  - `corr(count_received_email, active_months) ≈ +0.6291`
+- Sub-standard 2.1.A.3 [1 Point | Conclusion] Draw conclusions such as "high open rates correspond to shorter activity spans and fewer active months; long-term active/paying populations show decreased email responsiveness but deeper payment engagement," providing a basis for subsequent segmentation and frequency control.
+
+#### Path 2.1.B [6 Points | Binned Comparison]
+- Sub-standard 2.1.B.1 [1 Point | Completeness] Bin users into quartiles based on `email_open_rate` and `days_span` respectively, and output a mean comparison table using the same metrics as Path A. Must declare the `dropna` approach and binning method (e.g., `pandas.qcut`).
+- Sub-standard 2.1.B.2 [4 Points | Accuracy] The quartile means must match the following anchor points (allow a tolerance of ±0.5 / ±0.005):
+  - `email_open_rate`: Q1≈0.2597, Q4≈0.6004; corresponding `days_span` Q1≈132.95, Q4≈63.95; `paid_retention_rate_month` is between 0.93~0.97.
+  - `days_span`: Q1≈62.87, Q4≈134.11; `active_months` Q1≈2.44, Q4≈4.67; `email_open_rate` Q1≈0.573, Q4≈0.284.
+- Sub-standard 2.1.B.3 [1 Point | Conclusion] Summarize that "short-span/high-open groups have concentrated activity but limited paying months; long-span groups have deeper payment engagement but require guarding against email fatigue," and suggest applications in user profiling/frequency design.
+
+———
+
+## Requirement 3: Building a Campaign Health Baseline (Last 6 Months) (Max 6 Points)
+
+### Standard 3.1: Mean/Standard Deviation by Campaign Type × Audience Size Quantile
+
+#### Path 3.1.A [6 Points | SQL Aggregation]
+- Sub-standard 3.1.A.1 [1 Point | Completeness] Specify the 6-month window: take the max `SENT_AT` from `klaviyo__campaigns` as `T_max=2023-10-06 23:20`, so the analysis window is `[T_max-180 days, T_max]`. Segment audience by `total_count_unique_people` (or `count_received_email` if null) into `<10k/10k-100k/>100k`. Calculate the mean and population standard deviation (ddof=0) of open/click rates grouped by `CAMPAIGN_TYPE × audience_band`.
+- Sub-standard 3.1.A.2 [4 Points | Accuracy] Output the overall statistical anchor points (allow a tolerance of ±0.005): number of campaigns in the last 6 months = 121, overall `avg_open≈0.2647`, `avg_ctor≈0.1130`, `std_open≈0.1733`, `std_ctor≈0.0750`. For the `<10k` band, must match:
+  - VIP: `avg_open≈0.5200`, `std_open≈0.0071`, `avg_ctor≈0.2301`, `std_ctor≈0.0001`.
+  - PRODUCT_LAUNCH: `avg_open≈0.4800`, `std_open≈0.0072`.
+  - PROMOTION: `avg_open≈0.2050`, `std_open≈0.2051`, `avg_ctor≈0.0850`, `std_ctor≈0.0850`.
+  - WINBACK: `avg_open≈0.1155`, `std_open≈0.1103`.
+  Also, note that for `BROWSE_ABANDON × <10k`, `std_open/std_ctor=0`, providing a safeguard logic for subsequent anomaly detection.
+- Sub-standard 3.1.A.3 [1 Point | Conclusion] Summarize baseline insights (e.g., PROMOTION and WINBACK have high volatility, VIP/Launch have stable high open rates) and state that subsequent ±2σ anomaly detection will be based on this baseline.
+
+#### Path 3.1.B [6 Points | Pandas/Custom Functions]
+- Sub-standard 3.1.B.1 [1 Point | Completeness] Use pandas to load campaigns from the last 6 months, construct the `audience_band`, and calculate the mean/population standard deviation grouped by `CAMPAIGN_TYPE × band`, with logic consistent with Path A.
+- Sub-standard 3.1.B.2 [4 Points | Accuracy] Print overall/grouped numerical values consistent with Path A (same tolerance), and explicitly state that groups with `std=0` should be skipped or handled separately in subsequent anomaly detection.
+- Sub-standard 3.1.B.3 [1 Point | Conclusion] Output a description of the health baseline for different types/sizes of campaigns, and identify focus areas for subsequent anomaly identification and root cause analysis.
+
+———
+
+## Requirement 4: Campaign Health Anomaly Identification and 2σ Detection (Max 6 Points)
+
+### Standard 4.1: Marking Individual Campaign Anomalies against the Baseline
+
+#### Path 4.1.A [6 Points | 2σ Z-score Detection]
+- Sub-standard 4.1.A.1 [1 Point | Completeness] Join individual campaigns from the last 6 months with the mean/population standard deviation from Standard 3.1. Calculate `z_open=(open-avg_open)/std_open` and `z_ctor=(ctor-avg_ctor)/std_ctor`, and flag `|z|≥2` as an anomaly. For groups with `std=0`, either skip or add protective logic.
+- Sub-standard 4.1.A.2 [4 Points | Accuracy] Reproduce the following anchor points (tolerance ±0.1): only 1 anomaly is found—`campaign_id=C000177 (CAMPAIGN_TYPE=EXPERIMENT, aud_band=<10k)`, for which `z_ctor≈+2.23` (`email_click_to_open_rate=0.1510`, `group avg=0.14979`, `std_pop=0.00054`) is identified as "click rate above +2σ". Also, confirm there are no open rate anomalies, and state that `BROWSE_ABANDON × <10k` is excluded from the z-score detection because `std=0`.
+- Sub-standard 4.1.A.3 [1 Point | Conclusion] Explain the meaning of the anomaly (e.g., an abnormally high click rate suggests positive impact from the experiment creative) and provide clues for subsequent root cause analysis (e.g., focus on reviewing the creative/audience of high-ctor campaigns).
+
+#### Path 4.1.B [6 Points | Quantile/IQR Detection]
+- Sub-standard 4.1.B.1 [1 Point | Completeness] Use a robust method: calculate `p10/p90` for each `CAMPAIGN_TYPE × audience_band` to construct upper/lower bounds (enabled when `p90>p10`), and explain that this method avoids the division-by-zero issue for groups with `std=0`.
+- Sub-standard 4.1.B.2 [4 Points | Accuracy] Provide thresholds and the list of anomalies: for `EXPERIMENT × <10k`, `ctor_p90≈0.15037`, so `C000177` with `0.1510` is flagged as "high click rate". In total, 59 quantile-based anomalies are identified (PROMOTION 14 / WINBACK 13 / PRODUCT_LAUNCH 6 / VIP 6 / DIGEST 5 / FLASH_SALE 4 / NEWSLETTER 4 / SURVEY 4 / EXPERIMENT 3). Note that this method is more sensitive compared to the 2σ method and explain why, for instance, low open/click rates for PROMOTION fall below the `p10` lower bound.
+- Sub-standard 4.1.B.3 [1 Point | Conclusion] Compare the pros and cons of the two methods: 2σ is more robust, while the quantile method is better for capturing anomalies in groups with small samples or high volatility. For groups with `std≈0`, recommend prioritizing the robust quantile method or manual rules.
+
+———
+
+## Requirement 5: Performance Comparison of Touchpoint Cadence and Content Elements (Max 6 Points)
+
+### Standard 5.1: Performance Comparison of Touchpoint Cadence and Content Elements
+
+#### Path 5.1.A [6 Points | Multi-dimensional Cross-Comparison]
+- Sub-standard 5.1.A.1 [1 Point | Completeness] Must cover four dimensions simultaneously: ① Send day/time slot (Weekday/Weekend × AM/PM); ② Template reuse rate (identify if `EMAIL_TEMPLATE_ID` usage is >50% and list Top templates); ③ `source_relation` (thematic/story-driven sources); ④ High-frequency updates (interval between consecutive `updated_at` timestamps is < 24h).
+- Sub-standard 5.1.A.2 [4 Points | Accuracy] Output the following anchor points (allow tolerance of ±0.01; template proportion ±0.01; high-frequency count ±2):
+  - Weekday AM average `open≈0.294`, `ctor≈0.135` (n=44); Weekend PM `open≈0.205`, `ctor≈0.080` (n=19).
+  - The highest proportion for a Top template in the last 6 months is 17.36% (`TPL-WINBACK-1`, 21/121); no template exceeds 50%.
+  - `source_relation` performance: `vip_hub avg_open≈0.520`, `promotion_engine≈0.270`, `content_studio≈0.360`, `digest_automations≈0.340`. `campaign_manager`/`browse_recovery` are chronically inefficient (open=0, ctor=0).
+  - High-frequency updates: 60 / 184 ≈ 32.6% of campaigns have a consecutive `updated_at` interval of < 24h.
+- Sub-standard 5.1.A.3 [1 Point | Conclusion] Synthesize findings: point out poor performance on weekend evenings, that template reuse is high but not over 50%, that some sources are chronically inefficient (`campaign_manager`/`browse_recovery`), and that the 30% rate of high-frequency updates poses a fatigue risk.
+
+#### Path 5.1.B [6 Points | Statistical Modeling Perspective]
+- Sub-standard 5.1.B.1 [1 Point | Completeness] Build a multivariate model (e.g., logistic regression or decision tree) to predict the probability of anomalous/high-performing campaigns. Features must include at least send time, template frequency, `source_relation`, and `updated_at` interval.
+- Sub-standard 5.1.B.2 [4 Points | Accuracy] Describe the modeling steps (feature encoding, train/validation split) and provide key coefficient/feature importance directions: e.g., a negative coefficient for Weekend PM, a negative coefficient for excessive template use, a positive risk indicator for `updated_at<24h`. Also, verify the model correctly identifies the direction of high-performing features like Weekday AM / `TPL-WINBACK-1`.
+- Sub-standard 5.1.B.3 [1 Point | Conclusion] Based on the model output, explain the marginal impact of each factor on anomalies/high performance, and form recommendations for frequency control and content governance.
+
+———
+
+## Requirement 6: Diagnostic Report and Improvement Plan (Including Experiments and ROI Estimation) (Max 6 Points)
+
+### Standard 6.1: Structured Report, Improvement Directions, and Control Experiments
+
+#### Path 6.1.A [6 Points | Comprehensive Diagnosis + Experiment Design]
+- Sub-standard 6.1.A.1 [1 Point | Completeness] The report must cover: review of anomalous results (including examples like C000177), template governance (e.g., mitigating the potential risk of a single template exceeding 50% usage), topic optimization (pointing out inefficient `source_relation`s), send cadence (addressing Weekend PM/high-frequency update issues), and a cooling strategy.
+- Sub-standard 6.1.A.2 [4 Points | Accuracy] Must reference the quantitative findings from the previous requirement and propose specific goals: e.g., "migrating Weekend PM campaigns to Weekday AM is projected to increase open rate by approx. 0.09 (relative +5~10pp) and click rate by approx. 0.055 (+2~5pp)", "reduce the proportion of `updated_at<24h` to <20% (from a baseline of 32.6%)", "maintain VIP templates but introduce new templates for PROMOTION (avg_open≈0.205, std≈0.205) and verify volatility converges", "review the high-click experiment C000177 and expand it to similar audiences with an expected ctor impact of +0.001~-0.002". Must propose at least 1 specific A/B or phased rollout experiment (e.g., "Weekday AM vs Weekend PM send time experiment, monitoring open/ctor/orders" or "PROMOTION new vs old template control test"), and specify monitoring metrics and a validation period (e.g., 2-4 send cycles).
+- Sub-standard 6.1.A.3 [1 Point | Conclusion] Conduct a risk and return assessment of the improvement measures (e.g., watch for SMS unsubscribes, note that `person_campaign_flow` has only 4 samples and needs broader validation) and create an actionable roadmap.
+
+#### Path 6.1.B [6 Points | Lightweight Framework + Closed-Loop Governance]
+- Sub-standard 6.1.B.1 [1 Point | Completeness] Output a "Diagnose → Strategize → Monitor" three-stage framework, covering anomalies, templates, topics, cadence, and high-frequency updates. Explain the linkage with the activity/payment insights (Requirement 2).
+- Sub-standard 6.1.B.2 [4 Points | Accuracy] Provide quantifiable thresholds and ROI hypotheses (e.g., "when `z_open<-2`, automatically add to a cooling queue", "goal is to maintain Weekday AM open rate ≥0.29 and click rate ≥0.13", "reduce high-frequency updates to ≤25%"). Propose a rolling dashboard or alert design. ROI ranges must be consistent with business assumptions (e.g., open rate +5~10pp, click rate +2~5pp).
+- Sub-standard 6.1.B.3 [1 Point | Conclusion] Explain how to use an experiment/monitoring closed loop for continuous iteration, highlighting sample and data gaps (`person_campaign_flow=4`, missing event details) and recommending subsequent data augmentation or validation steps.

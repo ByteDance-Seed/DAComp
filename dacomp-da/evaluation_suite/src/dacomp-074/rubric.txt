@@ -1,0 +1,195 @@
+# [Total Score | 40 points] Scoring Rubric for Event Window Analysis and Early Warning Design for High Cash Flow Risk Subsidiaries
+
+Applies to task: Based on /Users/bytedance/workspace/dacomp-release/dacomp-da/tasks/dacomp-074/dacomp-074.sqlite (netsuite2_financial_dashboard & netsuite2_income_statement), compare the indicator trajectories in the event window (rel_month=-6…-1) before the first occurrence of cash_flow_risk_level='High' with a healthy/baseline window. Identify a combination of indicators and thresholds that can provide a 2–3 month early warning, and provide recommendations for modeling and operational implementation.
+
+---
+
+## Requirement 1: Data Integration and Event/Control Cohort Construction (Max 8 points)
+
+### Standard 1.1: Field Mapping and Monthly Aggregation Definition (Max 3 points)
+
+#### Path 1.1.A [3 points | Income Statement Aggregation + Dashboard Field Alignment]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Must state the need to read core fields from both tables: dashboard (subsidiary_id, dashboard_date, cash_flow_risk_level, net_cash_flow, operating_cash_flow, predicted_next_month_cash_flow, total_customer_revenue, overdue_percentage, weighted_average_days_outstanding) and income statement (subsidiary_id, accounting_period_ending, account_type_name, converted_amount). Must unify using `subsidiary_id + strftime('%Y-%m', ...)` as the monthly key. Must also mention that if a subsidiary has multiple dashboard records in the same month, the latest record by `dashboard_date` should be kept, resulting in 170 unique subsidiary-months.
+- Sub-standard 1.1.A.2 [1 point | Accuracy]: Must provide the aggregation SQL/pseudocode: aggregate by `account_type_name` to get revenue/expense/cost_of_revenue, then LEFT JOIN with the dashboard table. Must state the reconciliation result: 10 subsidiaries, `dashboard_date` range from 2023-01-31 to 2024-06-24, all 180 original rows are matched, and after aggregation to 170 unique months, neither revenue nor expense has null values. Must show a reconciliation example for any one subsidiary (e.g., for NET07583103971 in May 2023, revenue=1,911,220.27, which matches the dashboard's total_customer_revenue=1,911,220.27).
+- Sub-standard 1.1.A.3 [1 point | Conclusion]: Must state that the monthly base dataset contains: income/expense from the income statement, AR indicators from the dashboard, cash flow, and risk labels, and this is the sole data source for event window and indicator calculations. If this definition is used, all subsequent analysis and visualizations must reference this 170-row dataframe.
+
+#### Path 1.1.B [3 points | Directly Using total_customer_revenue]
+- Sub-standard 1.1.B.1 [1 point | Completeness]: Must explain that when income statement aggregation is missing or there are currency discrepancies, the dashboard field `total_customer_revenue` can be used directly. Deduplication by `subsidiary_id + month` is also required to ensure 170 subsidiary-months. Must clarify that expense (or fallback to cost_of_revenue if missing) must also be retained.
+- Sub-standard 1.1.B.2 [1 point | Accuracy]: Must describe the merging steps: dashboard fields (revenue, AR, risk) natively cover 10 subsidiaries, 180 rows; 170 rows after deduplication. Must emphasize the need to verify that revenue/expense fields are not null and to record discrepancies (e.g., for NET33975149380 in May 2023, the difference between dashboard revenue and income statement revenue is <0.5%).
+- Sub-standard 1.1.B.3 [1 point | Conclusion]: Must point out that different revenue definitions lead to different volatility indicator results: in the event window, the proportion of |rev_mom|>20% is 0.5962 for the income statement definition, but only 0.0962 for the dashboard definition. Must remind that subsequent analysis cannot mix the two definitions.
+
+### Standard 1.2: Event Window and Healthy/Baseline Window Construction (Max 3 points)
+
+#### Path 1.2.A [3 points | First High Event Window]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Must identify the first 'High' date for each subsidiary (2023-07-30×3, 2023-08-29×5, 2023-09-28×2) and explain the calculation method for `rel_month`: `(year*12+month) - (first_high_year*12+first_high_month)`.
+- Sub-standard 1.2.A.2 [1 point | Accuracy]: Must correctly state the event window sample size = 52 subsidiary-months (tolerance ±1). Among them, 2 subsidiaries (first High = 2023-09-28) cover 6 months, while the remaining 8 have only 5 months due to missing data in Feb 2023. Must provide the distribution of `rel_month`: {-6:5, -5:7, -4:10, -3:10, -2:10, -1:10}.
+- Sub-standard 1.2.A.3 [1 point | Conclusion]: Must clarify the source of the event window gap (missing historical months). Subsequent indicator calculations must be based on the 52-row sample, and the conclusion must state that "some subsidiaries are missing 1 month in the event window".
+
+#### Path 1.2.B [3 points | Low Anchor Healthy Window]
+- Sub-standard 1.2.B.1 [1 point | Completeness]: Must use the "most recent `cash_flow_risk_level`='Low' where the next 3 months are not 'High'" as the healthy anchor. A total of 8 subsidiaries meet this condition.
+- Sub-standard 1.2.B.2 [1 point | Accuracy]: Limited by data starting in Jan 2023, only 6 subsidiaries have observations within `rel_month_healthy`∈[-6,-1], totaling 11 subsidiary-months (distribution: {-4:2, -3:1, -2:5, -1:3}). The solution must state that if less than 6 months are available, the existing months should be kept, and the sample size must be noted in the scoring record.
+- Sub-standard 1.2.B.3 [1 point | Conclusion]: Must emphasize that the healthy window is used to contrast the trend shape of the event window, and the analysis conclusion must state that "healthy window sample=11, results are for reference only". This note cannot be skipped if the healthy window is missing.
+
+#### Path 1.2.C [3 points | Baseline Window (t-12…t-7)]
+- Sub-standard 1.2.C.1 [1 point | Completeness]: Must construct a baseline window by shifting 7-12 months back from the `first_high_date`. Currently, there are only 7 subsidiary-months (rel=-8:2, rel=-7:5).
+- Sub-standard 1.2.C.2 [1 point | Accuracy]: Must explain that these months cannot have month-over-month metrics calculated due to the lack of a preceding month. The report must state the sample size and note "MoM indicators not available" to avoid misinterpretation.
+- Sub-standard 1.2.C.3 [1 point | Conclusion]: Must point out that the baseline window can be used to compare absolute levels (like WADO), but month-over-month indicators require separate handling (e.g., using absolute values or cross-period averages), and the data sparsity must be noted in the conclusion.
+
+### Standard 1.3: Relative Month Sorting and Differential Indexing (Max 2 points)
+
+#### Path 1.3.A [2 points | Guaranteeing rel_month/LAG Operations]
+- Sub-standard 1.3.A.1 [1 point | Completeness]: Must specify the need to sort by `dashboard_date` for each subsidiary and use LAG to calculate `rev_mom`/`exp_mom`/`overdue_delta` indicators. Must return NULL when the absolute value of the previous period is <1e-6 or missing. Out of the 170 total rows, the number of rows with calculable MoM metrics should be 160.
+- Sub-standard 1.3.A.2 [1 point | Accuracy]: Must state that 52 and 11 MoM records are retained within the event and healthy windows, respectively. Must count the availability of each indicator and display it in the results table (e.g., in event window, `rev_mom` available=52, `dash_rev_mom` available=52, `WADO_delta` available=52) to ensure a consistent denominator for subsequent proportion calculations.
+
+---
+
+## Requirement 2: Calculation and Trajectory Extraction of Three Major Indicator Systems (Max 12 points)
+
+### Standard 2.1: Revenue Volatility and Stability Analysis (Max 4 points)
+
+#### Path 2.1.A [4 points | Income Statement-Based Revenue MoM]
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Must define `rev_mom = (revenue_t - revenue_{t-1}) / revenue_{t-1}`, ignoring months where the previous period's absolute value is <1e-6. The scope is limited to the 52 rows of the event window.
+- Sub-standard 2.1.A.2 [2 points | Accuracy]: The monthly proportion of |rev_mom|>20% must reach 0.5962 overall for the event window (tolerance ±0.02). The monthly proportions must be: t-6=0.2000, t-5=0.5714, t-4=0.5000, t-3=0.8000, t-2=0.8000, t-1=0.5000 (each with tolerance ±0.05). Must also provide the hit count of 31/52 for verification.
+- Sub-standard 2.1.A.3 [1 point | Conclusion]: Must point out that revenue volatility significantly increases from t-3 to t-2 (≥0.8), which is a period dense with danger signals. Must mention that the conclusion applies to the "most recent 4 months" in light of the missing months.
+
+#### Path 2.1.B [4 points | Dashboard Revenue Definition]
+- Sub-standard 2.1.B.1 [1 point | Completeness]: Must use `total_customer_revenue` to calculate `dash_rev_mom` and maintain the same deduplication and LAG rules as in Path 2.1.A.
+- Sub-standard 2.1.B.2 [2 points | Accuracy]: The overall proportion of |dash_rev_mom|>20% = 0.0962 (tolerance ±0.02). Monthly proportions: t-6=0.0000, t-5=0.1429, t-4=0.0000, t-3=0.1000, t-2=0.1000, t-1=0.2000 (tolerance ±0.05). Must explain in the results the reason for the ≈50pp difference between the income statement and dashboard definitions (dashboard revenue is smoother).
+- Sub-standard 2.1.B.3 [1 point | Conclusion]: Must emphasize that if the CFO uses dashboard revenue, they need to be aware of lags in revenue recognition, otherwise they will underestimate the risk.
+
+#### Path 2.1.C [4 points | Characterizing Volatility Intensity]
+- Sub-standard 2.1.C.1 [1 point | Completeness]: Must construct an indicator "≥2 instances of |rev_mom|>20% within a rolling 3-month period" (`rev_vol_roll3_ge2`).
+- Sub-standard 2.1.C.2 [2 points | Accuracy]: Overall hit rate in the event window = 0.4808 (tolerance ±0.02). Monthly proportions: t-6=0.0, t-5=0.0, t-4=0.3, t-3=0.5, t-2=0.9, t-1=0.8 (tolerance ±0.05). Must provide the hit count of 25/52.
+- Sub-standard 2.1.C.3 [1 point | Conclusion]: Must state that the rolling intensity peaks at t-3/t-2, confirming that "continuous volatility" is a significant feature 2 months before the crisis.
+
+### Standard 2.2: Accounts Receivable Management Dimension (Max 4 points)
+
+#### Path 2.2.A [4 points | Threshold Proportion]
+- Sub-standard 2.2.A.1 [1 point | Completeness]: Must calculate the proportion of `weighted_average_days_outstanding` (WADO) > 40 and > 45, and the proportion of consecutive `overdue_percentage` increases (`overdue_up`).
+- Sub-standard 2.2.A.2 [2 points | Accuracy]: In the event window, `share_wado_gt40`=0.1923, `share_wado_gt45`=0.0000, `share_overdue_up`=0.4615 (each with tolerance ±0.02). Monthly proportion of WADO>40: t-6=0.2, t-5=0.2857, t-4=0.0, t-3=0.1, t-2=0.3, t-1=0.3. Monthly `overdue_up`: t-6=0.2, t-5=0.1429, t-4=0.7, t-3=0.4, t-2=0.4, t-1=0.7.
+- Sub-standard 2.2.A.3 [1 point | Conclusion]: Must state that the 45-day threshold is completely ineffective and needs to be lowered to 40 days. Must also emphasize that consecutive overdue increases are most significant at t-4 and t-1.
+
+#### Path 2.2.B [4 points | Momentum and Trend]
+- Sub-standard 2.2.B.1 [1 point | Completeness]: Must construct "at least 1 instance of WADO≥40 in the last 3 periods" (`wado_gt40_recent3`) and "≥2 instances of `overdue_up` in the last 3 periods" (`overdue_up_recent3`).
+- Sub-standard 2.2.B.2 [2 points | Accuracy]: In the event window, proportion of `wado_gt40_recent3`=0.3269, `overdue_up_recent3`=0.2692 (tolerance ±0.02). Monthly `wado_gt40_recent3`: t-4=0.3, t-3=0.4, t-2=0.6, t-1=0.6. Monthly `overdue_up_recent3`: t-4=0.3, t-3=0.3, t-2=0.5, t-1=0.5.
+- Sub-standard 2.2.B.3 [1 point | Conclusion]: Must point out that when momentum and threshold hits coincide (e.g., at t-2), collection pressure is significant, requiring accelerated collection efforts in advance.
+
+### Standard 2.3: Expense Control and Divergence Analysis (Max 4 points)
+
+#### Path 2.3.A [4 points | Growth Difference Threshold]
+- Sub-standard 2.3.A.1 [1 point | Completeness]: Must define `divergence = exp_mom - rev_mom` and calculate the proportion where it is >10% and >15%, as well as the average of |divergence|.
+- Sub-standard 2.3.A.2 [2 points | Accuracy]: In the event window, `share_div_gt10`=0.3654, `share_div_gt15`=0.2885, average |divergence|=0.3532 (tolerance ±0.02). Monthly `share_div_gt15`: t-6=0.0, t-5=0.2857, t-4=0.3, t-3=0.3, t-2=0.4, t-1=0.3. Must state the hit count of 15/52.
+- Sub-standard 2.3.A.3 [1 point | Conclusion]: Must point out that in ≥30% of months at t-2 and t-1, expenses still outpace revenue, indicating that expense rigidity has not eased, which is a signal of cash tightness.
+
+#### Path 2.3.B [4 points | Directional Mismatch]
+- Sub-standard 2.3.B.1 [1 point | Completeness]: Must calculate the occurrence rate of `exp_mom>0 and rev_mom≤0`.
+- Sub-standard 2.3.B.2 [2 points | Accuracy]: Proportion in the event window = 0.1154 (tolerance ±0.02). Monthly: t-6=0.0, t-5=0.1429, t-4=0.1, t-3=0.1, t-2=0.1, t-1=0.2. Must list at least one subsidiary-month example (e.g., NET51366940438 shows a mismatch at t-1).
+- Sub-standard 2.3.B.3 [1 point | Conclusion]: Must explain that a mismatch signifies the combination of expense rigidity and revenue volatility, which exacerbates cash shortfalls.
+
+#### Path 2.3.C [4 points | Cost Structure Alternative]
+- Sub-standard 2.3.C.1 [1 point | Completeness]: If Expense is missing, must explain that Expense + Cost of Revenue can be used as total cost for comparison with revenue.
+- Sub-standard 2.3.C.2 [2 points | Accuracy]: Must provide the calculation logic and verify that under the event window, the same `divergence` threshold `share_div_gt15` is still ≈0.29 (tolerance ±0.02). If the difference is >5pp, the reason must be explained (e.g., differences in cost classification).
+- Sub-standard 2.3.C.3 [1 point | Conclusion]: Must emphasize that the alternative cost definition leads to the same conclusion as the standard definition and can be a backup plan for data gaps.
+
+---
+
+## Requirement 3: High-Risk vs. Healthy Window Comparison and Diagnostic Insights (Max 8 points)
+
+### Standard 3.1: Window Aggregation Comparison (Max 4 points)
+
+#### Path 3.1.A [4 points | High-Risk vs. Healthy]
+- Sub-standard 3.1.A.1 [1 point | Completeness]: Must calculate the following for both the event (52 rows) and healthy (11 rows) windows: revenue volatility, divergence>15%, WADO>40, overdue_up, exp_up_rev_down, and momentum indicators.
+- Sub-standard 3.1.A.2 [2 points | Accuracy]: For the event window, `share_rev_mom_gt20`=0.5962, `share_div_gt15`=0.2885, `share_wado_gt40`=0.1923, `share_overdue_up`=0.4615. The corresponding values for the healthy window are 0.1818, 0.0909, 0.2727, 0.0909 (tolerance ±0.02). Must provide a table or detailed list for verification.
+- Sub-standard 3.1.A.3 [1 point | Conclusion]: Must explain that the event window indicators are significantly higher than the healthy window's, especially revenue volatility and overdue momentum, proving the indicator combination has discriminatory power.
+
+#### Path 3.1.B [4 points | High-Risk vs. Baseline]
+- Sub-standard 3.1.B.1 [1 point | Completeness]: Must compare indicator levels with the baseline window (rel=-8/-7, 7 rows total).
+- Sub-standard 3.1.B.2 [2 points | Accuracy]: In the baseline window, WADO>40 is 0.4 at rel=-7 and 0.0 at rel=-8. `overdue_up` and `rev_mom` cannot be calculated due to lack of prior data and must be explicitly marked as "MoM not available" in the results.
+- Sub-standard 3.1.B.3 [1 point | Conclusion]: Must state that even when looking only at absolute thresholds, the event window's WADO>40 proportion is still higher than the baseline's (0.1923 vs 0.0~0.4), which laterally validates the effectiveness of the warning indicators.
+
+#### Path 3.1.C [4 points | Company-Level Aggregation]
+- Sub-standard 3.1.C.1 [1 point | Completeness]: Must first calculate the average hit rate within the event window for each company, then take the average across companies.
+- Sub-standard 3.1.C.2 [2 points | Accuracy]: Company-level average for event window (`rev_vol_flag`=0.5967, `div15_flag`=0.2867, `wado40_flag`=0.1900, `overdue_up_flag`=0.4600). Company-level average for healthy window (`rev_vol_flag`=0.1389, `div15_flag`=0.0833, `wado40_flag`=0.1944, `overdue_up_flag`=0.0556) (tolerance ±0.02). Must provide a DataFrame snippet or exported table as evidence.
+- Sub-standard 3.1.C.3 [1 point | Conclusion]: Must emphasize that company-level aggregation avoids bias from dominant large subsidiaries, and the comparison with the healthy window shows that revenue volatility/overdue indicators have the greatest discriminatory power.
+
+### Standard 3.2: Monthly Trajectory and Supplementary Cash Flow Diagnosis (Max 4 points)
+
+#### Path 3.2.A [4 points | Monthly Trajectory Comparison]
+- Sub-standard 3.2.A.1 [1 point | Completeness]: Must show the trajectory of key indicators from rel=-6 to -1: revenue volatility, divergence>15%, WADO>40, overdue_up, exp_up_rev_down.
+- Sub-standard 3.2.A.2 [2 points | Accuracy]: The monthly values for the event window must match the actual calculations:
+  * `share_rev_mom_gt20`: {0.2, 0.5714, 0.5, 0.8, 0.8, 0.5}
+  * `share_div_gt15`: {0.0, 0.2857, 0.3, 0.3, 0.4, 0.3}
+  * `share_wado_gt40`: {0.2, 0.2857, 0.0, 0.1, 0.3, 0.3}
+  * `share_overdue_up`: {0.2, 0.1429, 0.7, 0.4, 0.4, 0.7}
+  * `share_exp_up_rev_down`: {0.0, 0.1429, 0.1, 0.1, 0.1, 0.2}
+  (All with tolerance ±0.05).
+- Sub-standard 3.2.A.3 [1 point | Conclusion]: Must point out that t-4 to t-2 is the phase where indicators rise in unison, and they remain high at t-1, validating the feasibility of a "2-3 month early warning". Must compare with the corresponding months in the healthy window (e.g., healthy t-2: revenue volatility 0.2, WADO>40 0.2, overdue_up 0.2, divergence>15 is 0) to highlight the difference.
+
+#### Path 3.2.B [4 points | Cash Flow Trajectory]
+- Sub-standard 3.2.B.1 [1 point | Completeness]: Must calculate the monthly average and negative value proportion for `net_cash_flow`, `operating_cash_flow`, and `predicted_next_month_cash_flow` in the event window.
+- Sub-standard 3.2.B.2 [2 points | Accuracy]: Monthly averages must match actual calculations:
+  * t-6: net=540,606.25, oper=546,347.66, pred=557,507.78
+  * t-5: net=691,855.09, oper=708,315.09, pred=687,274.03
+  * t-4: net=634,123.60, oper=626,318.27, pred=635,635.24
+  * t-3: net=657,234.87, oper=652,146.71, pred=684,008.12
+  * t-2: net=593,160.18, oper=616,385.07, pred=576,507.02
+  * t-1: net=599,312.90, oper=548,086.73, pred=621,748.31
+  Overall average net=622,775.62; the proportion of negative values for all three is 0 (tolerance for amounts ±1,000, for proportions ±0.01).
+- Sub-standard 3.2.B.3 [1 point | Conclusion]: Must state that while average cash flow remains positive, there is a noticeable decline at t-2, which corresponds to the risk signals released earlier by operational indicators (revenue volatility, overdue rates). The conclusion must emphasize that "looking at net cash flow alone is insufficient for early warning".
+
+---
+
+## Requirement 4: Early Warning Rule Design, Validation, and False Positive Assessment (Max 6 points)
+
+### Standard 4.1: Warning Rules and Combination Logic (Max 3 points)
+
+#### Path 4.1.A [3 points | Two-by-two Combination Rules]
+- Sub-standard 4.1.A.1 [1 point | Completeness]: Must propose RuleA: In a rolling 3-month window, |rev_mom|>20% hits ≥2 times AND div>15% hits ≥1 time; RuleB: RuleA AND in the last 3 months, WADO>40 hits ≥1 time OR 'overdue_up' hits ≥2 times; RuleC: In a rolling 3-month window, divergence>10% hits ≥2 times.
+- Sub-standard 4.1.A.2 [1 point | Accuracy]: The company-level hit rate for all rules in the event window should be 0.7 (7/10, tolerance ±0.05). The hit rate in the healthy window should be 0 for all. Must list the subsidiaries that triggered the rules.
+- Sub-standard 4.1.A.3 [1 point | Conclusion]: Must explain that RuleA/RuleB focus on "recall," while RuleC is stricter and can correspond to yellow/red alerts. Must emphasize that RuleB can cover risks from WADO/overdue momentum.
+
+### Standard 4.2: Hit Rate, Earliest Trigger, and False Positive Validation (Max 3 points)
+
+#### Path 4.2.A [3 points | Event Window Validation]
+- Sub-standard 4.2.A.1 [1 point | Completeness]: Must calculate the earliest `rel_month` of triggering for each rule.
+- Sub-standard 4.2.A.2 [1 point | Accuracy]: Must provide the distribution:
+  * RuleA first triggered: {-4: 3 subsidiaries, -3: 4 subsidiaries, -2: 6 subsidiaries, -1: 5 subsidiaries}
+  * RuleB first triggered: {-4: 2 subsidiaries, -3: 3 subsidiaries, -2: 5 subsidiaries, -1: 4 subsidiaries}
+  * RuleC first triggered: {-3: 2 subsidiaries, -2: 3 subsidiaries, -1: 4 subsidiaries}
+  (Tolerance ±1 subsidiary). Must provide a lookup table between `rel_month` and subsidiary.
+- Sub-standard 4.2.A.3 [1 point | Conclusion]: Must summarize that the warning window is mainly concentrated from t-4 to t-2, which can meet the 2-3 month advance notice requirement. The fact that some subsidiaries are hit at t-4 suggests room for even earlier intervention.
+
+#### Path 4.2.B [3 points | Healthy Window False Positive Rate]
+- Sub-standard 4.2.B.1 [1 point | Completeness]: Must recalculate the hit rates for RuleA/B/C in the healthy window.
+- Sub-standard 4.2.B.2 [1 point | Accuracy]: The hit rate in the healthy window must be 0 for all rules. Must state that although the sample is only 6 subsidiaries, it completely passes the "zero false positives" validation.
+- Sub-standard 4.2.B.3 [1 point | Conclusion]: Must point out that the current rule combination has a very low false positive rate. It can be fine-tuned based on actual tolerance; for instance, if higher recall is needed, the rolling count for RuleC could be relaxed.
+
+---
+
+## Requirement 5: Reproducibility, Model Integration, and Business Implementation (Max 6 points)
+
+### Standard 5.1: Process Reproducibility and Implementation Approach (Max 3 points)
+
+#### Path 5.1.A [3 points | End-to-End Process Description]
+- Sub-standard 5.1.A.1 [1 point | Completeness]: Must list the process: "Read Dashboard/Income Statement → Deduplicate by Subsidiary+Month → Aggregate Revenue/Expense → Calculate LAG/rel_month → Construct Event/Healthy/Baseline Windows → Derive Indicators → Evaluate Rules → Output Conclusion".
+- Sub-standard 5.1.A.2 [1 point | Accuracy]: Must explain key implementation details: using window functions to calculate `rel_month` and rolling indicators; clearly stating the effective sample sizes (Event=52, Healthy=11, Baseline=7); specifying the need to record hit counts for verification.
+- Sub-standard 5.1.A.3 [1 point | Conclusion]: Must emphasize that the process is reusable, and parameters like window length or thresholds (e.g., 40 days → 35 days) can be adjusted. Must remind that operational logs should record version and timestamps.
+
+#### Path 5.1.B [3 points | Indicator Trade-offs and Definition Explanation]
+- Sub-standard 5.1.B.1 [1 point | Completeness]: Must lay out the differences between income statement revenue vs. dashboard revenue, Expense vs. Expense+COGS, and their applicable scenarios.
+- Sub-standard 5.1.B.2 [1 point | Accuracy]: Must clearly list in the report the difference in key indicator values between the two definitions (e.g., revenue volatility 0.5962 vs. 0.0962) and provide an explanation for the difference.
+- Sub-standard 5.1.B.3 [1 point | Conclusion]: Must emphasize that definition transparency helps the CFO and accounting team achieve a unified interpretation and prevents cross-team errors.
+
+### Standard 5.2: Operational Execution and Modeling Recommendations (Max 3 points)
+
+#### Path 5.2.A [3 points | Monitoring and Action Recommendations]
+- Sub-standard 5.2.A.1 [1 point | Completeness]: Must propose at least a monthly monitoring cadence and define yellow/red alert actions based on the rules: e.g., RuleA hit → freeze new variable costs; RuleB hit → escalate collections within 3 days and assess cash buffer.
+- Sub-standard 5.2.A.2 [1 point | Accuracy]: Actions must correspond one-to-one with indicators: consecutive divergence>15% → budget re-evaluation; `overdue_up_recent3` hit → initiate collection efforts for key clients; WADO>40 for 2 consecutive months → review credit policy.
+- Sub-standard 5.2.A.3 [1 point | Conclusion]: Must summarize the insight that "operational indicators lead cash flow amounts" and call for establishing a cross-departmental response mechanism (Finance + Sales/Delivery).
+
+#### Path 5.2.B [3 points | Model Features and Validation]
+- Sub-standard 5.2.B.1 [1 point | Completeness]: Must recommend including features like `rev_vol_roll3_ge2`, `div_gt15`, `wado_gt40`, `overdue_up_recent3`, RuleA/B/C hits, and the slope of `net_cash_flow` into a cash flow risk prediction model.
+- Sub-standard 5.2.B.2 [1 point | Accuracy]: Must propose a validation plan: use the first 'High' event as positive samples and test the 2-3 month advance detection rate in a rolling training setup. Thresholds can be fine-tuned via ROC/PR curves or grid search.
+- Sub-standard 5.2.B.3 [1 point | Conclusion]: Must explain that the model can be used alongside the rules: rules provide interpretable "strong alerts," while the model provides a probability score. Together, they give the CFO a 2-3 month buffer for planning.
+
+---

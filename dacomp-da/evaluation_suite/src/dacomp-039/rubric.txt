@@ -1,0 +1,75 @@
+# [Total Score | 24 points] The solution must meet two core requirements:
+- Requirement 1: Quantitative descriptive analysis and pattern identification
+- Requirement 2: Actionable optimization recommendations based on the patterns
+---
+## Requirement 1: Pattern analysis of changes (This requirement can earn up to 16 points)
+### Criterion 1.1 [Up to 2 points]: Correctly filter data launched in 2024
+#### Path 1.1.A [2 points | Filter by year field]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Filter level data by the Launch Time field to select records whose launch year is 2024.
+- Sub-criterion 1.1.A.2 [1 point | Accuracy]: The filtering logic is correct, retaining only records where `year(Launch Time) == 2024`.
+  ```pseudocode
+  For each level record:
+    Read field [Launch Time]
+    If year(Launch Time) == 2024:
+        Retain the record
+  ```
+#### Path 1.1.B [2 points | Filter by date range]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Filter data by the Launch Time field to select records where Launch Time is between 2024-01-01 and 2024-12-31.
+- Sub-criterion 1.1.B.2 [1 point | Accuracy]: The filtering logic is correct: `2024-01-01 ≤ Launch Time ≤ 2024-12-31`.
+  ```pseudocode
+  For each level record:
+    Read field [Launch Time]
+    If Launch Time >= 2024-01-01 and Launch Time <= 2024-12-31:
+        Retain the record
+  ```
+---
+### Criterion 1.2 [Up to 14 points]: Statistical comparisons at the combination level
+#### Path 1.2.A [14 points | Unweighted complete method]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Group by the combination "Difficulty Level (Easy/Normal/Hard/Hell) + Level Type (Battle/Parkour/Puzzle/Exploration/BOSS)".
+- Sub-criterion 1.2.A.2 [2 points | Completeness]: Compute and fully list **the 16 "Difficulty × Type" combinations that are actually non-empty in 2024** with Churn Rate and Level Rating (choose mean or median). Fewer than 16 yields zero points.
+- Sub-criterion 1.2.A.3 [1 point | Completeness]: Compute the slope or change magnitude for different gradients of Churn Rate/Level Rating.
+- Sub-criterion 1.2.A.4 [4 points | Accuracy]: Per-group values match reference values within tolerance (±0.005).
+  | Difficulty Level | Level Type |     Churn Rate (Mean) | Churn Rate (Median) |      Level Rating (Mean) |  Level Rating (Median) |
+  | ---- | ---- | ----------: | -------: | ----------: | -----: |
+  | Easy   | Puzzle   | 0.038754464 |   0.0360 | 4.466071429 | 4.4500 |
+  | Easy   | Parkour   | 0.037644578 |   0.0320 | 4.476706827 | 4.5000 |
+  | Easy   | Exploration   | 0.026666667 |   0.0270 | 4.633333333 | 4.6000 |
+  | Easy   | Battle   | 0.046733333 |   0.0430 | 4.334666667 | 4.3000 |
+  | Normal   | Puzzle   | 0.123233645 |   0.1180 | 3.793457944 | 3.8000 |
+  | Normal   | Parkour   | 0.111096154 |   0.1085 | 3.927884615 | 4.0000 |
+  | Normal   | Exploration   | 0.117428571 |   0.1190 | 4.057142857 | 4.1000 |
+  | Normal   | Battle   | 0.137664773 |   0.1350 | 3.750000000 | 3.8000 |
+  | Hard   | BOSS | 0.304527778 |   0.3030 | 3.047222222 | 2.9000 |
+  | Hard   | Puzzle   | 0.278193939 |   0.2790 | 3.086666667 | 3.1000 |
+  | Hard   | Parkour   | 0.270390625 |   0.2640 | 3.092187500 | 3.1000 |
+  | Hard   | Battle   | 0.286167273 |   0.2815 | 2.972363636 | 3.0000 |
+  | Hell   | BOSS | 0.594609091 |   0.6030 | 1.854393939 | 1.9000 |
+  | Hell   | Puzzle   | 0.551000000 |   0.5590 | 1.990909091 | 2.1000 |
+  | Hell   | Parkour   | 0.567666667 |   0.6430 | 1.966666667 | 2.0000 |
+  | Hell   | Battle   | 0.512409091 |   0.4920 | 2.368181818 | 2.2500 |
+- Sub-criterion 1.2.A.5 [1 point | Conclusion]: Based on the data, distill the Churn Rate change pattern within the same type across difficulties, for example: within the same type (e.g., Parkour) across "Easy → Normal → Hard → Hell" difficulty.
+- Sub-criterion 1.2.A.6 [1 point | Conclusion]: Based on the data, distill the Churn Rate change magnitude within the same type across difficulties.
+- Sub-criterion 1.2.A.7 [1 point | Conclusion]: Based on the data, distill the Level Rating change pattern across types within the same difficulty.
+- Sub-criterion 1.2.A.8 [1 point | Conclusion]: Based on the data, distill the Level Rating change magnitude across types within the same difficulty.
+- Sub-criterion 1.2.A.9 [1 point | Conclusion]: Based on the data, highlight clear deviations between mean vs median Churn Rate, such as "Hell × Parkour median 0.643 > mean 0.568, indicating overall high and concentrated."
+- Sub-criterion 1.2.A.10 [1 point | Conclusion]: Point out that the Churn Rate jump is largest from Hard to Hell difficulty.
+#### Path 1.2.B [14 points | Weighted version (e.g., by Number of Participating Players)]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: Group by the combination "Difficulty Level (Easy/Normal/Hard/Hell) + Level Type (Battle/Parkour/Puzzle/Exploration/BOSS)".
+- Sub-criterion 1.2.B.2 [2 points | Completeness]: Compute and fully list **the 16 "Difficulty × Type" combinations that are actually non-empty in 2024** with Churn Rate and Level Rating (choose mean or median). Fewer than 16 yields zero points.
+- Sub-criterion 1.2.B.3 [1 point | Completeness]: Compute the slope or change magnitude for different gradients of Churn Rate/Level Rating.
+- Sub-criterion 1.2.B.4 [4 points | Accuracy]: Data conforms to the results of weighted calculations.
+- Sub-criterion 1.2.B.5 [1 point | Conclusion]: Based on the data, distill the Churn Rate change pattern within the same type across difficulties, for example: within the same type (e.g., Parkour) across "Easy → Normal → Hard → Hell" difficulty.
+- Sub-criterion 1.2.B.6 [1 point | Conclusion]: Based on the data, distill the Churn Rate change magnitude within the same type across difficulties, for example: within the same type (e.g., Parkour) across "Easy → Normal → Hard → Hell" difficulty.
+- Sub-criterion 1.2.B.7 [1 point | Conclusion]: Based on the data, distill the Level Rating change pattern across types within the same difficulty.
+- Sub-criterion 1.2.B.8 [1 point | Conclusion]: Based on the data, distill the Level Rating change magnitude across types within the same difficulty.
+- Sub-criterion 1.2.B.9 [1 point | Conclusion]: Based on the data, highlight clear deviations between mean vs median Churn Rate.
+- Sub-criterion 1.2.B.10 [1 point | Conclusion]: Point out that the Churn Rate jump is largest from Hard to Hell difficulty.
+---
+## Requirement 2: Actionable optimization recommendations based on the patterns (This requirement can earn up to 8 points)
+### Criterion 2.1 [Up to 8 points]: Strategies and target thresholds for high- and low-risk combinations
+#### Path 2.1.A [8 points | Differentiated strategy based on variation patterns]
+- Sub-criterion 2.1.A.1 [2 points | Completeness] Propose at least two differentiated plans.
+- Sub-criterion 2.1.A.2 [6 points | Accuracy]: Strategies are **consistent** with validated patterns (e.g., harder = more prone to churn).
+#### Path 2.1.B [2 points | General fallback strategy]
+- Sub-criterion 2.1.B.1 [2 points | Completeness] Provide general optimization plans:
+>>>

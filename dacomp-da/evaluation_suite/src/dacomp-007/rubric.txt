@@ -1,0 +1,59 @@
+# [Total | 20 points] The solution must satisfy two core requirements:
+- Requirement 1: Is the Research & Development (R&D) department's employee attrition rate significantly lower than the other two departments (6 points)
+- Requirement 2: Analyze the reasons causing this difference in attrition rates (14 points)
+---
+## Requirement 1: Is the Research & Development (R&D) department's employee attrition rate significantly lower than the other two departments (This requirement can earn up to 6 points)
+### Criterion 1.1: Basic attrition rate calculation and comparative analysis (up to 4 points)
+#### Path 1.1.A [4 points | Directly compute attrition rates by Department]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly provide attrition rate data for the three departments
+- Sub-criterion 1.1.A.2 [2 points | Accuracy]: Correct answer (error ≤ 2%): R&D ≈ 13.75%, Sales ≈ 20.67%, HR ≈ 19.05%
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness]: Clearly conclude that the R&D department’s attrition rate is significantly lower than the other departments
+
+### Criterion 1.2: Significance verification (up to 2 points)
+#### Path 1.2.A [2 points | Statistical significance test]
+- Sub-criterion 1.2.A.1 [2 points | Accuracy]: Perform a two-proportion z-test or chi-square test; correct answer: z ≈ -3.346 ± 0.1, p ≈ 0.000820 ± 0.0002
+#### Path 1.2.B [2 points | Descriptive significance judgment]
+- Sub-criterion 1.2.B.1 [2 points | Conclusiveness]: Clearly judge significance based on the numerical gap, e.g., "a 6–7 percentage point difference, clearly distinct"
+---
+## Requirement 2: Analyze the reasons causing this difference in attrition rates (This requirement can earn up to 14 points)
+### Criterion 2.1: Conclusion 1 — Compensation is not the decisive factor; intrinsic motivation matters more (up to 5 points)
+#### Path 2.1.A [5 points | Compensation comparison and intrinsic motivation analysis]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Compare differences in MonthlyIncome levels across departments
+- Sub-criterion 2.1.A.2 [1 point | Completeness]: Analyze differences in PercentSalaryHike, StockOptionLevel, and other benefits
+- Sub-criterion 2.1.A.3 [2 points | Accuracy]: Provide accurate satisfaction data comparisons (error ≤ 5%); reference ranges:
+  - JobSatisfaction: R&D ≈ 2.722 ± 0.055, Sales ≈ 2.749 ± 0.055, HR ≈ 2.603 ± 0.054
+  - EnvironmentSatisfaction: R&D ≈ 2.745 ± 0.055, Sales ≈ 2.687 ± 0.054, HR ≈ 2.683 ± 0.051
+- Sub-criterion 2.1.A.4 [1 point | Conclusiveness]: Conclude the core insight: "Compensation is not the decisive factor; intrinsic motivation is more important."
+#### Path 2.1.B [5 points | Professional identity and work value analysis]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Analyze the specialization and technical challenge of R&D work
+- Sub-criterion 2.1.B.2 [1 point | Completeness]: Analyze differences in JobInvolvement and professional identity
+- Sub-criterion 2.1.B.3 [2 points | Accuracy]: Pseudo-code constraint — compute each department’s mean JobInvolvement; group by Department using the JobInvolvement field, output each department’s mean and standard deviation, and compare the significance of differences between R&D and the other departments
+- Sub-criterion 2.1.B.4 [1 point | Conclusiveness]: Derive the insight: "High intrinsic work value and strong professional identity."
+### Criterion 2.2: Conclusion 2 — Clear career path; specialized technical roles have clear advantages (up to 5 points)
+#### Path 2.2.A [5 points | Career development and promotion path analysis]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Analyze promotion intervals (YearsSinceLastPromotion) across departments
+- Sub-criterion 2.2.A.2 [1 point | Completeness]: Analyze TrainingTimesLastYear
+- Sub-criterion 2.2.A.3 [2 points | Accuracy]: Provide accurate career development data (error ≤ 10%); reference ranges:
+  - YearsSinceLastPromotion: R&D ≈ 2.127 ± 0.2 years, Sales ≈ 2.358 ± 0.2 years, HR ≈ 1.778 ± 0.3 years
+  - TrainingTimesLastYear: R&D ≈ 2.792 ± 0.15 times, Sales ≈ 2.844 ± 0.15 times, HR ≈ 2.556 ± 0.15 times
+- Sub-criterion 2.2.A.4 [1 point | Conclusiveness]: Based on data or comparative analysis, conclude the department’s structural advantages in career development, promotion mechanisms, or retention mechanisms.
+#### Path 2.2.B [5 points | Job structure and professional attributes analysis]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Analyze each department’s JobLevel distribution and the proportion of specialized technical roles
+- Sub-criterion 2.2.B.2 [1 point | Completeness]: Analyze differences in attrition costs between specialized technical roles and general roles
+- Sub-criterion 2.2.B.3 [2 points | Accuracy]: Provide accurate job level structure data (error ≤ 3%); reference ranges:
+  - Management tier proportion (JobLevel 3+): R&D ≈ 25.54%, Sales ≈ 29.33%, HR ≈ 26.98%
+  - Level 1 junior proportion: R&D ≈ 44.98%, Sales ≈ 17.11%, HR ≈ 52.38%
+- Sub-criterion 2.2.B.4 [1 point | Conclusiveness]: Derive the insight: "Specialized technical roles have a high cost of attrition."
+### Criterion 2.3: Conclusion 3 — Lower attrition propensity under comparable profiles (deep mechanism analysis) (up to 4 points)
+#### Path 2.3.A [4 points | Layered comparative analysis]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Stratify by JobLevel, SalarySlab, etc., and compare attrition rates across departments
+- Sub-criterion 2.3.A.2 [2 points | Accuracy]: Provide accurate stratified attrition rate data (error ≤ 2%); reference ranges:
+  - Level 1 attrition rate: R&D ≈ 23.22%, Sales ≈ 41.56%, HR ≈ 30.30%
+  - Attrition rate for SalarySlab 'Upto 5k' (salary < 5k): R&D ≈ 19.82%, Sales ≈ 26.54%, HR ≈ 27.78%; if the assistant’s salary definition differs, judge by verifying the correctness of the code
+  - OverTime attrition rate: R&D ≈ 27.21%, Sales ≈ 37.98%, HR ≈ 29.41%
+- Sub-criterion 2.3.A.3 [1 point | Conclusiveness]: Derive the core insight: "Under comparable profiles, the R&D department has a lower propensity to leave."
+#### Path 2.3.B [4 points | Work–life balance and environment advantage analysis]
+- Sub-criterion 2.3.B.1 [1 point | Completeness]: Analyze OverTime prevalence across departments
+- Sub-criterion 2.3.B.2 [1 point | Completeness]: Analyze EnvironmentSatisfaction
+- Sub-criterion 2.3.B.3 [2 points | Accuracy]: Pseudo-code constraint — compute each department’s mean WorkLifeBalance and the proportion of OverTime='Yes'; perform grouped statistical analysis and output each department’s mean WorkLifeBalance score and the proportion of employees working OverTime
+- Sub-criterion 2.3.B.4 [1 point | Conclusiveness]: Derive the insight: "High environment fit and good pressure–reward balance."

@@ -1,0 +1,116 @@
+# [Total Score | 38 points] Google Ads Problematic Campaign Health Assessment & Optimization Scoring Rubric
+---
+## Requirement 1: Data Preparation and Risk Campaign Screening (Max 8 points)
+### Criterion 1.1: Table Mapping and Time Granularity Verification
+#### Path 1.1.A [4 points | Full Field Dictionary + Time Verification]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Must completely list the relevant tables and fields: `google_ads__campaign_report` (including year_month, campaign_id, campaign_name, campaign_type, bidding_strategy, industry, impressions, clicks, cost, conversions, conversion_value, ctr, cpc, conversion_rate, cost_per_conversion, roas, quality_score, impression_share), `google_ads__device_report` (must cover device_type dimension metrics), `google_ads__geo_report` (must cover geo_target dimension metrics), `google_ads__keyword_report` (must cover year_quarter, avg_position, etc.), and state that they are joined via `campaign_id`. Must explain that the June 2024 monthly analysis and the 2024-Q2 quarterly keyword metrics are aligned using `campaign_id+year_quarter`.
+- Sub-criterion 1.1.A.2 [2 points | Accuracy]: Must reproduce the time verification: in `google_ads__campaign_report`, min(year_month)='2023-02', max(year_month)='2024-06', and there are 17 distinct months. In `google_ads__keyword_report`, `year_quarter` covers 6 quarters from 2023-Q1 to 2024-Q2. Must provide the month-to-quarter mapping formula `SUBSTR(year_month,1,4)||'-Q'||((CAST(SUBSTR(year_month,6,2) AS INTEGER)+2)/3)` and verify that 2024-06→2024-Q2 and 2023-02→2023-Q1.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: Clearly state that all subsequent trend/seasonal analyses will uniformly use the monthly granularity from 2023-02—2024-06. Keyword competition metrics will be aggregated quarterly and maintain a consistent baseline for each month within that quarter. Missing `avg_position` values must be backfilled with the 2024-Q2 mean of 2.452 to maintain comparability.
+
+#### Path 1.1.B [4 points | Metric-Field Mapping Check]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Provide a mapping of key metrics to fields: `CTR=clicks/impressions`, `Conversion Rate=conversions/clicks`, `Cost per Conversion=cost/conversions`, `ROAS` should use the `roas` field, `Value per Conversion=conversion_value/conversions`, `Avg Position` comes from `google_ads__keyword_report.avg_position`.
+- Sub-criterion 1.1.B.2 [2 points | Accuracy]: Explain the verification steps and quantify the results: For the June 2024 sample, `MAX(|ctr - clicks/impressions|)=0.00005`, `MAX(|conversion_rate - conversions/clicks|)=0.000049`. Emphasize that the `roas` field is a normalized value and its maximum deviation from `conversion_value/cost` is 11.666321, so the `roas` field should be used directly in the analysis. State that `avg_position` needs to be aggregated with impression weighting.
+- Sub-criterion 1.1.B.3 [1 point | Conclusion]: Conclude that the field definitions and metric meanings are unified and can directly support subsequent normalization, group analysis, and diagnosis.
+
+### Criterion 1.2: Initial Screening of Problematic Campaigns
+#### Path 1.2.A [2 points | Latest Month Fixed Threshold Method (deterministic)]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Explain the screening logic—marking campaigns as problematic in June 2024 if `cost>1000` and `roas<0.8`.
+- Sub-criterion 1.2.A.2 [1 point | Accuracy]: Correctly list the 11 problematic campaigns with key fields (campaign_id, campaign_name, campaign_type, bidding_strategy, industry, cost, roas). The list must match: 27, 36, 56, 69, 97, 105, 135, 148, 178, 180, 184. Cost/ROAS values must match the database (e.g., campaign 27: cost=59,711.44, roas=0.69; campaign 148: cost=27,450.14, roas=0.47).
+
+### Criterion 1.3: Quarter Mapping and Keyword Metric Integration
+#### Path 1.3.A [2 points | Month→Quarter Mapping Method]
+- Sub-criterion 1.3.A.1 [1 point | Completeness]: Describe the month-to-quarter mapping and join the impression-weighted `avg_position` from `google_ads__keyword_report` into the June 2024 monthly data using `campaign_id+year_quarter`.
+- Sub-criterion 1.3.A.2 [1 point | Accuracy]: Provide the mapping SQL/pseudo-code (using window functions for impression weighting). Impute missing `avg_position` values with the 2024-Q2 impression-weighted mean of 2.452 and state that all competition metrics will maintain a uniform quarterly baseline.
+
+---
+## Requirement 2: Health Score Model Design and Calculation (Max 10 points)
+### Criterion 2.1: Metric System and Weight Setting
+#### Path 2.1.A [4 points | P5-P95 Winsorizing + Fixed Internal Weights]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Provide the three-dimensional structure and internal weights: Cost Efficiency(40%)=0.6×ROAS_norm+0.4×InvCPA_norm; Conversion Quality(35%)=0.5×CVR_norm+0.5×ValuePerConversion_norm; Competitiveness(25%)=0.3×QualityScore_norm+0.25×ImpressionShare_norm+0.25×CTR_norm+0.2×InvAvgPosition_norm.
+- Sub-criterion 2.1.A.2 [2 points | Accuracy]: Must specify the winsorizing intervals: ROAS[P5,P95]=[0.47,21.85], Cost/Conv[P5,P95]=[24.55,112.86], CVR[P5,P95]=[0.0079,0.0732], Value/Conv[P5,P95]=[105.8,755.17], Quality Score[P5,P95]=[4.5,9.8], Impression Share[P5,P95]=[0.309,0.871], CTR[P5,P95]=[0.0081,0.0556], Avg Position[P5,P95]=[1.991,3.145]. Explain the normalization formula (values outside the interval are clamped, then apply (x-min)/(max-min); inverse metrics use 1 - ...). Missing `avg_position` is imputed with 2.452, missing `value_per_conversion` is set to 105.8, and missing `cost_per_conversion` is set to 112.86.
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: Explain the meaning of the three dimensions: Cost Efficiency primarily reflects ROI robustness, Conversion Quality distinguishes structural inefficiency, and Competitiveness metrics are used to identify bidding and quality shortcomings. State that a uniform winsorizing window enhances cross-campaign comparability.
+
+#### Path 2.1.B [4 points | Robust Normalization and Outlier Handling]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Explain the use of P5-P95 robust winsorizing to reduce the impact of outliers (e.g., campaign 97's missing avg_position, extremely low roas) on the score.
+- Sub-criterion 2.1.B.2 [2 points | Accuracy]: Detail the handling of missing and extreme values: when `cost_per_conversion` is null due to zero conversions, use 112.86; when `cvr/ctr` are null due to zero clicks, they are set to their respective P5 values. `avg_position` values exceeding 3.145 are clamped to 3.145 before inverse normalization. Provide pseudo-code examples showing the clamp → normalize → weight pipeline.
+- Sub-criterion 2.1.B.3 [1 point | Conclusion]: Compare robust normalization with direct min-max scaling and point out that in situations with multi-channel promotions and campaigns with extreme ROI, P5-P95 winsorizing prevents the health score from being skewed by extreme samples.
+
+### Criterion 2.2: Score Implementation and Risk Tiering
+#### Path 2.2.A [3 points | Quantile Segmentation]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Calculate quantile thresholds based on the health scores of all 50 campaigns in June 2024: P20=27.803, P40=37.682. Classify risks as: ≤P20 is High Risk, (P20, P40] is Medium Risk, >P40 is Lower Risk.
+- Sub-criterion 2.2.A.2 [1 point | Accuracy]: Verify the segment sample sizes: High Risk=10, Medium Risk=10, Lower Risk=30. Must state that quantile calculation uses `PERCENT_RANK()` and matches the 50 samples.
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]: Output the risk distribution and conclude that high-risk campaigns are concentrated in Video/Display/Target CPA/Target ROAS combinations (7 out of 11 problematic campaigns fall into the high-risk quantile).
+
+#### Path 2.2.B [3 points | Fixed Threshold + Business Red Line]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Provide fixed thresholds: Health Score < 40 is High Risk, 40≤Score < 70 is Medium Risk, ≥70 is Low Risk. Additionally, apply a business red line: `roas<0.5 AND cost>3000` is directly classified as High Risk.
+- Sub-criterion 2.2.B.2 [1 point | Accuracy]: Explain the rationale for the thresholds—a combination of score distribution (mean=43.81, stddev=18.27) and industry experience. Verify that among the 11 problematic campaigns, 10 are classified as High Risk due to score < 40 or the red line rule. Only campaign 148 has a score of 40.55 but is still triggered as High Risk because its roas=0.47 < 0.5.
+- Sub-criterion 2.2.B.3 [1 point | Conclusion]: Present the risk results under the fixed threshold rules and note that Video/Display campaigns have a 100% "High Risk" rate under this dual-rule system.
+
+### Criterion 2.3: Reproducibility and Exception Handling
+#### Path 2.3.A [3 points | Calculation Process Description]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: List the scoring pipeline: Data Extraction→Robust Winsorizing→Normalization→3D Weighted Score→Total Health Score→Risk Tiering.
+- Sub-criterion 2.3.A.2 [1 point | Accuracy]: Specify exception handling strategy: zero-click CTR/CR set to P5; zero-conversion cost_per_conversion/value_per_conversion set to upper or lower bounds; missing avg_position imputed with 2.452. Show SQL/pseudo-code snippets to ensure reproducibility (`CASE WHEN metric < p5 THEN p5 WHEN metric > p95 THEN p95 ELSE metric END`).
+- Sub-criterion 2.3.A.3 [1 point | Conclusion]: Summarize key parameters (dimension weights, winsorizing intervals, P20/P40 thresholds, fixed red lines) and state that the scoring script can be run repeatedly with stable output.
+
+---
+## Requirement 3: Multi-dimensional Difference Analysis and Risk Segmentation (Max 8 points)
+### Criterion 3.1: Campaign Type / Strategy / Industry Comparison
+#### Path 3.1.A [4 points | Weighted Aggregation Method]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: For the 11 problematic campaigns in June 2024, perform cost-weighted aggregation separately by `campaign_type`, `bidding_strategy`, and `industry`. Output the weighted ROAS, weighted CPA, weighted CVR, weighted CTR, and sample count for each group.
+- Sub-criterion 3.1.A.2 [2 points | Accuracy]: Anchor points must match actual measurements (±5% tolerance):
+  - Campaign Type: Video ROAS=3.311, CPA=71.959, CVR=0.0104, CTR=0.00795 (4 samples); Display ROAS=3.999, CPA=68.25, CVR=0.0161, CTR=0.01219 (3 samples); Search ROAS=5.752, CPA=65.91, CVR=0.0438, CTR=0.03263 (2 samples); Performance Max ROAS=8.892, CPA=61.936, CVR=0.0321, CTR=0.02617 (2 samples).
+  - Bidding Strategy: Enhanced CPC ROAS=1.458 (1 sample), Target ROAS=7.276 (3 samples), Target CPA=6.037 (3 samples), Manual CPC=4.74 (3 samples), Maximize Conversions=2.085 (1 sample).
+  - Industry: Finance=ROAS 9.255, Fashion=5.603, Travel=4.984, Real Estate=3.544, Healthcare=2.085, Education=3.214, SaaS=3.515, E-commerce=6.693.
+- Sub-criterion 3.1.A.3 [1 point | Conclusion]: Identify the groups where risk is concentrated—Video/Display channels and Target ROAS/Target CPA strategies, as well as Travel/Fashion industries, account for the bulk of high-risk campaigns.
+
+#### Path 3.1.B [4 points | Two-Sample Comparison (flagged vs non-flagged)]
+- Sub-criterion 3.1.B.1 [1 point | Completeness]: Compare the mean differences between problematic campaigns (11) and non-problematic campaigns (39). Metrics must include health score, ROAS, CVR, and competitive metrics, with sample sizes noted.
+- Sub-criterion 3.1.B.2 [2 points | Accuracy]: Must reproduce the cost-weighted comparison: flagged average health score=23.80, ROAS=0.54, CVR=0.0182, quality score=5.193, impression share=0.383, CTR=0.0110, average cost=44,386; non-problematic average health score=49.13, ROAS=9.133, CVR=0.0309, quality score=7.156, impression share=0.583, CTR=0.0137, average cost=28,963.
+- Sub-criterion 3.1.B.3 [1 point | Conclusion]: Summarize the dimensions with significant differences (quality score, impression share, and ROAS are all substantially lower) and state that resource reallocation should prioritize supporting Search and high-quality-score campaigns.
+
+### Criterion 3.2: Device Dimension Risk Identification
+#### Path 3.2.A [2 points | Cost Share Threshold Method]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: For each campaign in June 2024, output the cost, ROAS, cost share, and CVR for each `device_type`. Flag devices where `cost share>35% AND (ROAS<0.8 OR CVR is below campaign average)`. Must reference Mobile, Desktop, and Tablet dimensions.
+- Sub-criterion 3.2.A.2 [1 point | Accuracy]: Check anchor points (±3pct tolerance): Mobile cost share is generally 0.57~0.65 with ROAS 0.3~0.83. For example, campaign 135: Mobile share 0.651, ROAS 0.50; campaign 69: Mobile share 0.602, ROAS 0.50. Must state that Desktop/Tablet performance is relatively better.
+
+### Criterion 3.3: Geographic Dimension Risk Identification
+#### Path 3.3.A [2 points | Top Cost Segmentation Method]
+- Sub-criterion 3.3.A.1 [1 point | Completeness]: For each problematic campaign, extract the top three geos by cost share and provide their cost, ROAS, and share.
+- Sub-criterion 3.3.A.2 [1 point | Accuracy]: Anchor point examples must match: campaign 184 Germany share 0.297, ROAS 0.71; campaign 36 Japan share 0.352, ROAS 0.69; campaign 148 Japan share 0.48, ROAS 0.53. Must point out that these high-cost geos are dragging down overall efficiency.
+
+### Criterion 3.4: Competitive Metrics Diagnosis
+#### Path 3.4.A [2 points | Metric Comparison Method]
+- Sub-criterion 3.4.A.1 [1 point | Completeness]: Compare the quality score, impression share, CTR, average position, and keyword metrics between problematic and non-problematic campaigns to identify shortcomings.
+- Sub-criterion 3.4.A.2 [1 point | Accuracy]: Must cite specific differences: flagged quality score=5.193, impression share=0.383, CTR=0.0110, cost-weighted avg position=0.745 (higher is worse); non-problematic are 7.156, 0.583, 0.0137, 1.135 respectively. Conclude that problematic campaigns are at a sustained disadvantage in quality and impression competition.
+
+---
+## Requirement 4: Trend and Seasonality Analysis (Max 6 points)
+### Criterion 4.1: Year-over-Year (YoY) Analysis
+#### Path 4.1.A [3 points | Same-Month YoY]
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: Calculate the YoY change in cost and ROAS for June 2024 vs. June 2023, covering all 11 problematic campaigns.
+- Sub-criterion 4.1.A.2 [1 point | Accuracy]: Output must match YoY figures from the database (±2pct tolerance): campaign 27 cost YoY +32.77%, ROAS flat; campaign 97 cost YoY +1.33%, ROAS YoY -66.28%; campaign 135 cost YoY +27.60%, ROAS flat. For campaign 178, which has no June 2023 data, mark it as "Data Gap".
+- Sub-criterion 4.1.A.3 [1 point | Conclusion]: Point out that campaigns with "increasing cost but no ROAS improvement" (e.g., 27, 135, 184) should be prioritized for budget clawback or strategy adjustments.
+
+#### Path 4.1.B [3 points | Quarterly YoY / Rolling Window]
+- Sub-criterion 4.1.B.1 [1 point | Completeness]: For campaigns missing monthly YoY data (like 178), use 2024-Q2 vs. 2023-Q2 or a recent 3-month rolling comparison.
+- Sub-criterion 4.1.B.2 [1 point | Accuracy]: Provide quarterly comparison anchor points: campaign 56 Q2 cost YoY -5.25%, ROAS YoY -52.21%; campaign 178 must be noted as "No comparable baseline" due to missing 2023-Q2 data; campaign 184 Q2 cost YoY +77.14%, ROAS YoY -35.53%.
+- Sub-criterion 4.1.B.3 [1 point | Conclusion]: Summarize quarterly trends (e.g., Video campaigns 56/184 had significantly lower ROAS in 2024-Q2 compared to the same quarter last year).
+
+### Criterion 4.2: Seasonality and Volatility
+#### Path 4.2.A [3 points | Coefficient of Variation and Seasonal Index]
+- Sub-criterion 4.2.A.1 [1 point | Completeness]: For the period 2023-02—2024-06, calculate the mean and standard deviation of ROAS and CVR, compute the coefficient of variation (CV) for each problematic campaign, and provide the June 2024 ROAS seasonal index for each industry.
+- Sub-criterion 4.2.A.2 [1 point | Accuracy]: Anchor point examples: campaign 97 ROAS mean=5.022, stddev=3.164, CV=0.630. Most campaigns' CV(CVR) falls within 0.175~0.283 (provide at least three examples: campaign 69 CV(CVR)=0.212, campaign 178=0.283, campaign 27=0.182). Industry seasonal index examples: Travel June 2024 Index=1.069, SaaS=0.572, Healthcare=0.749.
+- Sub-criterion 4.2.A.3 [1 point | Conclusion]: Use the seasonal index to explain high/low season differences (Travel has an index > 1 during peak season but is still inefficient) and propose seasonal budget/creative optimization recommendations.
+
+---
+## Requirement 5: Diagnostic Output and Optimization Plan (Max 6 points)
+### Criterion 5.1: Risk Diagnosis and Actionable Recommendations (Per Campaign)
+#### Path 5.1.A [4 points | Data-Driven Differentiated Plan]
+- Sub-criterion 5.1.A.1 [1 point | Completeness]: Provide a structured diagnosis for each of the 11 problematic campaigns, including at least: health score, quantified risk level (quantile & fixed threshold), 3D sub-scores, key inefficient device/geo segments, and competitiveness shortcomings.
+- Sub-criterion 5.1.A.2 [2 points | Accuracy]: Must cite hard data to support recommendations (e.g., campaign 97 health score=10.06, cost efficiency=0.31, conversion quality=0, competitiveness=39.73; Mobile cost share 0.598, ROAS=6.12; Japan geo share 0.286, ROAS=6.7; quality score=8.4 but impression share is only 0.436, needs focus on improving creatives and bidding. Campaign 135 health score=11.65, Mobile share 0.651, ROAS=0.50, France/UK/Australia combined share 0.811 with ROAS=0.49, need to cut budget from inefficient geos and improve Search competitiveness).
+- Sub-criterion 5.1.A.3 [1 point | Conclusion]: Formulate a differentiated action list (budget reallocation, keyword/creative optimization, geo-targeting reduction, mobile bid decrease, strategy switching, etc.) and provide an execution priority (prioritize campaigns with health score < 20 and rising YoY cost like 56/135/105/180, followed by those with scores 20-40 like 36/178/69/27/148).
+
+### Criterion 5.2: Report Output and Monitoring Mechanism
+#### Path 5.2.A [2 points | Structured Deliverable + Monitoring]
+- Sub-criterion 5.2.A.1 [1 point | Completeness]: Deliver a comprehensive report framework including health scores, risk levels, campaign type/strategy/industry comparison tables, trend and seasonality tables, inefficient geo/device segments, and competitive metric diagnosis.
+- Sub-criterion 5.2.A.2 [1 point | Accuracy]: Ensure all tables are verifiable (field definitions match the aforementioned anchor points) and specify KPIs for monitoring: Health Score, ROAS, CTR, CVR, Quality Score, Impression Share, Avg Position. Recommend monthly reviews and quarterly trend retrospectives, and state that resource reallocation should be tracked via `cost share` and `health score change`.

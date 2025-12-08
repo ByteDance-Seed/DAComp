@@ -1,0 +1,126 @@
+# [Total Score | 15 points]  The solution must satisfy four core requirements:
+- Requirement 1: Differences in penetration and profitability for 2015–2017
+- Requirement 2: Comparison of business performance across the four regions (Central, East, South, West)
+- Requirement 3: Identify the best-performing region–segment combinations
+- Requirement 4: Provide clear expansion recommendations
+---
+## Requirement 1: Differences in penetration and profitability for 2015–2017 (maximum 8 points)
+### Criterion 1.1 [maximum 4 points]: Market penetration differences (based on each region’s share nationwide)
+#### Path 1.1.A [4 points]: Sales penetration analysis 
+- Sub-criterion 1.1.A.1 [1 point | completeness]: Define precisely: sales penetration rate % = Region’s sales in the Segment / Nationwide sales in the Segment; compute annually for 2015/2016/2017 or provide the three-year average to earn credit.
+- Sub-criterion 1.1.A.2 [3 points | accuracy]: Annual and three-year average methodologies are correct; hit the following anchors (tolerance ±1%):
+  - Three-year methodology (2015–2017 average, based on actual data): West–Consumer ≈29.72%; East–Home Office ≈35.00%; West–Corporate ≈31.23%. Note: if only the three-year average is reported, award 2 points.
+  - Year-by-year TOP3 (Consumer segment; by sales penetration rate, based on actual calculation):
+    - 2015: East–Consumer (≈38.36%), West–Consumer (≈26.44%), South–Consumer (≈18.79%)
+    - 2016: East–Consumer (≈33.35%), West–Consumer (≈28.23%), Central–Consumer (≈23.83%)
+    - 2017: West–Consumer (≈33.69%), East–Consumer (≈33.63%), South–Consumer (≈18.61%)
+- Sub-criterion 1.1.A.3 [1 point | conclusion]: Based on the penetration data, derive at least 3 of the following specific conclusions:
+  1) Regional competitive landscape: The East region maintains a leading edge in the Consumer segment (TOP1 or TOP2 across 2015–2017), while the West region shows an upward trend (surpassing East in 2017);
+  2) Market concentration: The Consumer segment exhibits an East–West duopoly, with the two regions jointly accounting for about 65–70%; South and Central are in catch-up positions;
+  3) Strategic opportunities: The West region’s penetration exceeds 30% in both Corporate and Home Office segments, indicating balanced multi-market development advantages;
+  4) Risk warning: The South region has low penetration across all segments (12–18%), carrying a risk of market marginalization.
+#### Path 1.1.B [3 points]: Order-volume penetration analysis (penetration based on order counts)
+- Sub-criterion 1.1.B.1 [1 point | completeness]: Define precisely: penetration (order count) % = the proportion of Segment order counts within a Region’s total orders for that year.
+- Sub-criterion 1.1.B.2 [1 point | accuracy]: Use code-based validation; when the code meets the completeness requirement in 1.1.B.1, award 1 point.
+- Sub-criterion 1.1.B.3 [1 point | conclusion]: Provide at least 3 clear conclusions about differences in order penetration across region–segment combinations.
+#### Path 1.1.C [4 points]: Penetration robustness analysis (preferred: quantitative assessment of distributional differences)
+- Sub-criterion 1.1.C.1 [1 point | completeness]: Describe the robustness methodology (e.g., trim monthly penetration with P10–P90 or compute differences after Z-score standardization).
+- Sub-criterion 1.1.C.2 [2 points | accuracy]: Correctly compute difference measures (e.g., max−min, IQR, or the mean/extremes of standardized differences), consistent with the stated methodology and verifiable.
+- Sub-criterion 1.1.C.3 [1 point | conclusion]: Based on the robustness analysis, derive risk management conclusions: explicitly list the strongest/weakest 1–2 "region–segment" combinations with their difference metric values; provide at least 2 of the following risk assessments: Stable businesses (volatility below the median, suitable for sustained investment); Opportunity businesses (high mean but high volatility, require risk controls); Marginal businesses (low mean and high volatility, consider strategic adjustments); Watchlist businesses (insufficient or abnormal data, require deeper investigation).
+#### Path 1.1.D [4 points]: Region-internal share analysis (preferred: structural analysis based on a region’s internal sales composition)
+- Sub-criterion 1.1.D.1 [1 point | completeness]: Clearly define “penetration” as the "region-internal share" metric (i.e., "this region–segment sales / this region’s total sales"), and compute the shares for 2015, 2016, 2017 and the three-year average.
+- Sub-criterion 1.1.D.2 [2 points | accuracy]: Correctly compute the three-year average "region-internal share", consistent with the stated methodology and verifiable. Hit at least 2 anchors (tolerance ±1%): West–Consumer (48.0%); West–Corporate (31.5%); South–Home Office (11.5%); Central–Consumer (47.8%).
+- Sub-criterion 1.1.D.3 [1 point | conclusion]: Based on the internal share data (including annual trends or averages), derive conclusions about regional business "structure" or "structural changes". Explicitly list at least 3 analytical points, such as: identify structurally extreme combinations (e.g., South–Consumer in 2015); identify combinations with sustained increases/decreases in share (e.g., East–Home Office); or identify structurally stable combinations (e.g., West–Consumer/Corporate dual strength).
+#### Path 1.1.E [3 points]: Customer count analysis (preferred: use distinct customer counts as a proxy for market penetration/coverage)
+- Sub-criterion 1.1.E.1 [1 point | completeness]: Clearly define the metric as "distinct customer count by region–segment" and compute annual values for 2015–2017.
+- Sub-criterion 1.1.E.2 [1 point | accuracy]: Provide the annual distinct customer counts used to support subsequent conclusions, consistent with the definition.
+- Sub-criterion 1.1.E.3 [1 point | conclusion]: Based on the computed distinct customer counts (including trends or comparisons), derive at least 3 clear conclusions about differences in customer base or coverage across region–segment combinations.
+#### Path 1.1.F [3 points]: Nationwide footprint analysis (preferred: the share of a region–segment’s sales in the year’s total sales)
+- Sub-criterion 1.1.F.1 [1 point | completeness]: Clearly define the penetration metric as "the share of this region–segment’s sales in the year’s total sales", and compute annual values for 2015–2017.
+- Sub-criterion 1.1.F.2 [1 point | accuracy]: Use code-based validation; when the code meets the completeness requirement in 1.1.F.1, award 1 point.
+- Sub-criterion 1.1.F.3 [1 point | conclusion]: Based on the computed penetration, derive at least 3 clear conclusions about differences in penetration across region–segment combinations.
+
+### Criterion 1.2 [maximum 4 points]: Profitability differences (multi-dimensional margin assessment)
+#### Path 1.2.A [3 points]: Basic margin analysis (baseline path: traditional profitability assessment)
+- Sub-criterion 1.2.A.1 [1 point | completeness]: Profit margin % = Profit / Sales × 100; provide annual results and the three-year average.
+- Sub-criterion 1.2.A.2 [1 point | accuracy]: Hit the following anchors (units %, tolerance ±1%):
+  - Central–Corporate: margin ≈20.22
+  - East–Home Office: margin ≈18.06
+  - West–Corporate: margin ≈14.78
+- Sub-criterion 1.2.A.3 [1 point | conclusion]: Based on margin rankings, derive at least 3 of the following profitability conclusions:
+  1) High-margin band (margin ≥18%): Central–Corporate (20.22%) and East–Home Office (18.06%), reflecting specialization and segment advantages;
+  2) Moderate-margin band (margin 14–17%): West–Consumer (16.98%), etc., showing a balance of scale effects and operational efficiency;
+  3) Improvement band (margin <12%): requires cost optimization or pricing strategy adjustments;
+  4) Investment priority: combinations with high margins + high penetration are core businesses; high margins + low penetration are growth opportunities.
+#### Path 1.2.B [4 points]: Risk-adjusted margin analysis (preferred: risk–return assessment accounting for volatility)
+- Sub-criterion 1.2.B.1 [1 point | completeness]: State the formula: risk_adj = mean(annual margin) − λ·std(annual margin), λ∈[0,1] (recommend λ=0.5), sample years = 2015–2017.
+- Sub-criterion 1.2.B.2 [2 points | accuracy]: Hit the verification points (units %, tolerance ±1%):
+  - Central–Home Office: mean ≈16.75, std ≈0.75, risk-adjusted ≈16.37
+  - East–Home Office: mean ≈18.17, std ≈4.81, risk-adjusted ≈15.76
+  - West–Consumer: mean ≈16.59, std ≈2.80, risk-adjusted ≈15.19
+- Sub-criterion 1.2.B.3 [1 point | conclusion]: Based on the risk-adjusted analysis, derive at least 2 of the following portfolio conclusions:
+  1) Stable-return: Central–Home Office, etc. (low volatility + mid-to-high returns), suitable for steady investment;
+  2) High-risk high-return: East–Home Office, etc. (high volatility + high returns), requires risk controls;
+  3) Value re-rating: combinations whose ranking changes significantly after risk adjustment need reassessment of investment priority;
+  4) Volatility drivers: analyze drivers of high-volatility combinations (market cycles, seasonality, competitive intensity, etc.).
+#### Path 1.2.C [3 points]: Margin consistency analysis (advanced path: stability assessment across time)
+- Sub-criterion 1.2.C.1 [1 point | completeness]: Compute margins by year and rank each year; define robustness: a combination enters the TOP3 in ≥2/3 of the years.
+- Sub-criterion 1.2.C.2 [1 point | accuracy]: Compute hit_count and robust_top correctly and consistently with the year-by-year results.
+- Sub-criterion 1.2.C.3 [1 point | conclusion]: Based on the consistency analysis, derive at least 2 of the following sustained competitive advantage conclusions:
+  1) Robust core business: combinations that maintain TOP3 margin rankings for 2–3 consecutive years possess sustainable competitive advantages;
+  2) Volatile opportunity business: combinations with highly fluctuating margin rankings require identification of causes (market cycles/operational issues/external shocks);
+  3) Business focus recommendations: adjust investment focus based on robustness; increase investment in robust businesses; analyze volatility businesses for improvement opportunities;
+  4) Long-term strategic positioning: identify the business areas where the company’s core competitive advantages lie from sustained performance.
+---
+## Requirement 2: Comprehensive comparison of business performance across the four regions (maximum 3 points)
+### Criterion 2.1 [maximum 3 points]: Multi-dimensional regional composite assessment (holistic view integrating market performance and profitability)
+#### Path 2.1.A [3 points]: Standardized weighted scoring (preferred: composite ranking system for quantitative indicators)
+- Sub-criterion 2.1.A.1 [1 point | completeness]: For each region, compute for the three segments: norm_profit and norm_penetration (Min–Max scaled to [0,1]); Composite score = Σ_segment (w_profit · norm_profit + w_pen · norm_penetration), with the constraint w_profit + w_pen = 1 (weights must be declared).
+- Sub-criterion 2.1.A.2 [1 point | accuracy]: Rankings and component calculations are correct and consistent with the declared weights/methodology.
+- Sub-criterion 2.1.A.3 [1 point | conclusion]: Based on composite scores, derive regional strategic layout conclusions: cross-validate with Requirement 1 and list ≥3 samples of consistency/inconsistency, each with numeric evidence (composite score, margin, penetration); provide at least 2 of the following strategic positioning items:
+  1) Leading regions: TOP1–2 composite scores, combining high penetration and high margins, positioned as core growth engines;
+  2) Potential regions: strong in single indicators but mid-level composite scores, positioned for targeted improvements;
+  3) Regions needing improvement: low composite scores, requiring systematic enhancement of penetration or profitability;
+  4) Resource allocation recommendations: adjust investment priorities and development focus based on regional positioning.
+#### Path 2.1.B [3 points]: Pareto frontier analysis (preferred: identify the efficiency boundary in multi-objective optimization)
+- Sub-criterion 2.1.B.1 [1 point | completeness]: Use (composite penetration, composite margin) as dual objectives; provide the nondominated solution set F and the selection methodology for top regions.
+- Sub-criterion 2.1.B.2 [2 points | conclusion]: Based on the Pareto frontier, derive efficiency improvement conclusions: flag whether each region is on the frontier F (yes/no) and the nearest dominance relationships; highlight specific samples and numeric evidence consistent with or conflicting with 2.1.A/Requirement 1; provide at least 2 of the following operational optimization suggestions:
+  1) Frontier region characteristics: identify best-practice patterns of Pareto-optimal regions (high-efficiency business combinations);
+  2) Improvement path identification: specify concrete directions for non-frontier regions (prioritize boosting penetration or profitability);
+  3) Benchmarking mechanism: establish a pathway for frontier regions to disseminate best practices to other regions;
+  4) Efficiency monitoring system: set up dynamic monitoring of movements along the Pareto frontier.
+#### Path 2.1.C [3 points]: Cluster grouping analysis (preferred: identify similar regional business models)
+- Sub-criterion 2.1.C.1 [1 point | completeness]: Features = the combination of (penetration, margin) for each Segment; apply Z-score then K-means (k=3); output {labels, centroids}.
+- Sub-criterion 2.1.C.2 [1 point | accuracy]: Validate clustering effectiveness: compute Silhouette Score ≥0.3, report within-cluster and between-cluster distances, and ensure centroids are computed correctly and reproducible.
+- Sub-criterion 2.1.C.3 [1 point | conclusion]: Based on the clustering results, derive differentiated management conclusions: define the "winning cluster" criterion and provide cluster center values and key indicators for regions within the cluster; compare against other clusters; provide at least 2 of the following management recommendations:
+  1) Winning cluster characteristics: identify common business models and success factors among high-performance regional groups;
+  2) Differential management strategy: set differentiated management strategies and evaluation standards for different clusters;
+  3) Practice replication pathway: establish specific mechanisms to spread best practices from the winning cluster to other clusters;
+  4) Organizational adjustment recommendations: adjust regional management structure and resource allocation based on cluster characteristics.
+#### Path 2.1.D [3 points]: Comprehensive qualitative comparative analysis (preferred: summary and qualitative interpretation based on key indicators)
+- Sub-criterion 2.1.D.1 [1 point | completeness]: Provide three-year totals (2015–2017) of key indicators at the region–segment or region level, including at least total sales and total profit, and rank the four regions by a key indicator (e.g., sales).
+- Sub-criterion 2.1.D.2 [1 point | completeness]: Provide year-by-year (2015–2017) region–segment level key indicators (e.g., sales share/penetration, margin) to support trend comparisons.
+- Sub-criterion 2.1.D.3 [1 point | conclusion]: Based on the aggregate and trend data above, produce effective qualitative summaries and horizontal comparisons of the overall business performance (growth, stability, primary drivers, risk points, etc.) for all four regions.
+---
+## Requirement 3: Precise identification of the best-performing business combinations (maximum 2 points)
+### Criterion 3.1 [maximum 2 points]: Optimal combination identification and validation (value discovery based on multi-dimensional composite assessment)
+#### Path 3.1.A [2 points]: Composite ranking and anchor verification (preferred: quantitative model for value ranking)
+- Sub-criterion 3.1.A.1 [1 point | accuracy]: Clarify the ranking methodology (standardized margin × w1 + standardized penetration × w2, with w1 + w2 = 1), and output the TOP3 combinations with fields: {region, segment, profit_rate%, penetration%, score}. The TOP3 must hit at least any 2 of the following anchors (tolerance ±1%):
+  - East–Home Office: sales penetration ≈35.00%, margin ≈18.06%
+  - West–Consumer: sales penetration ≈29.72%, margin ≈16.98%
+  - Central–Corporate: sales penetration ≈24.50%, margin ≈20.22%
+- Sub-criterion 3.1.A.2 [1 point | conclusion]: Based on the optimal combination identification, derive at least 2 of the following investment value conclusions:
+  1) Core value combination: The TOP1 combination (East–Home Office) has dual advantages of high penetration and high margins, positioned as the core investment focus;
+  2) Growth opportunity combinations: Analyze the value characteristics of the TOP2–3 combinations, identifying their sustainable competitive advantages and growth potential;
+  3) Risk factor assessment: Major risks facing the optimal combinations (market saturation/heightened competition/rising costs, etc.) and corresponding mitigation strategies;
+  4) Investment allocation recommendations: Determine resource allocation priorities and investment intensity based on the value ranking.
+---
+## Requirement 4: Data-driven expansion strategy recommendations (maximum 2 points)
+### Criterion 4.1 [maximum 2 points]: Integrated strategic recommendations and action plan (decision support based on comprehensive analysis)
+#### Path 4.1.A [2 points]: Actionable strategic recommendations (preferred: action blueprint informed by data insights)
+- Sub-criterion 4.1.A.1 [2 points | conclusion]: Based on the comprehensive evidence from Requirements 1–3, develop a comprehensive strategic recommendation that must include the following 5 aspects; otherwise, no points:
+  1) Business portfolio positioning: Provide the priority and role positioning (penetration-driven/profit-driven/balanced/defensive) for 2–3 "region–segment" combinations;
+  2) Executable action plan: At least 1–2 specific actions for each target (pricing strategy/channel development/product mix/customer acquisition/investment pacing, etc.), with KPIs, expected direction (↑/↓), and monitoring cadence;
+  3) Strategic logic exposition: The overall logic of the expansion strategy, core assumptions, major risks, and key success factors;
+  4) Risk control mechanism: Explicitly define early-warning thresholds that trigger strategy adjustments and corresponding contingency plans;
+  5) Implementation timeline: A phased implementation plan with milestones.

@@ -1,0 +1,121 @@
+# [Total Score | 32 points] Scoring Rubric for `asana__project_analytics` "Health-Value Inversion" Analysis
+---
+## Requirement 1: Calculate three core metrics by health grade (A/B/C/D/F) (Max 8 points for this requirement)
+### Standard 1.1 (Max 2 points, weighting factor 2/6)
+#### Path 1.1.A (Completeness) (2 points | Predicted Total Duration Approach)
+##### Sub-standard 1.1.A.1 (1 point | Completeness) Filter by `is_valid_record=1`, `planned_duration_days>0`, and state the approach for predicted duration:  
+`predicted_total_days = CASE WHEN completion_percentage>=99 THEN elapsed_days ELSE elapsed_days + COALESCE(estimated_days_to_completion, remaining_days, 0) END`.
+##### Sub-standard 1.1.A.2 (1 point | Precision) Reproduce the statistical logic in pseudocode, including the >20% overdue check:
+```
+INPUT: Filtered sample from asana__project_analytics
+STEP1: Calculate predicted_total_days
+STEP2: overrun_flag_pred = 1{predicted_total_days > 1.2*planned_duration_days}
+STEP3: Aggregate by health_grade → AVG(roi_efficiency_ratio), AVG(completion_percentage), AVG(overrun_flag_pred)
+```
+##### Sub-standard 1.1.A.3 (0 points | Conclusion) Explain that the prediction approach covers ongoing projects, avoiding the underestimation of duration that would occur by only using `elapsed_days`.
+
+#### Path 1.1.B (Completeness) (2 points | Simplified Actual Duration Approach)
+##### Sub-standard 1.1.B.1 (1 point | Completeness) State the same filters `is_valid_record=1`, `planned_duration_days>0`, and directly compare `elapsed_days` with the planned duration.
+##### Sub-standard 1.1.B.2 (1 point | Precision) Provide the determination pseudocode: `overrun_flag_elapsed = 1{elapsed_days > 1.2*planned_duration_days}`, and ensure metric calculation is consistent with 1.2.A.
+##### Sub-standard 1.1.B.3 (0 points | Conclusion) Note that this approach is suitable for completed projects but will underestimate potential overruns for in-progress projects.
+
+### Standard 1.2 (Max 6 points, weighting factor 6/6)
+#### Path 1.2.A (Precision) (6 points | Output three metrics by health grade)
+##### Sub-standard 1.2.A.1 (1 point | Completeness) Output the average ROI, average completion rate, and the proportion of `overrun_flag_elapsed` >20% by `health_grade`.
+##### Sub-standard 1.2.A.2 (4 points | Precision) Results must fall within the following anchor points ± tolerance (ROI tolerance ±0.005, completion rate tolerance ±0.5pp, overdue proportion tolerance ±0.02):
+- A: ROI 0.927678, Completion Rate 96.002%, Overdue Proportion 0.333
+- B: ROI 0.756054, Completion Rate 72.440%, Overdue Proportion 0.261
+- C: ROI 0.391976, Completion Rate 50.052%, Overdue Proportion 0.456
+- D: ROI 0.184437, Completion Rate 40.519%, Overdue Proportion 0.583
+- F: ROI 0.062138, Completion Rate 28.841%, Overdue Proportion 0.960
+##### Sub-standard 1.2.A.3 (1 point | Conclusion) Conclude that there is a baseline trend where health grade is positively correlated with ROI and completion rate, and negatively correlated with the overdue rate.
+
+---
+## Requirement 2: Identify and quantify "inversion" samples (Max 10 points for this requirement)
+### Standard 2.1 (Max 4 points, weighting factor 4/6)
+#### Path 2.1.A (Precision) (4 points | Intra-grade Quantile Method)
+##### Sub-standard 2.1.A.1 (1 point | Completeness) Calculate ROI quantiles by health grade:  
+A: Q1=0.6627, Q3=0.9447; B: Q1=0.519325, Q3=0.869675; C: Q1=0.262275, Q3=0.46535; D: Q1=0.115000, Q3=0.215300; F: Q1=0.027925, Q3=0.089350.  
+Define `HHLV = (overall_health_score≥80) ∧ (ROI<Q1_grade)`; `LHHV = (overall_health_score<60) ∧ (ROI>Q3_grade)`.
+##### Sub-standard 2.1.A.2 (2 points | Precision) The sample size and proportion must meet the criteria (tolerance ±1 for count, ±1.5pp for proportion):  
+HHLV=11, representing 16.4% of high-health samples; LHHV=66, representing 22.8% of low-health samples.
+##### Sub-standard 2.1.A.3 (1 point | Conclusion) Point out that "the proportion of high-value projects is higher in the low-health group, and the inversion is not an isolated case," emphasizing the robustness of using intra-grade quantiles.
+
+#### Path 2.1.B (Completeness) (3 points | Global ROI Quantile Threshold Method)
+##### Sub-standard 2.1.B.1 (1 point | Completeness) List the global ROI quantiles: Q1=0.06115, Q2=0.13290, Q3=0.33020.
+##### Sub-standard 2.1.B.2 (1 point | Precision) State that using Q1/Q3 thresholds results in 0 inverted projects in both high-health and low-health sub-samples, and based on this, propose an alternative threshold (e.g., use Q1_grade for high-health and Q3_grade for low-health) or adjust to ROI≤0.52 and ≥0.21 to get the smallest non-zero samples (1 and 9 projects, respectively).
+##### Sub-standard 2.1.B.3 (1 point | Conclusion) Note that global thresholds ignore inter-grade distribution differences and lead to sparse samples, requiring a return to an intra-grade baseline.
+
+#### Path 2.1.C (Precision) (3 points | ROI~Health Linear Regression Residual Method)
+##### Sub-standard 2.1.C.1 (1 point | Completeness) Fit the model `ROI = 0.01827 × overall_health_score – 0.79568` (coefficient tolerance ±0.0015, intercept tolerance ±0.02), defining residuals as observed value minus fitted value.
+##### Sub-standard 2.1.C.2 (1 point | Precision) Select the bottom 30% of residuals from health grades A/B (28 out of 91 samples, 30.8% proportion), and the top 30% of residuals from D/F (103 out of 341 samples, 30.2% proportion).
+##### Sub-standard 2.1.C.3 (1 point | Conclusion) Explain that the residual method can capture deviations from expected values, providing a basis for advanced calibration.
+
+### Standard 2.2 (Max 3 points, weighting factor 3/6)
+#### Path 2.2.A (Precision) (3 points | Comparison within High-Health group: HHLV vs. Non-HHLV)
+##### Sub-standard 2.2.A.1 (1 point | Completeness) Compare ROI, `completion_rate_per_day`, `time_management_score`, `efficiency_score`, `complexity_factor`, `unique_assignees`, and `overrun_flag_elapsed`.
+##### Sub-standard 2.2.A.2 (1 point | Precision) Values must fall within anchor points ± tolerance (ROI, CRPD tolerance ±0.01; others ±0.1; overdue flag ±0.05):  
+HHLV: ROI 0.577, CRPD 1.09, Overdue 0.64, Complexity 1.79, Assignees 6.73, Time Management 72.5, Efficiency 88.3;  
+Non-HHLV: ROI 0.949, CRPD 1.94, Overdue 0.21, Complexity 1.49, Assignees 4.54, Time Management 78.4, Efficiency 86.5.
+##### Sub-standard 2.2.A.3 (1 point | Conclusion) Summarize that "high complexity + more handoffs + slow progress + severe overruns → diluted ROI".
+
+### Standard 2.3 (Max 3 points, weighting factor 3/6)
+#### Path 2.3.A (Precision) (3 points | Comparison within Low-Health group: LHHV vs. Non-LHHV)
+##### Sub-standard 2.3.A.1 (1 point | Completeness) Compare ROI, `completion_rate_per_day`, `time_management_score`, `efficiency_score`, `unique_assignees`, `overrun_flag_elapsed`, and `risk_percentage`.
+##### Sub-standard 2.3.A.2 (1 point | Precision) Metrics must fall within anchor points ± tolerance (ROI, CRPD tolerance ±0.01; efficiency, time management ±0.3; assignees ±0.1; overdue flag ±0.05; risk ±0.5):  
+LHHV: ROI 0.138, CRPD 0.235, Efficiency 70.8, Time Management 54.0, Assignees 4.47, Overdue 0.879, Risk 74.8;  
+Non-LHHV: ROI 0.061, CRPD 0.129, Efficiency 67.2, Time Management 53.7, Assignees 5.19, Overdue 0.888, Risk 76.8.
+##### Sub-standard 2.3.A.3 (1 point | Conclusion) Point out that "leaner team + faster progress + higher efficiency → relatively excellent ROI, but health is dragged down by risk/completion rate".
+
+---
+## Requirement 3: Quantify influencing factors and identify drivers (Max 8 points for this requirement)
+### Standard 3.1 (Max 4 points, weighting factor 4/6)
+#### Path 3.1.A (Precision) (3 points | Pearson Correlation)
+##### Sub-standard 3.1.A.1 (1 point | Completeness) List the correlation coefficients between ROI and `completion_rate_per_day`, `time_management_score`, `efficiency_score`, `completion_percentage`, `overrun_flag_elapsed`, `collaboration_score`, `complexity_factor`, and `overall_health_score`.
+##### Sub-standard 3.1.A.2 (1 point | Precision) Pearson coefficients must fall within anchor points ±0.02:  
+0.758, 0.591, 0.550, 0.586, -0.548, -0.080, -0.032, 0.765.
+##### Sub-standard 3.1.A.3 (1 point | Conclusion) Emphasize that progress velocity and time discipline are the main drivers of ROI, while complexity and collaboration have weak impacts.
+
+#### Path 3.1.B (Completeness) (1 point | Spearman/Partial Correlation)
+##### Sub-standard 3.1.B.1 (1 point | Completeness) Explain the use of Spearman's rank correlation and partial correlation controlling for `overrun_flag_elapsed`:  
+Spearman: `completion_rate_per_day` 0.910, `time_management` 0.686, `efficiency` 0.610, `completion_percentage` 0.720, `overrun` -0.558, `collaboration` -0.019, `complexity` 0.028, `overall_health` 0.920 (tolerance ±0.05);  
+Partial Correlation: `completion_rate_per_day` 0.699, `overall_health` 0.664, `completion_percentage` 0.619, `efficiency` 0.615, `time_management` 0.280, `collaboration` -0.120, `complexity` -0.136 (tolerance ±0.05).
+##### Sub-standard 3.1.B.3 (0 points | Conclusion) Note that this method can mitigate collinearity with the overrun flag and provides robust rankings.
+
+### Standard 3.2 (Max 4 points, weighting factor 4/6)
+#### Path 3.2.A (Precision) (3 points | Three-dimensional Combination Analysis)
+##### Sub-standard 3.2.A.1 (1 point | Completeness) Analyze `schedule_forecast × team_size_category × project_size_category`, keeping combinations with sample size ≥5, and provide the HHLV/LHHV proportions.
+##### Sub-standard 3.2.A.2 (1 point | Precision) Percentages must fall within anchor points ±10pp:  
+HHLV: behind × medium_team × medium → 62.5% (5/8); on_schedule × medium_team × large → 33.3% (2/6); on_schedule × medium_team × medium → 16.7% (2/12).  
+LHHV: behind × small_team × medium → 27.1% (19/70); behind × small_team × small → 26.7% (12/45); behind × medium_team × medium → 21.8% (17/78); ahead × large_team × large → 20.0% (1/5).
+##### Sub-standard 3.2.A.3 (1 point | Conclusion) Summarize the inversion patterns: HHLV is common in medium teams handling medium/large tasks that are behind schedule; LHHV is common in small/medium teams handling small/medium projects while maintaining a relatively fast pace.
+
+#### Path 3.2.B (Precision) (1 point | Two-factor Heatmap Method)
+##### Sub-standard 3.2.B.1 (0.5 points | Completeness) Provide a `management_priority × schedule_forecast` crosstab, calculating the HHLV proportion in the high-health sub-sample and the LHHV proportion in the low-health sub-sample respectively.
+##### Sub-standard 3.2.B.2 (0.5 points | Precision) Proportions in key cells must fall within tolerance ±8pp:  
+Low Priority × behind → HHLV 35.0% (7/20); Low Priority × on_schedule → HHLV 15.4% (4/26); High Priority × behind → LHHV 20.2% (49/242); High Priority × ahead → LHHV 42.1% (8/19).
+##### Sub-standard 3.2.B.3 (0 points | Conclusion) Note that this two-dimensional view can quickly pinpoint governance focus areas (low-priority lagging projects, high-priority projects that are ahead of schedule but lack value).
+
+---
+## Requirement 4: Diagnosis of the Inversion's Causal Mechanism (Max 3 points for this requirement)
+### Standard 4.1 (Max 3 points, weighting factor 3/6)
+#### Path 4.1.A (Conclusion) (3 points | Mechanism Explanation and Evidence Chain)
+##### Sub-standard 4.1.A.1 (1 point | Completeness) Synthesize findings from Requirements 2 and 3 to outline the key mechanisms for HHLV and LHHV.
+##### Sub-standard 4.1.A.2 (1 point | Precision) Arguments must be consistent with the data:  
+HHLV = High complexity(1.79) + many handoffs(6.7 assignees) + weak time management(72.5) + slow progress(CRPD 1.09) + 64% overdue → ROI 0.58 (far below 0.95 baseline);  
+LHHV = CRPD 0.235, efficiency 70.8, time management 54.0 → ROI 0.138 (higher than peer group's 0.061), but judged low-health due to 74.8% risk and low completion rate; point out that the health score is biased towards process metrics and neglects the time value of money.
+##### Sub-standard 4.1.A.3 (1 point | Conclusion) Emphasize that "Health ≠ Value" and the evaluation system needs to be redesigned to avoid resource misallocation.
+
+---
+## Requirement 5: Recommendations for Optimizing the Evaluation System (Max 3 points for this requirement)
+### Standard 5.1 (Max 3 points, weighting factor 3/6)
+#### Path 5.1.A (Precision) (2 points | Value-Health Score (VHS) + Alerting Governance)
+##### Sub-standard 5.1.A.1 (1 point | Completeness) Propose a VHS structure: `VHS = 0.4*Z(completion_rate_per_day) + 0.3*MinMax(time_management_score) + 0.2*ROI_rank (by intra-group quantile) + 0.1*(1 - overrun_flag_elapsed)`; set up alerts `HHLV Alert: overall_health_score≥80 ∧ ROI_rank≤P25 ∧ overrun_flag_elapsed=1`, `LHHV Opportunity: overall_health_score<60 ∧ completion_rate_per_day≥P75_in_group`.
+##### Sub-standard 5.1.A.2 (0.5 points | Precision) Justification for weights: Pearson correlation of ROI with `overall_health`=0.765, `CRPD`=0.758, `time_management`=0.591, `overrun`=-0.548; explain normalization methods (Z-score, 0-1 MinMax, quantile ranking).
+##### Sub-standard 5.1.A.3 (0.5 points | Conclusion) Explain that VHS can reduce the HHLV proportion from 16.4% to <10% (by timely identifying high-complexity lagging projects) and highlight high-value opportunities to improve the precision of resource allocation.
+
+#### Path 5.1.B (Precision) (1 point | Strengthening Governance Process)
+##### Sub-standard 5.1.B.1 (0.5 points | Completeness) Develop an action matrix:  
+HHLV: `overall_health_score≥80 ∧ overrun_flag_elapsed=1 ∧ ROI<Q1_grade` → Trigger scope freeze + dedicated re-planning (target to reduce overrun to <30% within 2 weeks);  
+LHHV: `overall_health_score<60 ∧ completion_rate_per_day≥P75` → Trigger resource focus & risk reassessment, set a target to increase completion rate by ≥10pp within 4 weeks.
+##### Sub-standard 5.1.B.2 (0.5 points | Precision) Explain the process closed-loop: Alert → Verification (review of time management/complexity) → Action (resource scheduling/rapid risk response) → VHS re-evaluation, supporting a closed-loop evaluation system.

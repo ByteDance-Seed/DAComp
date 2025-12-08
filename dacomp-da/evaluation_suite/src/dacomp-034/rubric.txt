@@ -1,0 +1,108 @@
+# [Total Score | 17 points]  The solution must satisfy three requirements:
+---
+## Requirement 1: Analyze the relationship between discount depth and sales for single-item direct price reduction promotions (This requirement can earn up to 7 points)
+### Prerequisite:
+If the assistant cannot provide valid single-item direct price reduction promotion data (including but not limited to: failing to identify direct markdown promotion data, missing key direct markdown data that prevents grouping/calculation, failing to extract GMV or discount rate and other core metrics), then this requirement scores 0 points overall, and none of the following standards will be graded.
+### Standard 1.1: Compute the average sales across discount depths for each Level 1 Category (up to 4 points, score according to Path 1.1.A; do not create new paths)
+#### Path 1.1.A [4 points | Comprehensive data processing and analysis]
+- Sub-criterion 1.1.A.1 [2 points | Completeness]: Group promotion data by Level 1 Category name and discount bins, and compute the average sales (GMV) for each group. If Level 1 Categories are incomplete, deduct 1 point. Discount bins must be: 0-10%, 10-20%, 20-30%, 30-40%, 40-60%, 60-90%. If discount bins are not used for segmentation, no points; does not affect path selection.
+- Sub-criterion 1.1.A.2 [1 point | Accuracy]: Sales amount calculation is correct; see verification baseline values in the table below (must not deviate by more than 0.5%).
+  **Verification baseline values:**
+  Average GMV by Level 1 Category across discount bins (unit: yuan per promotion record):
+  | Level 1 Category | 0-10% | 10-20% | 20-30% | 30-40% | 40-60% | 60-90% |
+  | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+  | Personal Care & Cleaning | NaN | 378.0 | 332.0 | 380.0 | 371.0 | 144.0 |
+  | Snack Food | 86.0 | 171.0 | 134.0 | 113.0 | 121.0 | 86.0 |
+  | Pet Supplies | NaN | NaN | NaN | 192.0 | NaN | NaN |
+  | Home & Daily Essentials | NaN | 376.0 | 259.0 | 167.0 | 39.0 | NaN |
+  | Adult Products | NaN | 34.0 | 256.0 | 216.0 | 574.0 | NaN |
+  | Daily Chemical Products | NaN | 502.0 | 873.0 | 979.0 | 1092.0 | 195.0 |
+  | Dairy/Chilled | NaN | 463.0 | 682.0 | 769.0 | 1063.0 | 142.0 |
+  | Mother & Baby | 869.0 | 349.0 | 285.0 | 270.0 | 110.0 | NaN |
+  | Seafood | NaN | 304.0 | 270.0 | 300.0 | 74.0 | NaN |
+  | Fruits/Vegetables | 286.0 | 292.0 | 318.0 | 431.0 | 465.0 | 135.0 |
+  | Bakery | 24.0 | 97.0 | 75.0 | 67.0 | 115.0 | NaN |
+  | Grain, Oil & Grocery | NaN | 512.0 | 443.0 | 1129.0 | 1068.0 | 144.0 |
+  | Gourmet Food | NaN | NaN | NaN | 125.0 | NaN | NaN |
+  | Meat | 873.0 | 701.0 | 497.0 | 392.0 | 237.0 | 218.0 |
+  | Nutrition & Health | NaN | 277.0 | NaN | NaN | NaN | NaN |
+  | Imported Goods | NaN | 226.0 | 266.0 | 218.0 | 276.0 | 35.0 |
+  | Alcoholic Beverages & Drinks | NaN | 886.0 | 900.0 | 245.0 | 334.0 | 85.0 |
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness]: Based on the average sales data, summarize the overall relationship between discount depth and sales, and explicitly state that deeper discounts usually correspond to higher average GMV, but there are differences across categories.
+### Standard 1.2: Analyze the non-linear relationship between discount depth and sales, and discount efficiency (up to 3 points, score according to Path 1.2.A; do not create new paths)
+#### Path 1.2.A [3 points | Comprehensive relationship analysis]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: You must compute the average discount efficiency (GMV/discount) for each discount bin and analyze its trend as discounts deepen.
+- Sub-criterion 1.2.A.2 [1 point | Accuracy]: Discount efficiency is computed correctly; see verification baseline values in the table below (must not deviate by more than 0.5%).
+  **Verification baseline values:**
+  Average GMV, average discount rate, and discount efficiency by discount bin:
+  | discount_bin | Average_GMV | Average_Discount_Rate | Discount_Efficiency_GMV_per_Discount_Point |
+  | :--- | :--- | :--- | :--- |
+  | 0-10% | 433.0 | 0.046 | 9413.0 |
+  | 10-20% | 371.0 | 0.150 | 2473.0 |
+  | 20-30% | 422.0 | 0.250 | 1688.0 |
+  | 30-40% | 560.0 | 0.349 | 1605.0 |
+  | 40-60% | 551.0 | 0.499 | 1104.0 |
+  | 60-90% | 114.0 | 0.749 | 152.0 |
+- Sub-criterion 1.2.A.3 [1 point | Conclusiveness]: The conclusion aligns with the data, pointing out that overall, deeper discounts usually yield higher average GMV, but discount efficiency clearly declines, and the overall correlation is close to 0, indicating the relationship is non-linear and strongly category-dependent.
+---
+## Requirement 2: Evaluate differences in promotion effectiveness across Level 1 Categories (This requirement can earn up to 6 points)
+### Prerequisite:
+If the assistant cannot provide valid single-item direct price reduction promotion data (including but not limited to: failing to identify direct markdown promotion data, missing key direct markdown data that prevents grouping/calculation, failing to extract GMV or discount rate and other core metrics), then this requirement scores 0 points overall, and none of the following standards will be graded.
+### Standard 2.1: Identify the discount sensitivity of each Level 1 Category (up to 3 points, score according to Path 2.1.A; do not create new paths)
+#### Path 2.1.A [3 points | Comprehensive sensitivity identification; each sub-criterion must be scored with an integer]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Classify Level 1 Categories into high-sensitivity and low-sensitivity categories based on the responsiveness of sales to discount depth. If the classification is not based on “sales responsiveness to discount depth,” no points.
+- Sub-criterion 2.1.A.2 [1 point | Accuracy]: Classification is accurate; verification baseline values are as follows:
+  *   High-sensitivity categories (sales increase significantly when discount >20%): Grain, Oil & Grocery; Dairy/Chilled; Fruits/Vegetables; Daily Chemical Products; Imported Goods; Adult Products.
+  *   Low-sensitivity categories (discount has a small or negative impact on sales): Meat; Alcoholic Beverages & Drinks; Personal Care & Cleaning; Snack Food; Mother & Baby; Seafood; Home & Daily Essentials; Bakery.
+(If categories are incomplete or if some Level 1 categories are missing within the corresponding groups, no points.)
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness]: Summarize differences in discount sensitivity across categories, e.g., “Grain, Oil & Grocery sees a sharp GMV lift in the 30–40% discount bin, while Meat shows a clear GMV decline under deep discounts.”
+### Standard 2.2: Determine the optimal discount range for each Level 1 Category (up to 3 points, score according to Path 2.2.A; do not create new paths)
+#### Path 2.2.A [3 points | Detailed optimal range determination]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Combine average GMV and discount efficiency to determine the optimal discount range for single-item direct price reduction promotions across major Level 1 Categories.
+- Sub-criterion 2.2.A.2 [1 point | Accuracy]: Optimal discount ranges are determined accurately; verification baseline values are as follows:
+  | Level 1 Category | Optimal Discount Range | Key Findings |
+  | :--- | :--- | :--- |
+  | Dairy/Chilled | 40-60% | Deep discounts yield significant returns; average GMV is highest |
+  | Daily Chemical Products | 40-60% | Continued lift with deeper discounts, but diminishing marginal returns |
+  | Grain, Oil & Grocery | 30-40% | Clear “sweet spot” with substantial GMV uplift |
+  | Fruits/Vegetables | 40-60% | Deeper discounts are effective, but gains gradually slow |
+  | Snack Food | 10-20% | Deep discounts do not bring higher GMV; instead, GMV declines |
+  | Personal Care & Cleaning | 10-20% / 30-40% | Platform effect; deep discounts show no significant additional gains |
+  | Meat | 10-20% | Shallow discounts are best; deep discounts are clearly excessive |
+  | Alcoholic Beverages & Drinks | 20-30% | Optimal; further deepening causes a major efficiency loss |
+  | Imported Goods | 40-60% | Medium/deep discounts provide incremental lift; can be used for acquisition |
+  | Mother & Baby | 10-20% | Shallow discounts are optimal; deep discounts clearly deteriorate outcomes |
+  | Seafood | 10-20% | Best; 40-60% performs very poorly |
+  | Adult Products | 40-60% | Deep discounts yield the highest GMV |
+  | Home & Daily Essentials | 10-20% | Shallow discounts perform better; GMV plunges under deep discounts |
+  | Bakery | 40-60% | Deep discounts yield the highest GMV, but overall GMV is lower |
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness]: Conclusions align with the data, such as “Grain, Oil & Grocery performs best at 30–40% discount, while Snack Food should be controlled at 10–20%.”
+---
+## Requirement 3: Propose recommendations to optimize promotion resource allocation and discount strategies (This requirement can earn up to 4 points)
+### Prerequisite:
+If the assistant cannot provide valid single-item direct price reduction promotion data (including but not limited to: failing to identify direct markdown promotion data, missing key direct markdown data that prevents grouping/calculation, failing to extract GMV or discount rate and other core metrics), then this requirement scores 0 points overall, and none of the following standards will be graded.
+### Standard 3.1: Develop differentiated discount strategies (up to 2 points, score according to Path 3.1.A; do not create new paths)
+#### Path 3.1.A [2 points | Comprehensive strategy development; each sub-criterion must be scored with an integer]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Based on each Level 1 Category’s discount sensitivity and optimal discount range, develop three strategy types—deep, medium, and shallow discounts—and specify applicable categories. If discount sensitivity and optimal ranges by Level 1 Category are not used, no points.
+- Sub-criterion 3.1.A.2 [1 point | Conclusiveness]: Strategies are reasonable and feasible, can effectively guide promotions, and are closely linked to category characteristics from earlier analyses, for example:
+  *   Strategy A (deep discounts 20-35% / 40-60%):
+      *   Applicable categories: Dairy/Chilled, Daily Chemical Products, Grain, Oil & Grocery, Fruits/Vegetables, Imported Goods, Adult Products.
+      *   Rationale: These categories are highly discount-sensitive; deep discounts can significantly boost sales, especially during major campaigns or for near-expiry/bestsellers, which can be pushed to 40–60%.
+  *   Strategy B (medium discounts 15-25% / 20-30%):
+      *   Applicable categories: Alcoholic Beverages & Drinks, Personal Care & Cleaning, Mother & Baby, Home & Daily Essentials.
+      *   Rationale: Maintain moderate discounts to achieve good promotional results; avoid over-discounting that leads to efficiency loss.
+  *   Strategy C (shallow discounts <15% / 0-10%):
+      *   Applicable categories: Snack Food, Meat, Seafood, Bakery.
+      *   Rationale: These categories have low discount sensitivity; over-discounting harms margins or causes GMV declines, so discount depth should be strictly controlled.
+### Standard 3.2: Optimize promotion resource allocation and management mechanisms (up to 2 points, score according to Path 3.2.A; do not create new paths)
+#### Path 3.2.A [2 points | Comprehensive resource optimization]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Provide specific resource-tilt recommendations by category and establish management mechanisms such as efficiency red-line management, activity portfolio alternatives, SKU-level implementation, and calibration experiments. If relevant management mechanisms are not established, no points.
+- Sub-criterion 3.2.A.2 [1 point | Conclusiveness]: Resource allocation and management strategies are reasonable, match product characteristics and sales trends, and detail implementation methods and expected outcomes, with strong linkage between outcomes and strategies, for example:
+  *   Resource tilt:
+      *   Increase allocation (suggested to account for 70%± of deep-discount budget): Dairy/Chilled, Daily Chemical Products, Grain, Oil & Grocery (primarily 30–40%), Fruits/Vegetables, Imported Goods, Adult Products.
+      *   Decrease allocation (use deep-discount budget only for spot tests): Snack Food, Meat, Mother & Baby, Seafood, Alcoholic Beverages & Drinks (upper limit suggested at 20–30%), Home & Daily Essentials, Bakery.
+  *   Efficiency red-line management: If, for a given category/bin, the efficiency decline vs the previous bin is >25% and the GMV increase is <15%, do not move into a deeper bin.
+  *   Activity portfolio and alternatives: For categories where “shallow discounts are optimal,” prioritize multi-buy discounts, threshold-based discounts/free gifts, member coupons, and cross-category linkages instead of deep markdowns.
+  *   SKU-level implementation: Prioritize deep-discount slots for top SKUs with high base prices, strong sell-through, and high elasticity; for long-tail SKUs, focus on medium/shallow discounts plus exposure/bundling.
+  *   Calibration & experiments: In “platform effect/flat interval” categories (e.g., Personal Care & Cleaning, Alcoholic Beverages & Drinks), conduct A/B testing to iteratively calibrate thresholds. For categories with fewer samples (e.g., Pet Supplies, Gourmet Food, Nutrition & Health), first pilot in bins with “promotion sessions ≥10”, then expand.
+  *   Expected outcomes: Optimization is expected to deliver overall ROI improvement of 15–20%, promotion resource utilization efficiency improvement of 25%, and sales growth of 10–15%.

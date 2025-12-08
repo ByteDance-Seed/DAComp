@@ -1,0 +1,182 @@
+==============================
+一、评分总览（dacomp-068 实测版）
+==============================
+# [总分 | 36分] Q4 $5,000,000 预算在8个应用间重分配（ROI≥25%）评分标准
+
+说明：评分遵循“需求 → 标准 → 路径 → 小标准”层级；除非题面限制，各路径互为替代且不可包含。每个小标准需同步考察“完备性[1分]｜精确性[4分]｜结论性[1分]”，精确性锚点全部来源于 /tasks/dacomp-068/dacomp-068.sqlite（已于 90 日窗口实查），容差范围见正文。
+
+———
+
+## 需求1：数据准备与两类市场识别（最高 18分）
+
+### 标准1.1：数据表结构与字段映射（最高 6分）
+
+#### 路径1.1.A｜SQLite 实查路径（推荐）
+- 小标准1.1.A.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 必须列出并说明 3 张核心表：
+  • `google_play__comprehensive_performance_dashboard`（日度应用明细，含 `date_day`, `package_name`, `daily_net_revenue`, `store_visitors`, `store_acquisitions`, `store_conversion_rate` 等，用于 90 天聚合）
+  • `google_play__geo_market_analysis`（国家市场视图，包含 `avg_daily_revenue`, `store_visitors_30d`, `store_installs_30d`, `store_conversion_rate`, `weekly_growth_rate` 等，用于 A/B 市场筛选与容量估算）
+  • `google_play__product_portfolio_analysis`（应用画像，含 `bcg_matrix_category`, `investment_priority`, `revenue_score`, `engagement_score` 等，用于分层与优先级）
+  [精确性4] 需给出 `PRAGMA table_info(<table>)` 或等价 SQL 核实字段存在；`store_conversion_rate` 在 geo 表中以百分比形式存储（例如 UK `com.app.musicplayer`=16.03），`avg_daily_revenue` 以美元计，被视作 daily_net_revenue 的市场级代理；必须说明 `avg_daily_revenue` ↔ `daily_net_revenue` 与 `store_visitors` / `store_installs` 的对应关系。
+  [结论性1] 明确宣告：后续 90 天窗口计算取自 dashboard 表，市场筛选与容量建模取自 geo 表，优先级与分层取自 portfolio 表，所有推导遵循上述字段口径。
+
+### 标准1.2：近90天时间窗口构建（最高 6分）
+
+#### 路径1.2.A｜日度严格截断法（首选）
+- 小标准1.2.A.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 说明以 `MAX(date_day)=2024-12-31` 回溯 89 天得到 `start_date=2024-10-03`，仅保留该闭区间数据；验证 8 个应用均在窗口内。
+  [精确性4] 提供可复现 SQL：
+  ```sql
+  WITH window AS (
+    SELECT *
+    FROM google_play__comprehensive_performance_dashboard
+    WHERE date_day BETWEEN '2024-10-03' AND '2024-12-31'
+  )
+  SELECT package_name,
+         ROUND(SUM(daily_net_revenue),2)  AS revenue_90d,
+         ROUND(SUM(store_visitors),0)     AS visitors_90d,
+         ROUND(SUM(store_acquisitions),0) AS installs_90d,
+         ROUND(SUM(store_acquisitions)*1.0/SUM(store_visitors)*100,2) AS cvr_pct
+  FROM window
+  GROUP BY package_name;
+  ```
+  核验锚点（误差≤±1%）：`com.app.musicplayer` 90 天收入 1,209.56、访客 342,606、安装 51,823、CVR=15.13%；`com.example.gameapp` 收入 1,498.48、访客 332,965、安装 23,569、CVR=7.08%。
+  [结论性1] 誓明上述 90 天指标用于 RPV/RPI、ROI、基线收入建模，确保全案时间口径一致。
+
+### 标准1.3：两类目标市场判定与验证（最高 6分）
+
+#### 路径1.3.A｜阈值筛选 + 应用覆盖表（推荐）
+- 小标准1.3.A.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 定义 A 类：`store_conversion_rate>15` 且 `avg_daily_revenue<5`；B 类：`avg_daily_revenue>7` 且 `store_conversion_rate<10`；需统计每应用命中市场个数。
+  [精确性4] SQL 示例：
+  ```sql
+  SELECT package_name,
+         SUM(CASE WHEN store_conversion_rate>15 AND avg_daily_revenue<5 THEN 1 ELSE 0 END) AS a_markets,
+         SUM(CASE WHEN avg_daily_revenue>7 AND store_conversion_rate<10 THEN 1 ELSE 0 END) AS b_markets
+  FROM google_play__geo_market_analysis
+  GROUP BY package_name;
+  ```
+  容差≤±1个市场，实测结果：A 类命中 `com.app.musicplayer`=2（FR/GB）、`com.sample.productivity`=2（DE/CA）、`com.test.fitness`=1（BR）、`com.trial.education`=1（IN）；B 类命中 `com.example.gameapp`=2（CN/US）、`com.studio.videostreaming`=1（JP）。
+  [结论性1] 用一句话概括：A 类为“高转化低收入”市场，适合精细化变现；B 类为“高手收入低转化”市场，适合素材/转化提效，是后续预算优先项。
+
+———
+
+## 需求2：ROI模型与单价上限（最高 12分）
+
+### 标准2.1：ROI≥25% 的度量方法（最高 6分）
+
+#### 路径2.1.B｜单元经济（LTV / CPI）法
+- 小标准2.1.B.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 推导：`RPI_90d = SUM(daily_net_revenue)/SUM(store_acquisitions)`；`CPI_max = RPI_90d / 1.25`；引入 20% 安全折扣得 `CPI_target = 0.8 × CPI_max`；同时给出 `CPV_target = 0.8 × (RPV_90d / 1.25)` 以匹配访客口径。
+  [精确性4] 必须列出关键锚点（误差≤±0.0005）：
+  • `com.example.gameapp`：RPI_90d=0.063578 ⇒ CPI_max=0.050862 ⇒ CPI_target=0.040690；RPV_90d=0.004500 ⇒ CPV_target=0.002880。
+  • `com.studio.videostreaming`：RPI_90d=0.021276 ⇒ CPI_target=0.013616；RPV_90d=0.003617 ⇒ CPV_target=0.002315。
+  • A 类基准：`com.app.musicplayer` CPI_target=0.014938、CPV_target=0.002260；`com.sample.productivity` CPI_target=0.050793、CPV_target=0.004101；`com.test.fitness` CPI_target=0.032415；`com.trial.education` CPI_target=0.017264。
+  [结论性1] 强调仅当预期出价 ≤ CPI/CPV_target 时，模型可保证 ROI≥25%；否则该市场不可入池。
+
+### 标准2.2：价格上限与可投容量（最高 6分）
+
+#### 路径2.2.A｜CPV/CPI 上限 × 访客/安装量（推荐）
+- 小标准2.2.A.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 说明 Q4 可投上限：`Q4_cap = MIN(CPV_target × store_visitors_30d × 3, CPI_target × store_installs_30d × 3)`，并需给出 A/B 市场拆解。
+  [精确性4] 关键市场锚点（误差≤±1%）：
+  • B 类：`com.example.gameapp` CN=14,257、US=8,468；`com.studio.videostreaming` JP=4,003。
+  • A 类：`com.app.musicplayer` GB=5,287、FR=4,881；`com.sample.productivity` DE=10,459、CA=7,629；`com.test.fitness` BR=14,484；`com.trial.education` IN=19,422。
+  同时汇总：A 类总 cap=62,162，B 类总 cap=26,729，合计 88,891（全部市场 cap=121,036）。
+  [结论性1] 点明“高转化低收入”市场承载量有限，而 B 类市场为主要吸纳点；额外指出 ROI 约束导致 5,000,000 预算中仅有 108,932（=10% buffer 后）可立即落地。
+
+———
+
+## 需求3：容量整合与预算算法（最高 12分）
+
+### 标准3.1：机会评分 / 加权机制设计（最高 6分）
+
+#### 路径3.1.B｜Base + Growth 模型
+- 小标准3.1.B.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 设定 20% 基础盘 + 80% 增长盘：
+  • 基础盘 = `deployable_budget × 20%`，等额分给 8 个应用。
+  • 增长盘按 `growth_weight_i = Σ(Q4_cap_m × (1 + weekly_growth_rate_m))`（若无 A/B 市场，则退化为 `0.9×total_cap_i × revenue_score_i/100 × priority_factor`，其中 High=1.1、Medium=1.0、Low=0.9）。
+  [精确性4] 需复算：
+  • 实测 `deployable_budget = Σ(0.9×total_cap_i)=108,932.26` ⇒ 基础盘=21,786.45 ⇒ 单应用基础预算=2,723.31。
+  • 增长盘=87,145.81；`growth_weight` 核心值：IN (`com.trial.education`)=26,220、CN (`com.example.gameapp`)=16,824、BR (`com.test.fitness`)=17,671、DE (`com.sample.productivity`)=10,982 等。
+  • 迭代分配后所有应用增长盘均触顶至 `0.9×total_cap_i`，残差=0。
+  [结论性1] 说明该算法实现“底盘覆盖 + 成长加码”，且自动遵守 ROI 上限；若需扩容，必须先提升 LTV 或放宽 ROI 目标。
+
+### 标准3.2：预算分配结果输出（最高 6分）
+
+#### 路径3.2.A｜应用 × 市场明细优先（经实际容量修订）
+- 小标准3.2.A.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 输出每应用预算与至少 2–3 个重点市场拆分，必须覆盖：
+    • B 类：`com.example.gameapp`（CN 12,832｜US 7,621）、`com.studio.videostreaming`（JP 3,603；US 7,189 作为基础市场补位）。
+    • A 类：`com.app.musicplayer`（GB 4,759｜FR 4,392）、`com.sample.productivity`（DE 9,413｜CA 6,866）、`com.test.fitness`（BR 13,036）、`com.trial.education`（IN 17,480）。
+    • 其他：`com.demo.socialmedia`（CN 8,457｜US 6,973）、`com.dev.photoeditor`（KR 6,312）。
+  [精确性4] 核对：
+  • 应用合计预算（美元）= `com.example.gameapp` 20,452.76；`com.trial.education` 17,480.06；`com.sample.productivity` 16,278.81；`com.demo.socialmedia` 15,430.06；`com.test.fitness` 13,036.04；`com.studio.videostreaming` 10,791.46；`com.app.musicplayer` 9,150.98；`com.dev.photoeditor` 6,312.09。
+  • Σ预算=108,932.26（允许误差±50），恰为 0.9×可投上限。
+  • 预期 ROI = 56.25%（=1.5625×花费），组合预期收入 170,206.66。
+  [结论性1] 指出：在 ROI≥25% 约束下，仅 2.18%（≈108,932）预算可即时落地，其余 4,891,067.74 需纳入“ROI 提升/预留”方案（见需求5）。
+
+———
+
+## 需求4：执行节奏、分群策略与风控（最高 12分）
+
+### 标准4.1：A/B 市场策略与试投节奏（最高 6分）
+
+#### 路径4.1.A｜“先 B 后 A” 分群策略
+- 小标准4.1.A.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 分层策略：
+  • B 类（CN/US for gameapp, JP for videostreaming）：重投转化优化、付费素材、出价 ≤ `{CPV_target, CPI_target}`，并同步做落地页测试；
+  • A 类（FR/GB、DE/CA、BR、IN）：聚焦 ARPU 提升（订阅、IAP、广告填充）+ 低成本渠道，利用高 CVR 放大留存。
+  [精确性4] 必须引用阈值（误差≤±0.0001）：
+  • JP (`com.studio.videostreaming`) `CPV_target=0.002315`、`CPI_target=0.013616`；
+  • CN (`com.example.gameapp`) `CPV_target=0.002880`、`CPI_target=0.040690`；
+  • FR (`com.app.musicplayer`) `CPV_target=0.002260`；DE (`com.sample.productivity`) `CPV_target=0.004101`；BR (`com.test.fitness`) `CPV_target=0.003330`；IN (`com.trial.education`) `CPV_target=0.003149`。
+  同时点出增长率差异：B 类周增 18%（CN）、8%（US）、6%（JP）显著高于 A 类典型 5%~9%。
+  [结论性1] 给出“先 B 后 A”的执行顺序理由：B 市场兼具高收入与较高增长，是吸纳预算的主力；A 市场在 ROI 同步、ARPU 提升完成后再补量。
+
+### 标准4.2：监控与风控机制（最高 6分）
+
+#### 路径4.2.A｜周度滚动 + 触发阈值
+- 小标准4.2.A.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 需要列出核心监控指标：7 日 ROI、CPI/CPV、留存、退款率、素材疲劳度；设置动作：ROI<25% 即停投/降档，ROI>1.6 时周增量≤10%。
+  [精确性4] 结合实测阈值：
+  • 每应用 CPI 不得超过表 2.1.B 的 `CPI_target`；
+  • 若留存或退款数据下降 3pp（可参考 dashboard 中 `day_7_retention_rate`、`refund_rate` 字段），需将 ROI 预测折减同等幅度。
+  提供伪代码：
+  ```pseudo
+  if ROI_7d < 0.25: pause_campaign()
+  elif ROI_7d between 0.25 and 0.4: hold_bid()
+  elif ROI_7d > 0.4 and spend/share < cap: increase_bid(max 10%)
+  ensure CPI <= CPI_target and CPV <= CPV_target at all times
+  ```
+  [结论性1] 说明上述闭环可实现“快速止损 + 逐步放量”，在 ROI 底线之上运行。
+
+———
+
+## 需求5：方案收束与敏感性说明（最高 12分）
+
+### 标准5.1：结果核验与对账（最高 6分）
+
+#### 路径5.1.A｜结构化输出与缺口说明
+- 小标准5.1.A.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 要求提供最终预算表（应用层 + 关键市场层），并列出组合 ROI/ROAS 及核心假设。
+  [精确性4] 必须校验：
+  • Σ预算=108,932.26（±50）；
+  • 所有市场出价 ≤ CPV/CPI_target，ROI 56.25%；
+  • 剩余预算缺口=4,891,067.74，需给出去向（如预留待 ROI 提升、或提交财务回收建议）。
+  [结论性1] 明确说明：缺口部分暂不执行，待 A/B 市场实现 ARPU/转化改善后再申请释放；若短期无法提升 ROI，应将差额回收。
+
+### 标准5.2：假设、敏感性与风险披露（最高 6分）
+
+#### 路径5.2.A｜假设透明化 + 灵敏度分析
+- 小标准5.2.A.1（完备性1｜精确性4｜结论性1）
+  [完备性1] 披露核心假设：
+  • 90 天口径 = 2024-10-03~2024-12-31；
+  • geo 表 30 天指标 ×3 近似 Q4；
+  • avg_daily_revenue 直接代理 market daily_net_revenue；
+  • 出价安全系数=0.8，以对冲季节性/退款波动。
+  [精确性4] 至少完成一组灵敏度（可直接引用）：
+  • 若 CPI/CPV 上限收紧 10% ⇒ deployable_budget=98,039，组合 ROI 仍为 56.25%；
+  • 若放宽 10% ⇒ deployable_budget=119,825，但 ROI 仍需 ≥25%，需证实新增预算的消费能力（引用周增长率与剩余 cap）。
+  同时列出潜在偏差来源：季节性高峰、渠道库存不足、留存下降、汇率波动等。
+  [结论性1] 给出应对策略：如 ROI 跌破 25% 优先降价/停投；若需释放缺口预算，必须先完成转化率提升或 ARPU 实验再提案；无法达标时将资金迁移或退回。

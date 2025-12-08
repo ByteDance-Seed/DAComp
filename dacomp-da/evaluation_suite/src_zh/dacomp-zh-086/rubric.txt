@@ -1,0 +1,85 @@
+# [总分 | 42分] 客户健康度模型 + 风险预警矩阵 + 收入预测 + 策略 最终评分标准
+---
+## 需求1：构建0–100的客户健康度评分（最高 12分）
+### 标准1.1：指标映射与归一化（最高 6分）
+#### 路径1.1.A [6分 | Min–Max 归一]
+- 小标准1.1.A.1 [1分 | 完备性]：明确四大维度与字段映射。活跃度 = days_since_last_activity + total_activities_30d；联系人质量 = contacts_with_email / total_contacts（分母为0按0处理，本库无0值但需声明）；商业价值 = annual_revenue + total_won_amount；规模潜力 = account_size_segment + number_of_employees。全程禁止引用customer_health_score。
+- 小标准1.1.A.2 [4分 | 精确性]：以10,000户全量口径执行 Min–Max 归一：
+  • recency_score = (117 − days_since_last_activity) / 117，核验极值 min=0, max=117（SQL 输出须精确匹配）；
+  • activity_score = total_activities_30d / 480（min=0, max=480）；
+  • contacts_with_email / total_contacts 结果落在[0,1]，缺失/0值记0；
+  • annual_rev_norm = (annual_revenue − 864088.95) / 14099905133.622；
+    total_won_norm = total_won_amount / 1075711885.359；
+  • employees_norm = (number_of_employees − 13) / 49792.0；
+  • size_segment_score = {Enterprise=1.0, Large=0.8, Mid-Market=0.6, Small Business=0.4}；
+  • scale_subscore 使用 0.7×size_segment_score + 0.3×sqrt(employees_norm)（负值先截0），结果要求∈[0,1]。提交物需附等价 SQL/代码片段证明上述公式与核验常数。
+- 小标准1.1.A.3 [1分 | 结论性]：输出归一字段取值范围或分布概览。须说明：活动相关均值 recency_score≈0.836、activity_score≈0.067，联系人比率均值≈0.919，商业维度均值（annual_rev_norm≈0.075，total_won_norm≈0.083）显著低于1，规模维度拉开 Enterprise 与 SMB 差距。结合业务解释这些指标为何代表活跃度、关系质量、商业价值与规模潜力。
+
+### 标准1.2：子分合成与健康区间（最高 6分）
+#### 路径1.2.A [6分 | 线性组合（40/30/20/10）]
+- 小标准1.2.A.1 [1分 | 完备性]：说明子分构成：activity_subscore = 0.5×recency_score + 0.5×activity_score；commercial_subscore = 0.5×annual_rev_norm + 0.5×total_won_norm；scale_subscore = 0.7×size_segment_score + 0.3×sqrt(employees_norm)。
+- 小标准1.2.A.2 [4分 | 精确性]：最终健康度=100×(0.4×activity_subscore + 0.3×contact_ratio + 0.2×commercial_subscore + 0.1×scale_subscore)。输出须在[0,100]，若出现越界需截断。核验汇总：min=36.72±0.01，max=85.16±0.01，均值=52.75±0.01，中位数=51.43±0.01。分段计数：80+档=176，50–79档=6433，<50档=3391，对应累加=10000。提交 SQL 需展示 LIMIT+OFFSET 取中位数的复算链路，并再次声明未引用原customer_health_score。
+- 小标准1.2.A.3 [1分 | 结论性]：解释分布特征：健康度呈轻微右偏，主峰落在50–65之间，低健康仍占33.9%。强调活跃维度贡献18.1分均值，却因活动频次方差最大（SD≈0.050）成为主要差异来源。
+
+## 需求2：行业×规模风险预警矩阵与共性分析（最高 12分）
+### 标准2.1：矩阵构建与一致性（最高 6分）
+#### 路径2.1.A [6分 | 行列聚合表]
+- 小标准2.1.A.1 [1分 | 完备性]：按 industry_normalized × account_size_segment 分组，输出每格 total_accounts、health_score<50 的数量及占比。需校验汇总行业总数（Technology=3300、Financial Services=2900、Healthcare=2600、Manufacturing=800、Retail=300、Education=100）与规模总数（Mid-Market=3700、Large=3000、Small Business=1700、Enterprise=1600）。
+- 小标准2.1.A.2 [4分 | 精确性]：19个组合须全部呈现，关键核验值（允许误差=0）：Manufacturing×Mid-Market=400/400(100%)；Manufacturing×Small Business=200/200(100%)；Healthcare×Small Business=600/500(83.33%)；Technology×Small Business=600/400(66.67%)；Retail×Mid-Market=200/100(50%)；Technology×Large=1300/391(30.08%)；Financial Services×Mid-Market=1400/500(35.71%)；Healthcare×Large=600/100(16.67%)。合计低健康=3391，与需求1结果一致。
+- 小标准2.1.A.3 [1分 | 结论性]：点明高风险细分至少3个：制造业中型与小型客户100%低健康；医疗小企业83.33%；科技小企业66.67%。结合行业特性解释其普遍痛点（如制造业活动低迷、医疗长尾资源薄弱、科技长尾缺运营触达）。
+
+#### 路径2.1.B [6分 | 风险热力等级]
+- 小标准2.1.B.1 [1分 | 完备性]：定义低健康占比→风险等级映射：≥70%为“High”，40–69.99%为“Elevated”，20–39.99%为“Watch”，<20%为“Stable”。
+- 小标准2.1.B.2 [4分 | 精确性]：在矩阵上同时保留数值与等级。核验样例：High=Manufacturing×Mid-Market/Small Business、Healthcare×Small Business；Elevated=Technology×Small Business(66.67%)、Retail×Mid-Market(50%)；Watch=Financial Services×Mid-Market(35.71%)、Technology×Large(30.08%)；Stable=Healthcare×Large(16.67%)、Technology×Mid-Market(12.50%) 等。需说明排序口径（先按风险级别，再按低健康户数）。
+- 小标准2.1.B.3 [1分 | 结论性]：给出干预优先级：High 等级优先（制造、医疗小企），同级再按低健康客户数排序，明确资源倾斜逻辑。
+
+### 标准2.2：高风险群体共性特征（最高 6分）
+#### 路径2.2.A [6分 | 均值对比]
+- 小标准2.2.A.1 [1分 | 完备性]：在health_score<50群体内统计均值，覆盖指标：days_since_last_activity、total_activities_30d、contacts_with_email/total_contacts、annual_revenue、total_won_amount、current_pipeline_amount、win_rate_percentage、number_of_employees。
+- 小标准2.2.A.2 [4分 | 精确性]：核验低健康均值（允许误差：数值±0.1，比例±0.005）：days=36.38、activities=4.90、contact_ratio=0.908、annual_revenue=205,999,018.63、total_won_amount=19,065,435.85、pipeline=17,027,598.54、win_rate=29.15%、employees=978.27。须对照总体均值（19.22、32.19、0.919、1,051,632,952.14、89,355,052.59、113,022,428.18、29.76%、5,954.24）写出差异方向。
+- 小标准2.2.A.3 [1分 | 结论性]：总结低健康群体共性：活动断档（days↑、30日活动↓）、商业体量小（annual_revenue↓、total_won_amount↓）、管道缩水（pipeline↓），同时指出联系人质量仍接近0.91并非主因。
+
+#### 路径2.2.B [6分 | 与非低健康对比]
+- 小标准2.2.B.1 [1分 | 完备性]：以health_score≥50 客户为对照组，输出同指标均值。
+- 小标准2.2.B.2 [4分 | 精确性]：核验对照均值（允许误差同上）：days=10.42、activities=46.19、contact_ratio=0.925、annual_revenue=1,485,517,755.98、total_won_amount=125,419,826.44、pipeline=162,276,243.78、win_rate=30.07%、employees=8,507.35。陈述差异：低健康活动频次远低于46.19、营收仅为高健康的13.9%，等。
+- 小标准2.2.B.3 [1分 | 结论性]：以定量差异指明运营优先级（先补动销、再抓商业扩张），并强调联系人维度需维持现状即可。
+
+#### 路径2.2.C [6分 | 重要性排序]
+- 小标准2.2.C.1 [1分 | 完备性]：基于贡献方差或等价指标对四个维度排序，需说明计算方法（如对0.4×activity_subscore等加权贡献求标准差）。
+- 小标准2.2.C.2 [4分 | 精确性]：核验贡献标准差（允许误差±0.001）：activity_contribution SD=0.050、commercial_contribution SD=0.032、scale_contribution SD=0.020、contact_contribution SD=0.015。若采用其他重要性指标，需给到与上述结果等价的数值依据。
+- 小标准2.2.C.3 [1分 | 结论性]：据排序解释“活跃度是首要驱动，其次商业价值，再次规模，联系人影响最弱”，并将结果与需求2.2.A/B的差异分析相互印证。
+
+## 需求3：6个月收入贡献预测与客户分层（最高 12分）
+### 标准3.1：预测公式定义（最高 6分）
+#### 路径3.1.A [6分 | 加权线性模型]
+- 小标准3.1.A.1 [1分 | 完备性]：定义 predicted_6m = (0.4×total_won_amount + 0.6×current_pipeline_amount) × (health_score/100)。说明0.4/0.6源于“重视未来管道”的业务假设，并保持α+β=1。
+- 小标准3.1.A.2 [4分 | 精确性]：基于需求1的health_score计算 predicted_6m，核验统计量（允许误差±0.1）：平均值=70,613,360.50，总额=706,133,604,986.05，最小值=42,662.13，最大值=1,060,998,942.57。提交 SQL 需同时展示 health_score、total_won_amount、current_pipeline_amount 与 predicted_6m 的列，证明单调性（任一字段增大，预测不下降）。
+- 小标准3.1.A.3 [1分 | 结论性]：结合数据说明健康度的放大效应：高健康（80+）平均预测≈708.56M，而低健康仅≈8.22M，验证健康度是收入放大器。
+
+### 标准3.2：贡献分层与验证（最高 6分）
+#### 路径3.2.A [6分 | 分位分层+集中度]
+- 小标准3.2.A.1 [1分 | 完备性]：使用 NTILE(4) 或等价方法按 predicted_6m 降序分为四档，输出档位客户数、平均预测、总预测、平均健康度。
+- 小标准3.2.A.2 [4分 | 精确性]：核验四档指标（允许误差±0.1）：
+  • 档1（Top 25%）：account_count=2500，avg_predicted=260,632,167.12，总额=651,580,417,812.08，avg_health=62.25；
+  • 档2：2500 / 16,113,828.00 / 40,284,570,000.04 / 51.13；
+  • 档3：2500 / 4,763,629.09 / 11,909,072,735.30 / 50.06；
+  • 档4：2500 / 943,817.78 / 2,359,544,438.63 / 47.56。
+  合计应回到706,133,604,986.05。
+- 小标准3.2.A.3 [1分 | 结论性]：指出 top 档占92.27%的预测收入，且其中仍有291户低健康（占top档11.64%），要求给出优先名单策略。
+
+#### 路径3.2.B [6分 | 阈值分层+健康联动]
+- 小标准3.2.B.1 [1分 | 完备性]：按健康区间与预测贡献交叉统计，至少列出三档：80+、50–79、<50。
+- 小标准3.2.B.2 [4分 | 精确性]：核验表格（允许误差±0.1）：80+档=176户/总预测124,706,959,632.05/平均708,562,270.64；50–79档=6433户/553,548,755,153.20/平均86,048,306.41；<50档=3391户/27,877,890,200.80/平均8,221,141.32。需说明“高贡献客户多集中在中高健康段”这一趋势。
+- 小标准3.2.B.3 [1分 | 结论性]：识别“低健康∩高贡献”重点群体（Technology×Large有391低健康户，贡献14.48B），提出监控与升级计划。
+
+## 需求4：差异化客户成功策略（最高 6分）
+### 标准4.1：策略矩阵与高价值挽回（最高 6分）
+#### 路径4.1.A [6分 | 健康 × 规模矩阵]
+- 小标准4.1.A.1 [1分 | 完备性]：构建3（健康段：80+、50–79、<50）×4（规模段：Enterprise/Large/Mid-Market/Small Business）矩阵，每格至少给出3条动作（维护/拓展/挽回）及量化KPI（如30日活动数、days_since_last_activity、pipeline金额、win_rate等）。
+- 小标准4.1.A.2 [4分 | 精确性]：策略须呼应数据锚点：
+  • 对 Manufacturing×Mid-Market（400户、预测收入5.77e8全部处于<50）要求“一线走访+联合营销”并设定30日活动≥20、pipeline翻倍等KPI；
+  • 对 Healthcare×Small Business（500低健康户、占83.33%）强调低成本触达与自动化培育，KPI 包含days_since_last_activity<14、周活联系人数≥3；
+  • 对 Technology×Large（391低健康户、贡献14.48B）必须给出高触达挽救方案（如解决方案试点、CXO级QBR）并量化 pipeline 保住率≥90%；
+  • 对高健康Enterprise段（176户全部80+）需设计扩张/增购策略，KPI 绑定 upsell 转化率、current_pipeline_amount；
+  • 每条策略需引用对应组合的客户量或预测金额，证明数据驱动。
+- 小标准4.1.A.3 [1分 | 结论性]：总结资源优先级：“先抓High风险（制造、医疗小企），再处理高贡献低健康（科技Large），最后以自动化维护长尾”。需说明成功验证方式（健康度提升、预测收入兑现）。

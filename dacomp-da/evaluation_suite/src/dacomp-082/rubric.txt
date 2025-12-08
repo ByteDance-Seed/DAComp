@@ -1,0 +1,180 @@
+# [Total Score | 42 Points] Comprehensive Channel ROI Evaluation Rubric
+
+---
+
+## Requirement 1: Data Alignment and Baseline Metric Verification (Up to 8 Points)
+
+### Standard 1.1: Explanation of Three-Table Structure and Channel Mapping
+
+#### Path 1.1.A [4 Points | Full Mapping]
+- Sub-standard 1.1.A.1 [1 Point | Completeness]: Explain the roles and metric definitions of the three tables, covering `qualtrics__channel_performance` (`distribution_channel`, `total_responses`, `completed_responses`, `completion_rate`, `avg_duration`, `rushed_responses`, `lengthy_responses`, `efficiency_score`, `market_share`, etc.), `qualtrics__survey` (full scope of `project_category`, `count_*_survey_responses`, `count_*_completed_survey_responses`), and `qualtrics__contact` (`total_count_completed_surveys`, `count_surveys_completed_email`, `count_surveys_completed_sms`, `avg_survey_progress_pct`, `avg_survey_duration_in_seconds`, etc.), and note the source of time-related fields.
+- Sub-standard 1.1.A.2 [2 Points | Accuracy]: Provide a precise mapping from Survey data to channels: `email`→`count_email_*`; `sms`→`count_sms_*`; `social`→`count_social_media_*`; `web`→`count_personal_link_* + count_qr_code_* + count_uncategorized_* + count_anonymous_*`. When `mobile` is missing from the survey data, it must be declared that `channel_performance` metrics or analogous averages will be used instead. The mapping must match the actual SQL, with example summation results (e.g., `SELECT SUM(count_email_completed_survey_responses) FROM qualtrics__survey = 38,893`, etc.).
+- Sub-standard 1.1.A.3 [1 Point | Conclusion]: Summarize the impact of the mapping on the analysis: disclose that the lack of survey-level metrics for `mobile` and the aggregation of anonymous sources for `web` create attribution ambiguity, and clearly state that subsequent ROI calculations/assumptions are based on this mapping.
+
+#### Path 1.1.B [4 Points | Simplified Mapping]
+- Sub-standard 1.1.B.1 [1 Point | Completeness]: Map only email/sms/social, define `web = personal_link + qr_code + uncategorized (+ anonymous)`, and explicitly state that `mobile` will not be included from the survey-side data.
+- Sub-standard 1.1.B.2 [2 Points | Accuracy]: List the anchor points for completed responses from the survey side (allowing an error margin of ±1%): email 38,893; sms 12,475; social 359; web 31,096; total 82,823. The verification of these metrics must include the recalculation SQL.
+- Sub-standard 1.1.B.3 [1 Point | Conclusion]: Explain that the simplified mapping leads to the absence of the `mobile` channel in category analysis and potential biases (e.g., a lower ROI may require compensatory reallocation).
+
+---
+
+### Standard 1.2: Key Anchor Point Verification
+
+#### Path 1.2.A [4 Points | Anchor Point Reconciliation]
+- Sub-standard 1.2.A.1 [1 Point | Completeness]: List the set of metrics to be verified: channel performance (`completed_responses`, `completion_rate`, `efficiency_score`, `market_share`), category × channel metrics (`responses`, `completed`), and user dimension metrics (total email/sms completions).
+- Sub-standard 1.2.A.2 [2 Points | Accuracy]: Output and reconcile anchor points (error margin ±1%): from `qualtrics__channel_performance`, email 610/0.5054475/72.987883/0.35; sms 552/0.5225523/60.107840/0.25; web 280/0.4129313/63.684886/0.22; mobile 171/0.3155054/46.581131/0.18; social 40/0.4366381/41.938413/0.08. From `qualtrics__survey`, `project_category` counts: evaluation 1,734; feedback 3,633; research 2,873; and completed responses (total 82,823, with email 38,893; sms 12,475; web 31,096; social 359).
+- Sub-standard 1.2.A.3 [1 Point | Conclusion]: State that these anchor points serve as the baseline for ROI/budget constraints. If discrepancies exist, the fields or aggregation logic must be revisited. Clarify that all subsequent calculations will be based on these verified metrics.
+
+---
+
+## Requirement 2: Project Category × Channel Performance Analysis (Up to 8 Points)
+
+### Standard 2.1: Completion Structure and Completion Rate within Categories
+
+#### Path 2.1.A [4 Points | Direct Aggregation]
+- Sub-standard 2.1.A.1 [1 Point | Completeness]: Aggregate `responses` and `completed` counts by `project_category × channel` and calculate the completion rate.
+- Sub-standard 2.1.A.2 [2 Points | Accuracy]: Check anchor points (tolerance ±0.5%): `evaluation` via email 4,913/2,840→57.81%, sms 13,192/6,949→52.68%, social 1,788/298→16.67%, web 15,814/6,485→41.01%; `feedback` via email 19,565/11,870→60.67%, sms 3,829/1,627→42.49%, social 420/5→1.19%, web 41,054/15,559→37.90%; `research` via email 37,849/24,183→63.89%, sms 7,949/3,899→49.05%, social 1,322/56→4.24%, web 23,965/9,052→37.77%. Must provide SQL/code for reproducibility.
+- Sub-standard 2.1.A.3 [1 Point | Conclusion]: Extract category-specific insights (e.g., `research` is dominated by email, `evaluation` relies on sms/web, `feedback` depends on web) and describe their implications for the budget.
+
+#### Path 2.1.B [4 Points | Share Normalization]
+- Sub-standard 2.1.B.1 [1 Point | Completeness]: Calculate `share_channel|category = completed_channel / Σcompleted_category` and ensure it normalizes to 1.
+- Sub-standard 2.1.B.2 [2 Points | Accuracy]: Validate shares (tolerance ±0.5pp): evaluation sms≈41.93%, web≈39.13%, email≈17.14%, social≈1.80%; feedback web≈53.54%, email≈40.85%, sms≈5.60%, social≈0.02%; research email≈65.03%, web≈24.34%, sms≈10.48%, social≈0.15%.
+- Sub-standard 2.1.B.3 [1 Point | Conclusion]: Explain how the combination of category focus and channel share impacts ROI weighting/budget (e.g., increasing `evaluation` work implies increasing the budget for immediate-reach channels).
+
+---
+
+### Standard 2.2: Measurement of Category Fit
+
+#### Path 2.2.A [4 Points | Bayesian Inverse Calculation]
+- Sub-standard 2.2.A.1 [1 Point | Completeness]: Use `P(channel|category)` and `P(category)` to derive `P(category|channel)` and state the formula.
+- Sub-standard 2.2.A.2 [2 Points | Accuracy]: Output anchor points (tolerance ±0.5pp): email→research 0.6218, feedback 0.3052, evaluation 0.0730; sms→evaluation 0.5570, research 0.3125, feedback 0.1304; social→evaluation 0.8301, research 0.1560, feedback 0.0139; web→feedback 0.5004, research 0.2911, evaluation 0.2085.
+- Sub-standard 2.2.A.3 [1 Point | Conclusion]: Explain the role of category fit in ROI (e.g., email is for high-value research; sms is suitable for immediate tasks; web supplements feedback collection; social is only for experimentation).
+
+#### Path 2.2.B [4 Points | Combining with Value Weights]
+- Sub-standard 2.2.B.1 [1 Point | Completeness]: Define category value weights: `category_value = 0.7×completion_rate_norm + 0.3×median_duration_norm`, where the completion rate is at the category level `Σcompleted/Σresponses`, and duration uses the completion-weighted `median_response_duration`.
+- Sub-standard 2.2.B.2 [2 Points | Accuracy]: Provide the calculation process and verify the results: evaluation value=0.15000, feedback=0.16876, research=1.00000; channel weighted scores (ΣP(category|channel)×category_value): email≈0.68424, sms≈0.41811, web≈0.40682, social≈0.28285 (tolerance ±0.001).
+- Sub-standard 2.2.B.3 [1 Point | Conclusion]: Discuss how adjusting weights affects the ranking (e.g., increasing the weight for `evaluation`→sms score increases; increasing the weight for `research`→email's lead grows), and identify applicable scenarios.
+
+---
+
+## Requirement 3: User Value and Cohort Analysis (Up to 8 Points)
+
+### Standard 3.1: LTV Proxy and Channel Value Baseline
+
+#### Path 3.1.A [4 Points | Completion Count as Proxy]
+- Sub-standard 3.1.A.1 [1 Point | Completeness]: Declare the use of `total_count_completed_surveys` as the LTV proxy, `count_surveys_completed_email/sms` as channel contributions, and the logic for determining `primary_channel` (email>sms→email; sms>email→sms; equal and total completions>0→tie; otherwise none).
+- Sub-standard 3.1.A.2 [2 Points | Accuracy]: Check the results (error ±1%): contacts=4,000; total_completed=14,076; email_completed=8,138; sms_completed=5,938; primary_channel LTV: email 9,021(64.09%), sms 3,109(22.09%), tie 1,946(13.83%), none 0.
+- Sub-standard 3.1.A.3 [1 Point | Conclusion]: Summarize email's leading role in high-value contributions and its implications for ROI weighting/budget.
+
+#### Path 3.1.B [4 Points | Composite Value Score]
+- Sub-standard 3.1.B.1 [1 Point | Completeness]: Construct a composite metric `score = 0.6×Z(total_completed) + 0.2×Z(avg_progress_pct) + 0.2×Z(avg_duration_seconds)`, replace missing values with the sample mean, and state the use of a global Z-score calculation.
+- Sub-standard 3.1.B.2 [2 Points | Accuracy]: Provide the average score for each `primary_channel` (tolerance ±0.02): email≈0.788, sms≈0.546, tie≈0.361, none≈-0.687, and explain the verification method (Python/SQL calculation output).
+- Sub-standard 3.1.B.3 [1 Point | Conclusion]: Compare the differences between the composite metric and the completion count proxy (e.g., the `tie` group retains value due to longer duration) and discuss the pros and cons for the ROI model.
+
+---
+
+### Standard 3.2: Cohort Value Analysis
+
+#### Path 3.2.A [4 Points | Binning by Completion Count]
+- Sub-standard 3.2.A.1 [1 Point | Completeness]: Bin `total_count_completed_surveys` into low(0–1)/mid(2–5)/upper(6–9)/high(≥10), and for each bin, calculate the share of email/sms completions and the average number of completions.
+- Sub-standard 3.2.A.2 [2 Points | Accuracy]: Check the shares (tolerance ±0.5pp): email share low≈0.6324, mid≈0.5634, upper≈0.5671, high≈0.5847; corresponding avg_completed: 0.123, 3.339, 7.054, 15.858 (tolerance ±0.05). Must provide SQL aggregation results.
+- Sub-standard 3.2.A.3 [1 Point | Conclusion]: Point out that high-value cohorts have a stronger preference for email and explain how operations/budget can leverage this (e.g., prioritize email for high-engagement contacts).
+
+#### Path 3.2.B [4 Points | Time-based Cohort]
+- Sub-standard 3.2.B.1 [1 Point | Completeness]: Aggregate by month using `first_survey_response_recorded_at`, and output the number of contacts, avg_completed, email_completed, sms_completed, and email_share.
+- Sub-standard 3.2.B.2 [2 Points | Accuracy]: Present results for the twelve months from 2024-10 to 2025-09 (tolerance ±0.005): contacts 194→339→…→131; avg_completed 3.273–3.944; email_share stable in the 0.5532–0.5954 range. Must provide a table or equivalent output.
+- Sub-standard 3.2.B.3 [1 Point | Conclusion]: Emphasize the impact of seasonality/trends (stable email share, highest avg completions in 2025-08) on channel strategy and recommend continuous monitoring.
+
+---
+
+## Requirement 4: ROI Model Construction and Ranking (Up to 8 Points)
+
+### Standard 4.1: ROI Metric Design and Implementation
+
+#### Path 4.1.A [4 Points | Multiplicative Model]
+- Sub-standard 4.1.A.1 [1 Point | Completeness]: Provide the formula `ROI_mult = Π(0.05 + 0.95×norm_metric)`, where `norm_metric` includes `completion_rate/max`, `efficiency_score/max`, `category_fit/max`, `user_value_norm`, and explain the smoothing treatment for gaps in mobile/social data.
+- Sub-standard 4.1.A.2 [2 Points | Accuracy]: Recalculate and provide the values (tolerance ±0.001): email≈0.9215, web≈0.1644, sms≈0.1442, social≈0.0007, mobile≈0.00035. Must include a calculation script or a table explaining each normalization step.
+- Sub-standard 4.1.A.3 [1 Point | Conclusion]: Explain that the multiplicative model is sensitive to weaknesses (e.g., `mobile` is heavily penalized due to its extremely low `completion_norm`) and highlight that email achieves the highest ROI due to its leading performance across all four dimensions.
+
+#### Path 4.1.B [4 Points | Linear Weighting]
+- Sub-standard 4.1.B.1 [1 Point | Completeness]: Define `ROI_lin = 0.28·(completion_rate/max) + 0.22·(efficiency/max) + 0.18·(category_fit/max) + 0.14·user_value_norm + 0.10·(completed/max) + 0.08·quality_norm`, where `quality = 1 - (rushed+lengthy)/total_responses`.
+- Sub-standard 4.1.B.2 [2 Points | Accuracy]: Output the results (tolerance ±0.001): email≈0.9108, sms≈0.7523, web≈0.7496, mobile≈0.5287, social≈0.4741, and explain the quality normalization method.
+- Sub-standard 4.1.B.3 [1 Point | Conclusion]: Discuss how changes in weights affect the ranking (e.g., increasing the quality weight→`mobile` becomes more favorable) and evaluate the model's stability.
+
+#### Path 4.1.C [4 Points | Regression/Learning Model]
+- Sub-standard 4.1.C.1 [1 Point | Completeness]: Set the dependent variable as `completed_responses` and independent variables including `completion_rate`, `efficiency_score`, `category_fit`, `user_value_norm`. Specify the use of `LinearRegression` or an equivalent model and the regularization strategy.
+- Sub-standard 4.1.C.2 [2 Points | Accuracy]: Provide the fitting metrics and coefficients (tolerance ±1%): `coef = [863.94, 34.85, 440.65, -752.73]`, `intercept = -1918.78`, `R²=1.0`. Must mention the risk of overfitting and plans for cross-validation/feature scaling.
+- Sub-standard 4.1.C.3 [1 Point | Conclusion]: Explain that the model can be used for marginal analysis or sensitivity calculations, and describe the limitations due to the small dataset and potential mitigation strategies.
+
+---
+
+### Standard 4.2: Ranking and Stability Test
+
+#### Path 4.2.A [4 Points | Multi-Model Comparison]
+- Sub-standard 4.2.A.1 [1 Point | Completeness]: Compare the ROI rankings from the multiplicative, linear (and optionally, regression) models.
+- Sub-standard 4.2.A.2 [2 Points | Accuracy]: Point out the differences in rankings (e.g., the multiplicative model yields email>web>sms>social>mobile, while the linear model yields email>sms>web>mobile>social), explain the reasons for parameter/weight differences, and show how to adjust parameters to reproduce them (e.g., smoothing, quality weight).
+- Sub-standard 4.2.A.3 [1 Point | Conclusion]: Provide a final recommended ranking (e.g., email > sms > web > mobile > social, derived by combining LTV/Reach) and its business justification (e.g., email covers high-value users, sms maintains immediate reach, web provides feedback depth, mobile maintains baseline coverage, social is for experimentation).
+
+---
+
+## Requirement 5: Budget Reallocation and Return Forecasting (Up to 8 Points)
+
+### Standard 5.1: Global Budget Share Recommendation
+
+#### Path 5.1.A [4 Points | Proportional to ROI]
+- Sub-standard 5.1.A.1 [1 Point | Completeness]: State that the budget share is proportional to the adjusted ROI index, and set minimum allocations (mobile≥4%, social≥3%).
+- Sub-standard 5.1.A.2 [2 Points | Accuracy]: Output the recommended shares (tolerance ±0.5pp) and compare them to the current `market_share` (35/25/22/18/8):
+  - Aggressive (Multiplicative model + quota): email≈65.17%, sms≈13.03%, web≈14.38%, mobile≈4.00%, social≈3.43%.
+  - Linear Compromise (market-share × ROI increment): email≈39.61%, sms≈23.37%, web≈20.49%, mobile≈11.82%, social≈4.71%.
+- Sub-standard 5.1.A.3 [1 Point | Conclusion]: Explain the logic for increasing/decreasing allocations (strengthen email for high value, control sms but retain immediate reach, stabilize web for feedback, maintain mobile/social with baseline/experimental funds) and describe the expected impact.
+
+#### Path 5.1.B [4 Points | Constrained Optimization]
+- Sub-standard 5.1.B.1 [1 Point | Completeness]: Set constraints (total budget remains constant, mobile≥4%, social≥3%, sms≥10% for coverage). Define the objective function (maximize `ROI_mult` or `ROI_lin`).
+- Sub-standard 5.1.B.2 [2 Points | Accuracy]: Describe the solving method (e.g., iterative scaling + normalization) and show the shares that satisfy the constraints (consistent with the aggressive values in 5.1.A.2).
+- Sub-standard 5.1.B.3 [1 Point | Conclusion]: Explain how constraints alter the channel allocation (e.g., `mobile` is raised to its 4% floor) and identify applicable scenarios (e.g., compliance/coverage requirements).
+
+---
+
+### Standard 5.2: Return Forecasting
+
+#### Path 5.2.A [4 Points | Completion Volume/Quality Forecast]
+- Sub-standard 5.2.A.1 [1 Point | Completeness]: Explain the forecast formula `new_completed = base_completed × (new_share/old_share)^ε` (where ε=0.8), ensuring metric definitions are consistent with `channel_performance`.
+- Sub-standard 5.2.A.2 [2 Points | Accuracy]: Provide the forecast for the aggressive scenario (tolerance ±2%): baseline completed responses 1,653 → 1,601.6 (-3.11%); email 610→approx. 1,003; sms 552→approx. 328; web 280→approx. 199; mobile 171→approx. 51; social 40→approx. 20. Quality-weighted completions (Σnew_completed×efficiency) 105,176.8→108,834.3 (+3.48%).
+- Sub-standard 5.2.A.3 [1 Point | Conclusion]: Explain the source of the return improvement (increased allocation to email brings high-efficiency completions, while reduced allocation to sms/web leads to a dip in total volume) and identify key metrics to monitor (completion volume decline vs. quality gains).
+
+#### Path 5.2.B [4 Points | Value-Weighted Forecast]
+- Sub-standard 5.2.B.1 [1 Point | Completeness]: Define `value = completed × efficiency_score × user_value_norm` as the value proxy.
+- Sub-standard 5.2.B.2 [2 Points | Accuracy]: Value curve for the aggressive scenario: baseline 69,183.72 → new plan 89,390.01 (+29.21%); linear compromise plan 69,183.72 → 72,469.40 (+4.75%).
+- Sub-standard 5.2.B.3 [1 Point | Conclusion]: Compare the differences between a value-oriented and a volume-oriented approach (value increases significantly while volume drops) and recommend prioritizing the value model in scenarios where high quality is the primary demand.
+
+---
+
+## Requirement 6: Execution Recommendations, Risks, and Monitoring (Up to 10 Points)
+
+### Standard 6.1: Structured Report and Insights
+
+#### Path 6.1.A [5 Points | Comprehensive Report]
+- Sub-standard 6.1.A.1 [1 Point | Completeness]: The report must cover metric definitions/limitations, channel profiles, category differences, user value/cohorts, the ROI model, the budget plan, return forecasts, execution recommendations, and risks/monitoring.
+- Sub-standard 6.1.A.2 [2 Points | Accuracy]: Key conclusions must be consistent with anchor points (tolerance ≤ previous standards), model formulas must be clear and reproducible, and any open assumptions must be stated.
+- Sub-standard 6.1.A.3 [2 Points | Conclusion]: Provide an execution roadmap (phased migration, A/B testing thresholds, monitoring cadence) and link it to business decisions (e.g., pilot an increased email allocation for 4 weeks + compare value metrics weekly).
+
+#### Path 6.1.B [5 Points | Concise Action Plan]
+- Sub-standard 6.1.B.1 [1 Point | Completeness]: Must include at least channel positioning, category strategy, user value strategy, and budget adjustment direction.
+- Sub-standard 6.1.B.2 [2 Points | Accuracy]: Each recommendation must be supported by data (e.g., email share in `research` is 65.03%, sms share in `evaluation` is 41.93%, high cohort email share is 58.47%).
+- Sub-standard 6.1.B.3 [2 Points | Conclusion]: Provide priorities and expected outcomes, and clearly define the monitoring KPIs (completion volume, efficiency, value index).
+
+---
+
+### Standard 6.2: Risks, Sensitivity, and Iteration Plan
+
+#### Path 6.2.A [5 Points | Risk + Sensitivity]
+- Sub-standard 6.2.A.1 [1 Point | Completeness]: List at least three risks/assumptions (e.g., lack of survey mapping for `mobile`, `contact` data does not cover web/social, subjective weight settings).
+- Sub-standard 6.2.A.2 [2 Points | Accuracy]: Propose mitigation measures for each risk (supplement attribution, phased pilots, weight sensitivity comparison) and show an example of how ROI would be affected.
+- Sub-standard 6.2.A.3 [2 Points | Conclusion]: Explain the impact of the risks on the conclusions and outline an iteration plan (data enrichment, quarterly recalibration, monitoring thresholds).
+
+#### Path 6.2.B [5 Points | Monitoring Loop]
+- Sub-standard 6.2.B.1 [1 Point | Completeness]: Define a set of monitoring metrics (completion rate, `efficiency_score`, category_mix, cohort value, ROI index, etc.) and a review frequency.
+- Sub-standard 6.2.B.2 [2 Points | Accuracy]: Explain the monitoring method and thresholds (e.g., if `ROI_mult` falls outside the 95% confidence interval, adjustments are needed; if marginal ROI < 0 → claw back budget), ensuring consistency with the model's logic.
+- Sub-standard 6.2.B.3 [2 Points | Conclusion]: Describe how the monitor→validate→adjust loop supports continuous optimization and specify responsible parties/tools (BI dashboard, monthly meetings).
+
+---

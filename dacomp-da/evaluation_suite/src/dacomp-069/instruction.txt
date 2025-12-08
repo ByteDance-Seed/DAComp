@@ -1,0 +1,3 @@
+### Capital Efficiency Issue for a High-Priority Investment Application
+
+The CFO is concerned about the `com.dev.photoeditor` app. Over the past 12 months, a `$2M` `research_budget_usd` was invested, but the `overall_performance_score` has dropped from 85 to 72. Please analyze the performance divergence of this app across different geographical `regions`, focusing specifically on the differences between top markets where a key revenue metric is over $7 and markets where it is under $3.

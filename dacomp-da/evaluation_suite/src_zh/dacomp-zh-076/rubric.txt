@@ -1,0 +1,168 @@
+# [总分 | 39分] 客户盈利段与留存匹配复核评分标准
+---
+## 需求1：构建分析样本并识别“分类异常”客户（本需求最高可得 9分）
+### 标准1.1：数据表与字段口径确认（最高可得 3分）
+#### 路径1.1.A【全量记录视角（149 行）】
+- 小标准1.1.A.1【1分 | 完备性】明确使用 `netsuite2_customer_analytics` 表，并点名字段：`profitability_segment`、`retention_probability`、`transaction_count`、`avg_transactions_per_month`、`transaction_value_volatility`、`q1_transactions~q4_transactions`、`total_revenue`、`comprehensive_customer_score`、`lifecycle_stage`、`seasonal_preference`、`transaction_consistency`、`segmentation_date`、`customer_analytics_id`；缺任一字段不得分。
+- 小标准1.1.A.2【1分 | 精确性】核对全表行数=149、去重 `customer_id`=107，各盈利段样本量：Premium52、Growing29、High Value27、Standard23、Basic18（允许 ±1）。须给出 SQL/代码或运行截图为证。
+- 小标准1.1.A.3【1分 | 结论性】说明上述字段覆盖留存、交易、季节与价值四大维度，可支撑异常识别与后续建模；需明确无需额外清洗即可复现指标。
+
+#### 路径1.1.B【最新记录视角（107 客户）】
+- 小标准1.1.B.1【1分 | 完备性】描述按 `customer_id` + 最近 `segmentation_date` 取样，若同日多记录先取最大 `subsidiary_id`；对五个并列客户（NET01146543590 等）须指明保留行的 `(segment, retention_probability, transaction_count)` 组合以保证复现。
+- 小标准1.1.B.2【1分 | 精确性】校验最新样本量=107，盈利段分布：Premium33、Growing22、High Value19、Standard15、Basic18（±1 容差）。
+- 小标准1.1.B.3【1分 | 结论性】阐明使用最近记录可反映当前细分状态，并保证后续异常、建模口径与经营视角一致。
+
+### 标准1.2：段均留存率计算与“分类异常”标记（最高可得 3分）
+#### 路径1.2.A【全量记录（deterministic）】
+- 小标准1.2.A.1【1分 | 完备性】给出异常判定公式：`ABS(retention_probability − 段均值) > 0.15`，段均值按 `profitability_segment` 分组计算。
+- 小标准1.2.A.2【1分 | 精确性】复现段均留存率（±0.001）：Basic0.4739、Growing0.4397、High Value0.5556、Premium0.6587、Standard0.5230；异常总数=47，段内异常：High Value20、Standard15、Basic12、Premium=0、Growing=0（±1 容差）。
+- 小标准1.2.A.3【1分 | 结论性】指出异常集中于 High Value/Standard/Basic，Premium 与 Growing 为“零异常”段，提示需在中低段强化监控。
+
+#### 路径1.2.B【最新记录口径】
+- 小标准1.2.B.1【1分 | 完备性】说明基于 1.1.B 样本，同样使用段均留存率判别异常。
+- 小标准1.2.B.2【1分 | 精确性】给出段均值（±0.001）：Basic0.4739、Growing0.4409、High Value0.6221、Premium0.6615、Standard0.5567；异常总数=28，段内异常：Basic12、High Value9、Standard7、Premium=0、Growing=0。
+- 小标准1.2.B.3【1分 | 结论性】说明最新视角异常率下降但集中段不变，更贴近当前运营风险面。
+
+### 标准1.3：异常分布与偏差方向（最高可得 3分）
+#### 路径1.3.A【全量记录】
+- 小标准1.3.A.1【1分 | 完备性】输出各盈利段异常率与段内占比：Basic≈66.7%(占25.5%)、High Value≈74.1%(占42.6%)、Standard≈65.2%(占31.9%)。
+- 小标准1.3.A.2【1分 | 精确性】报告偏差方向：Basic 正6 / 负6，High Value 正11 / 负9，Standard 正6 / 负9。
+- 小标准1.3.A.3【1分 | 结论性】指出 High Value 与 Standard 同时存在正负偏差，留存驱动因素需做差异化拆解。
+
+#### 路径1.3.B【最新记录】
+- 小标准1.3.B.1【1分 | 完备性】给出最新样本各段异常率与占比：Basic≈66.7%(占42.9%)、High Value≈47.4%(占32.1%)、Standard≈46.7%(占25.0%)。
+- 小标准1.3.B.2【1分 | 精确性】偏差方向：Basic 正6 / 负6，High Value 正3 / 负6，Standard 正3 / 负4。
+- 小标准1.3.B.3【1分 | 结论性】强调最新视角 High Value 异常更偏负向，提示需动态调校该段的留存预测。
+
+---
+## 需求2：异常客户在交易稳定性、季节性、价值路径维度的差异（本需求最高可得 9分）
+### 标准2.1：交易稳定性特征（最高可得 3分）
+#### 路径2.1.A【期望交易量 vs 实际】
+- 小标准2.1.A.1【1分 | 完备性】构造：`months_active = customer_age_days / 30`，`expected_txn = avg_transactions_per_month × months_active`，`txn_consistency_ratio = transaction_count / expected_txn`，`txn_consistency_error = |transaction_count − expected_txn| / expected_txn`（分母=0 记缺失）。
+- 小标准2.1.A.2【1分 | 精确性】均值对比（±0.01）：异常 `txn_consistency_error`≈0.516、非异常≈0.486；`txn_consistency_ratio` 异常≈0.521、非异常≈0.516。
+- 小标准2.1.A.3【1分 | 结论性】指出异常客户整体一致性更弱，对留存建模构成噪声。
+
+#### 路径2.1.B【季度覆盖校验】
+- 小标准2.1.B.1【1分 | 完备性】给出 `coverage_gap = transaction_count − Σ(q1~q4)` 与 `coverage_gap_ratio = coverage_gap / transaction_count`（分母=0 记缺失）。
+- 小标准2.1.B.2【1分 | 精确性】均值：异常 coverage_gap=0、非异常≈-0.088；`coverage_gap_ratio` 绝对值均 <0.01。
+- 小标准2.1.B.3【1分 | 结论性】确认季度拆分与总交易基本对齐，可将季节份额用于后续分析。
+
+### 标准2.2：季节性不均衡度（最高可得 3分）
+#### 路径2.2.A【季度占比标准差 + 极差】
+- 小标准2.2.A.1【1分 | 完备性】说明以季度占比计算 `seasonality_std` 与 `seasonality_imbalance = max − min`。
+- 小标准2.2.A.2【1分 | 精确性】均值对比（±0.01）：异常 `seasonality_std`≈0.136 vs 非异常≈0.102；异常 `seasonality_imbalance`≈0.334 vs 非异常≈0.251。
+- 小标准2.2.A.3【1分 | 结论性】指出异常客户季节性集中度明显更高。
+
+#### 路径2.2.B【熵（归一化）】
+- 小标准2.2.B.1【1分 | 完备性】给出熵计算：`−Σ(share×ln share)/ln(4)`。
+- 小标准2.2.B.2【1分 | 精确性】熵均值（±0.02）：异常≈0.788、非异常≈0.897。
+- 小标准2.2.B.3【1分 | 结论性】强调熵下降与旺季依赖相关，可用于识别尖峰型客户。
+
+#### 路径2.2.C【季度 CV / 阈值法】
+- 小标准2.2.C.1【1分 | 完备性】定义 `seasonality_cv = std(q1~q4)/mean(q1~q4)`，并设阈值 `>1` 标记“强季节”。
+- 小标准2.2.C.2【1分 | 精确性】阈值命中数：异常9、非异常5；差值≈+4 人（±1）。
+- 小标准2.2.C.3【1分 | 结论性】指出该阈值可作为季节性预警规则。
+
+### 标准2.3：价值实现路径（评分 vs 收入）（最高可得 3分）
+#### 路径2.3.A【收入/评分比率】
+- 小标准2.3.A.1【1分 | 完备性】定义 `revenue_per_score = total_revenue / (comprehensive_customer_score + ε)`（ε→0 避免除零）。
+- 小标准2.3.A.2【1分 | 精确性】均值：异常≈9.01、非异常≈9.38（±0.2）。
+- 小标准2.3.A.3【1分 | 结论性】指出异常客户单位评分收入偏低，存在“价值未兑现”迹象。
+
+#### 路径2.3.B【z 分偏差】
+- 小标准2.3.B.1【1分 | 完备性】计算收入与评分 z 分，构造 `value_mismatch_z = |z(total_revenue) − z(score)|`。
+- 小标准2.3.B.2【1分 | 精确性】均值：异常≈0.199、非异常≈0.251（±0.02）。
+- 小标准2.3.B.3【1分 | 结论性】说明价值偏差非主要驱动，但与稳定性/季节性结合可锁定高风险客户。
+
+---
+## 需求3：多维交叉诊断异常驱动因素（本需求最高可得 6分）
+### 标准3.1：类别标签交叉（最高可得 3分）
+#### 路径3.1.A【季节偏好 × 异常率】
+- 小标准3.1.A.1【1分 | 完备性】输出 seasonal_preference 与异常标记的列联表。
+- 小标准3.1.A.2【1分 | 精确性】数据：异常 Q4 Peak33、Q1 Peak10、Q3 Peak4、Balanced0；非异常 Q4 Peak50、Q1 Peak31、Q3 Peak16、Balanced5。
+- 小标准3.1.A.3【1分 | 结论性】指出异常高度集中于 Q4 Peak，应纳入季节标签校准。
+
+#### 路径3.1.B【生命周期 × 异常率】
+- 小标准3.1.B.1【1分 | 完备性】给出 lifecycle_stage 与异常的交叉分布。
+- 小标准3.1.B.2【1分 | 精确性】结果：异常 At Risk12、Growth11、Mature24；非异常 At Risk10、Growth43、Mature49。
+- 小标准3.1.B.3【1分 | 结论性】说明 At Risk 在异常中占比显著提高，需在策略中加权。
+
+### 标准3.2：标签阈值与提升度（最高可得 3分）
+#### 路径3.2.A【多阈值对比】
+- 小标准3.2.A.1【1分 | 完备性】设定阈值：`seasonality_cv > 1.0`、`transaction_value_volatility > 0.7`、`txn_consistency_error > 0.6`，并说明命中即视为风险标签。
+- 小标准3.2.A.2【1分 | 精确性】命中数：季节性 (异常9 vs 非异常5)、波动 (15 vs 16)、一致性 (12 vs 18)；对应提升度约 +14.3pp、+16.2pp、+7.9pp。
+- 小标准3.2.A.3【1分 | 结论性】指出季节性 / 波动阈值对异常识别贡献最大，可转化为规则监控。
+
+---
+## 需求4：异常客户聚类画像（本需求最高可得 6分）
+### 标准4.1：聚类配置与评估（最高可得 3分）
+#### 路径4.1.A【KMeans（标准化 + 选 K）】
+- 小标准4.1.A.1【1分 | 完备性】列出特征：`txn_consistency_error`、`transaction_value_volatility`、`seasonality_std`、`seasonality_imbalance`、`seasonality_entropy_norm`、`avg_transactions_per_month`、`transaction_count`、`total_revenue`，并说明标准化处理。
+- 小标准4.1.A.2【1分 | 精确性】给出 K∈[2,6] 的 silhouette，最佳 K=2 时得分≈0.542（±0.02），簇规模 36 vs 11。
+- 小标准4.1.A.3【1分 | 结论性】阐明该配置可区分两类异常客群，为策略拆分提供依据。
+
+#### 路径4.1.B【替代聚类 / 规则分群】
+- 小标准4.1.B.1【1分 | 完备性】描述阈值组合 `seasonality_imbalance>0.4 ∧ volatility>0.7 ∧ avg_transactions_per_month<0.5` 的规则分群。
+- 小标准4.1.B.2【1分 | 精确性】报告命中 3 人，均为 Basic 且生命周期 At Risk。
+- 小标准4.1.B.3【1分 | 结论性】说明该规则辨识季节尖峰 & 低活跃客群，可与 KMeans 结果互证。
+
+### 标准4.2：簇画像与业务解读（最高可得 3分）
+#### 路径4.2.A【基于KMeans的簇画像】
+- 小标准4.2.A.1【1分 | 完备性】给出关键指标中位数：
+  - 簇0（36人）`txn_consistency_error`≈0.535、`volatility`≈0.365、`seasonality_std`≈0.061、`imbalance`≈0.167、`entropy_norm`≈0.978、`avg_txn_pm`≈2.65、`total_revenue`≈825.6、`transaction_count`≈15。
+  - 簇1（11人）`txn_consistency_error`≈0.589、`volatility`≈0.813、`seasonality_std`≈0.433、`imbalance`≈1.0、`entropy_norm`≈0.0、`avg_txn_pm`≈0.5、`total_revenue`≈93.7、`transaction_count`≈2。
+- 小标准4.2.A.2【1分 | 精确性】分布：簇0 包含 High Value20、Standard15、Basic1；簇1 全部 Basic；生命周期：簇0 以 Mature24/Growth11 为主，簇1 全 At Risk；季节偏好均以 Q4 Peak 占主导（簇0 22人、簇1 11人）。
+- 小标准4.2.A.3【1分 | 结论性】总结两类异常：①高价值但节奏失衡型（需关系维护+季节再校准）；②季节尖峰低活跃型（需旺季前置锁定、淡季保活）。
+
+#### 路径4.2.B【非KMeans方法的画像】
+- 小标准4.2.B.1【1分 | 完备性】延续 4.1.B 规则，描述命中群体的核心指标方向（季节性尖峰、波动高、活跃度低）。
+- 小标准4.2.B.2【1分 | 精确性】指出命中 3 人均为 Basic & At Risk，`seasonality_imbalance`>0.4、`volatility`>0.7、`avg_txn_pm`<0.5。
+- 小标准4.2.B.3【1分 | 结论性】说明规则分群可作为尖峰型客户的告警补充，验证 KMeans 的客群划分。
+
+---
+## 需求5：决策树评估与新维度价值验证（本需求最高可得 6分）
+### 标准5.1：模型构建与性能对比（最高可得 3分）
+#### 路径5.1.A【含留存概率的参考模型 vs 公平模型】
+- 小标准5.1.A.1【1分 | 完备性】构建两版决策树（max_depth=5）：a) 全特征（含 `retention_probability`），b) 去除留存概率后保留类别+数值行为特征；需说明在全量 149 行上直接评估（无拆分）。
+- 小标准5.1.A.2【1分 | 精确性】指标（±0.02）：
+  - 全特征：Accuracy≈0.987、ROC-AUC≈0.979、Recall(异常)≈0.957；
+  - 公平模型：Accuracy≈0.893、ROC-AUC≈0.940、Recall≈0.936。
+- 小标准5.1.A.3【1分 | 结论性】指出公平模型仍保持高召回，说明行为/季节特征在不依赖留存概率时具备识别力。
+
+#### 路径5.1.B【基线（盈利段） vs 增强（含行为特征）】
+- 小标准5.1.B.1【1分 | 完备性】比较仅含盈利段类别的基线模型与仅保留行为数值特征的模型。
+- 小标准5.1.B.2【1分 | 精确性】指标（±0.02）：
+  - 基线：Accuracy≈0.859、ROC-AUC≈0.907、Recall≈1.00；
+  - 行为数值：Accuracy≈0.960、ROC-AUC≈0.990、Recall≈1.00。
+- 小标准5.1.B.3【1分 | 结论性】说明盈利段具备强基线，但行为特征提供更优排序/判别力，支撑增维。
+
+### 标准5.2：特征重要性与解释（最高可得 3分）
+#### 路径5.2.A【特征排序 + 泄漏说明】
+- 小标准5.2.A.1【1分 | 完备性】列出前 10 个重要特征并标明来源（类别/数值）。
+- 小标准5.2.A.2【1分 | 精确性】
+  - 全特征模型 Top3：`retention_probability`≈0.736、`avg_transactions_per_month`≈0.183、`seasonal_preference_Q3 Peak`≈0.049；
+  - 公平模型 Top5：`profitability_segment_Growing`≈0.466、`profitability_segment_Premium`≈0.381、`seasonality_imbalance`≈0.088、`seasonality_entropy_norm`≈0.036、`revenue_per_score`≈0.029（±0.02）。
+- 小标准5.2.A.3【1分 | 结论性】解释留存概率在全特征模型中的“遮蔽效应”，并强调季节性/交易强度在公平模型中的贡献。
+
+#### 路径5.2.B【规则抽取或可解释路径】
+- 小标准5.2.B.1【1分 | 完备性】给出公平模型前几层规则：如“非 Premium 且非 Growing → 若季节熵≤0.99 且不均衡≤0.10 判定非异常；若熵>0.99 判异常”等。
+- 小标准5.2.B.2【1分 | 精确性】规则须与树结构一致，不得引用 `retention_probability`。
+- 小标准5.2.B.3【1分 | 结论性】将规则对齐业务含义：强调低熵+低不均衡为稳态客户，季节波动放大则需入异常监控。
+
+---
+## 需求6：细分改造与运营落地建议（本需求最高可得 3分）
+### 标准6.1：新维度纳入与策略输出（最高可得 3分）
+#### 路径6.1.A【结构化改造方案】
+- 小标准6.1.A.1【1分 | 完备性】提出盈利段 ×（交易稳定性：`txn_consistency_error`、`transaction_value_volatility`）×（季节性：`seasonality_std/imbalance/CV` + 季度阈值）×（生命周期 At Risk/Growth/Mature）的细分框架。
+- 小标准6.1.A.2【1分 | 精确性】结合聚类与异常：
+  - 簇1（尖峰低活跃，11人）：旺季前预热、淡季保活，监控 `volatility>0.7` 或 `seasonality_imbalance>0.4` 即触发干预；
+  - 簇0（高价值波动型，36人）：强化关系维护与节奏校准；
+  - KPI：异常率下降≥20pp、季节性指标下降≥15%、交易一致性改善≥10%。
+- 小标准6.1.A.3【1分 | 结论性】给出实施优先级（High Value → Standard → Basic），并说明与公平模型判定、阈值规则的协同预期。
+
+#### 路径6.1.B【策略+试点（简化版本）】（可选，若给出则按高者计分）
+- 小标准6.1.B.1【1分 | 完备性】针对尖峰型客户提出淡季促活、针对高价值不稳定型执行 VIP 维护、对 At Risk 客群强化生命周期触达。
+- 小标准6.1.B.2【1分 | 精确性】将数据锚点嵌入目标：如 Q4Peak 异常33人、At Risk 异常12人、`volatility>0.7` 的异常15人等。
+- 小标准6.1.B.3【1分 | 结论性】提出试点周期与监控指标（异常率、`seasonality_cv`、`transaction_value_volatility`、留存提升），并说明预期收益与风险控制。
+
+---

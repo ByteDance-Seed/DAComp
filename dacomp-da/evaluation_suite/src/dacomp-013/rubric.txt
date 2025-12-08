@@ -1,0 +1,130 @@
+# [Total Score | 20 points]  The solution must meet the following three core requirements:
+- Requirement 1: Performance evaluation framework construction
+- Requirement 2: Performance quantification and level classification
+- Requirement 3: Result interpretation and fairness assessment
+
+## Requirement 1: Performance evaluation framework construction（8 points）
+
+### Criterion 1.1: Definition of performance dimensions and indicators（5 points）
+> Output: Indicators and weights covering core dimensions such as “completion status / priority / work hours efficiency,” along with a clear calculation method for the personal total score. Do not expand into data cleaning; provide measurement scope and formulas only.
+
+#### Path 1.1.A【Fixed-weight method】（5 points）
+
+- 1.1.A.1（2 points｜Completeness）  
+  You must provide and fix all the following items (missing 1 item deduct 1 point; missing ≥2 items scores 0):  
+  1) Completion rate: number of completed tasks ÷ number of assigned tasks (explicitly define the counting scope of “tasks”: whether to include delayed/paused/canceled).  
+  2) Timeliness (choose one and fix):  
+     - On-time rate = number of tasks completed according to SLA ÷ number of completed tasks; or  
+     - Days early/late (unify direction: early as positive/late as negative, and explain how to transform into a positive score).  
+  3) High-priority completion rate: number of completed high-priority tasks ÷ number of assigned high-priority tasks (define the “high priority” level set, such as P0/P1 or “Urgent/High”).  
+  4) Work hours utilization (choose one and fix):  
+     - Work hours efficiency = Planned Work Hours ÷ Actual Work Hours; or  
+     - Output efficiency = completed weighted points ÷ Actual Work Hours (define a consistent measurement for “weighted points”).  
+  5) Exceptions and boundaries: When the denominator = 0 or key fields are missing → specify a single handling strategy (“proportionally redistribute weights” or “replace with team mean,” pick one) and state consistency across all personnel.  
+  6) Total score structure: `Personal Total Score = Σ(Indicator_i × Weight_i)`; clarify the direction of each indicator (higher is better) and measurement range (0–1 or 0–100).  
+  Evidence checklist: indicator dictionary (field names/definitions/units/direction/exception handling); numerator/denominator field mapping list.  
+
+- 1.1.A.2（2 points｜Accuracy）  
+  1) Weights must sum to 1 (after rounding to three decimal places, still satisfy |Σw−1| ≤ 0.001);  
+  2) Recalculation table for ≥ 2 people: provide four-dimension raw values, weights, per-column products, and totals; recalculation error ≤ 1%;  
+  3) If using “days late,” demonstrate the same-direction transformation (e.g., range scaling or threshold truncation) to avoid direction errors.  
+  (Only 1-person sample or missing per-column products → 1 point)  
+
+- 1.1.A.3（1 point｜Conclusion）  
+  Clearly state:  
+  - “The fixed-weight scheme covers core dimensions, is transparent to compute, has consistent measurement scope, can be implemented directly, and supports sample-based verification”;  
+  - Applicable scenarios (e.g., teams with relatively stable task structures);  
+  - Limitations (sensitive to scenarios with large differences in the proportion of high-priority tasks).  
+
+---
+
+#### Path 1.1.B【Dynamic-weight method】（5 points）
+
+- 1.1.B.1（2 points｜Completeness）  
+  1) Define `p_hi = number of assigned high-priority tasks / number of all assigned tasks`, and fix the measurement scope of “high priority”;  
+  2) Explicitly include work hours utilization in the main score to reflect input differences;  
+  3) Provide weight functions (linear/piecewise/smooth monotonic are all acceptable). Example (equivalent variants allowed):  
+     ```
+     w_hi  = 0.30 + 0.20*p_hi       # weight for high-priority completion rate (monotonically ↑ with p_hi)
+     w_on  = 0.30                   # weight for on-time rate is fixed
+     w_cmp = 0.40 - 0.20*p_hi       # weight for completion rate (monotonically ↓ with p_hi)
+     w_uti = 1 - (w_hi + w_on + w_cmp)  # weight for work hours utilization (closure)
+     ```  
+     Explain directionality: p_hi ↑ → w_hi ↑, w_cmp ↓; and provide numeric bounds (each weight ≥ 0).  
+  4) Normalization and conflict handling: If floating-point errors cause the sum ≠ 1 or slight negatives occur, first round to 3 decimals, then normalize proportionally.  
+
+- 1.1.B.2（2 points｜Accuracy）  
+  Recalculation tables for two samples under different `p_hi` (e.g., 0.2 / 0.8):  
+  - Verify non-negativity of weights, sum = 1, and correct monotonicity;  
+  - Recalculation error ≤ 1%.  
+  (Only 1 sample or missing monotonicity check → 1 point)  
+
+- 1.1.B.3（1 point｜Conclusion）  
+  State the fairness benefits of the dynamic mechanism (higher share of high-priority tasks → higher weight), and provide robustness tips (balance with work hours efficiency when extreme p_hi approaches 0/1; recommend a protection lower bound `w_uti ≥ 0.05`).  
+
+> Equivalent and deemed compliant: AHP/entropy weights/data-driven weights, as long as monotonic reasonableness + recalculability are satisfied.  
+
+---
+
+### Criterion 1.2: Cross-task fairness adjustment（3 points）
+> Output: Make differences in “Task Type” comparable (choose one: task family normalization or difficulty coefficient correction).
+
+#### Path 1.2.A【Task family normalization】（3 points, each sub-path must score an integer）
+- 1.2.A.1（1 point｜Completeness）：  
+  ≥ 3 task families (e.g., Development/Testing/Design/Document); standardize each indicator within the family (Z-score or 5%–95% quantile min–max, unify direction first); provide family-level parameter tables (μ/σ or quantiles).  
+- 1.2.A.2（1 point｜Accuracy）：  
+  Show a complete chain for 1 sample (raw values → standardization → within-family weighting → cross-family weighting); recalculation error ≤ 1%.  
+- 1.2.A.3（1 point｜Conclusion）：  
+  State “After within-family standardization, cross-family results are comparable and structural bias is reduced,” and provide merging/smoothing strategies for small-sample families.  
+
+#### Path 1.2.B【Difficulty coefficient adjustment】（3 points）
+- 1.2.B.1（1 point｜Completeness）：  
+  Clarify the Task Difficulty Coefficient (discrete bands or continuous ranges, e.g., 0.9–1.1 / 0.8–1.2), its sources (function points/complexity/impact scope, etc.), and objective rules; provide the formula `Adjusted Score = Original Score × Task Difficulty Coefficient` and upper/lower bounds.  
+- 1.2.B.2（1 point｜Accuracy）：  
+  Before/after comparison for ≥ 2 task samples, verifying directional reasonableness (higher difficulty ↑, lower difficulty ↓; or a mild upward-only strategy not less than 1.0).  
+- 1.2.B.3（1 point｜Conclusion）：  
+  State “Difficulty correction prevents Task Owners of high-difficulty tasks from being unfairly penalized,” and set post-review and upper-limit constraints to prevent distorted incentives.  
+
+---
+
+## Requirement 2: Performance quantification and level classification（8 points）
+
+### Criterion 2.1: Continuous scores and forced distribution（4 points）
+- 2.1.A.1（1 point｜Completeness）：  
+  Clarify the personal total score formula (inherit indicators and weights from 1.1; all indicators aligned so that “higher is better”).  
+- 2.1.A.2（1 point｜Accuracy）：  
+  ≥ 2-person recalculation table (four-dimension raw values/weights/per-column products/totals), error ≤ 1%.  
+- 2.1.A.3（1 point｜Process）：  
+  Tie-breaking order: high-priority completion rate > on-time rate > completion rate > work hours efficiency; if still tied → compare “scale of high-priority tasks”; if still tied → tie into the higher tier, and the next tier shifts down (overall distribution allows ±1 person).  
+- 2.1.A.4（1 point｜Conclusion）：  
+  Output the personnel list + level labels, and verify overall distribution of 20%/70%/10% (±1 person); samples < 30 people may be relaxed (Excellent ≤ 20%, Needs Improvement ≤ 10%).  
+
+### Criterion 2.2: Traceability and sensitivity（3 points）
+- 2.2.A.1（1 point｜Completeness）：  
+  Provide the task → person aggregation chain for 1 sample: single-task score (including coefficients such as Priority/Task Difficulty Coefficient/Rework) → person-level weighted average/completion rate → personal total score.  
+- 2.2.A.2（2 points｜Accuracy）：  
+  Apply ±10% perturbations to key weights (e.g., Priority weight, share of completion rate), output score intervals and rank changes; report at least the stability conclusions for the Top 20% and Bottom 10% (if not robust, explain reasons and improvements).  
+
+### Criterion 2.3: Method consistency check（1 point）
+- 2.3.A.1（1 point｜Comprehensive）：  
+  Provide personal total scores under two methods (e.g., fixed weights vs dynamic weights; or “within-family standardization” vs “raw values”):  
+  - Report the Spearman correlation coefficient or Top-K (consistency rate);  
+  - Decision rule: ρ ≥ 0.80 or Top 20% consistency rate ≥ 80%; if not met, explain sources of differences and provide improvement suggestions (e.g., switch to family-level Z, converge weights, raise the upper bound for high-priority weights, etc.).  
+
+## Requirement 3: Result interpretation and fairness assessment（4 points）
+
+### Criterion 3.1: Presentation of consistency across methods（1 point）
+- 3.1.A.1（1 point｜Comprehensive）：  
+  Construct a cross-table of “Task Owner × method (rule-based weights / Z-score / TOPSIS / clustering)” (any two are sufficient, but must include methods from different paradigms); mark at least one person who consistently remains “Excellent” (or an equivalent highest tier) across methods, and briefly explain possible causes for differences among other groups.  
+
+### Criterion 3.2: Bias identification and improvement loop（3 points）
+- 3.2.A.1（1 point｜Completeness）：  
+  Output the three-tier distribution (Excellent/Good/Needs Improvement) by dimensions such as Task Type/Priority/Difficulty/team, and mark obvious deviations (e.g., “Design category Excellent rate 9% is lower than the overall 20%”).  
+- 3.2.A.2（1 point｜Accuracy）：  
+  Provide statistical support (proportions/means/variance/quantiles; if samples are insufficient, provide confidence intervals or merging strategies), and explain the observation window and consistency of measurement scope.  
+- 3.2.A.3（1 point｜Conclusion）：  
+  Provide executable correction plans (choose ≥ 2 items and state triggering conditions):  
+  - Task family normalization (1.2.A) or type-level quota (each type also enforces 20/70/10);  
+  - Minimum task volume threshold (e.g., < 2 tasks not eligible for “Excellent”) and qualification rules;  
+  - Weight fine-tuning (raise the upper bound of the high-priority weight / strengthen the constraint on work hours efficiency / set a lower bound for rework penalties);  
+  - Post-review and appeal mechanism (key tasks spanning periods, emergencies, resource changes). Commit to next-cycle re-evaluation and tracking metrics (whether bias converges).

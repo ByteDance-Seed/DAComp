@@ -1,0 +1,145 @@
+# [Total Score | 36 points] The solution must satisfy the following four core requirements:
+
+  - Requirement 1: Data Source Confirmation and Lifecycle Segmentation Definition
+  - Requirement 2: Construction of Speed-to-Activity, Retention, and Payment Metrics
+  - Requirement 3: Touchpoint Efficiency and Sequence Path Analysis
+  - Requirement 4: Insight Generation and Strategy Implementation
+
+---
+
+## Requirement 1: Data Source Confirmation and Lifecycle Segmentation Definition (Up to 12 points)
+
+### Standard 1.1: Field Mapping and Key Logic for Three Tables
+
+#### Path 1.1.A [6 points | Mapping across Event, Touchpoint, and Person Tables]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Must completely list the fields from `klaviyo__events` (including `event_id`, `person_id`, `type`, `occurred_at`, `last_touch_campaign_id`, `variation_id`, `campaign_subject_line`), `klaviyo__person_campaign_flow` (`person_id`, `last_touch_campaign_id`, `variation_id`, `first_event_at`, `last_event_at`, `count_received_email`/`opened_email`/`clicked_email`, `email_open_rate_touch`, `email_click_to_open_rate_touch`), and `klaviyo__persons` (`person_id`, `email_open_rate`, `count_received_email`/`opened_email`/`clicked_email`, `active_retention_rate_week`/`month`, `paid_retained_month_count`, `timezone`); must explicitly use `person_id + last_touch_campaign_id + variation_id` as the composite join key.
+- Sub-standard 1.1.A.2 [4 points | Accuracy]: Explain that when send events are missing, `occurred_at` from an `email_open` or `first_event_at` from the flow table can be used to approximate the touchpoint time; describe the join order `events → flow → persons`, and must practically verify that the join results in 4 person×campaign records without duplication or inflation (SQL result must satisfy `COUNT(*)=4`). Must show the anchor point: for the `CMP0002` combination, `Σreceived=84`, `Σopened=45`, `Σclicked=18`, corresponding to `open_rate_touch=45/84=0.535714`, `click_rate_touch=18/84=0.214286`, `CTO=18/45=0.4000` (tolerance ≤0.0001 allowed).
+- Sub-standard 1.1.A.3 [1 point | Conclusiveness]: Provide a judgment that "the structure can support subsequent analysis" and point out the limitation: the event table has only 4 records (`email_open=2`, `order=2`) with no detailed send/deliver/email_click events, therefore subsequent conclusions are based on an exploratory definition.
+
+#### Path 1.1.B [6 points | Primary Approach using Touchpoint Aggregation]
+- Sub-standard 1.1.B.1 [1 point | Completeness]: Declare `klaviyo__person_campaign_flow` as the main table, using `first_event_at / last_event_at` to approximate the touchpoint window, and `count_received_email`/`opened_email`/`clicked_email` as the denominator/numerator for weighted rates, while bringing in `campaign_subject_line` from `events` and fetching retention metrics from `persons`.
+- Sub-standard 1.1.B.2 [4 points | Accuracy]: Must explain how to use `person_id+campaign_id+variation_id` for precise matching to avoid one-to-many inflation, and must not introduce any new cleaning steps; must provide a calculation check: `Σreceived`, `Σopened`, `Σclicked` are `176/86/32` (discount combo) and `78/36/12` (new product combo) respectively, and weighted rates satisfy `open_rate_wt=86/176=0.488636`, `click_rate_wt=32/176=0.181818`, `CTO_wt=32/86=0.372093` (error ≤0.0001).
+- Sub-standard 1.1.B.3 [1 point | Conclusiveness]: Point out that this weighted definition is suitable for sparse samples and can produce stable rates, addressing both its advantages (weighted rates are stable) and limitations (cannot reconstruct the true send denominator).
+
+#### Path 1.1.C [6 points | Fallback using Event and Person Tables]
+- Sub-standard 1.1.C.1 [1 point | Completeness]: Explain how, when relying only on `events`+`persons`, `occurred_at` from `email_open` is used as the touchpoint time, and historical open/click/retention fields from the `persons` table are used as proxy metrics.
+- Sub-standard 1.1.C.2 [4 points | Accuracy]: Clarify the process of "first aggregating `events` by `person_id`, then joining with `persons`" to avoid double counting; anchor points must be verified: `persons.email_open_rate` (new product user=0.41, discount user=0.42), `click_rate_proxy = count_clicked_email / count_received_email` (0.0625 and 0.0758 respectively, error ≤0.0001).
+- Sub-standard 1.1.C.3 [1 point | Conclusiveness]: State this is a viable alternative when touchpoint summaries are unavailable and emphasize that this path can only yield directional insights.
+
+### Standard 1.2: Lifecycle Segmentation and Sample Auditing
+
+#### Path 1.2.A [6 points | Event Time Window Method]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Define lifecycle tiers: `Cold Start = first touchpoint with no prior activity history`, `Win-back = new touchpoint after ≥90 days of inactivity`; this needs to be derived using the first `events.email_open` time and `persons.last_event_on` (or `first_event_at` from the flow table).
+- Sub-standard 1.2.A.2 [4 points | Accuracy]: Provide SQL logic: `first_touch = MIN(date(first_event_at))`, `prev_active = date(last_event_on)`, `days_gap = julianday(first_touch) - julianday(prev_active)`; must cross-check the result: for the two users, `days_gap` are ≈`771` and `948` respectively, both ≥90 days → categorized as "Win-back"; must state that no additional cleaning was introduced.
+- Sub-standard 1.2.A.3 [1 point | Conclusiveness]: Output the segmented sample sizes: `Win-back=2`, `Cold Start=0`, `Unclassified=0`, and emphasize that the extremely sparse sample limits statistical confidence.
+
+#### Path 1.2.B [6 points | Touchpoint Summary Proxy Method]
+- Sub-standard 1.2.B.1 [1 point | Completeness]: When event-level data is insufficient, use `first_event_at`/`last_event_at`/`touch_span_days`, and `count_received_email` from the flow table as the basis: `Cold Start = person's first flow record`, `Win-back = interval >90 days from the previous record or reappearance after persons.active_retention_rate_month=0`.
+- Sub-standard 1.2.B.2 [4 points | Accuracy]: Explain the need to sort flow records by `person_id` and calculate the interval between adjacent `first_event_at`; verify anchor points: `touch_span_days` are `81, 139, 168, 191` respectively, with the longest interval (`191`) still corresponding to the same win-back user, satisfying >90 days; the process must use original fields without cleaning assumptions.
+- Sub-standard 1.2.B.3 [1 point | Conclusiveness]: Point out that this proxy segmentation is suitable for scenarios with complete touchpoint data but sparse events, and warn that it may overestimate the number of cold starts (no cold starts appeared in this dataset).
+
+#### Path 1.2.C [6 points | Sample Auditing and Coverage Assessment]
+- Sub-standard 1.2.C.1 [1 point | Completeness]: Count the sample sizes for `email_open` events, number of persons reached, number of campaigns, subject line groups, and time windows.
+- Sub-standard 1.2.C.2 [4 points | Accuracy]: Anchor checks must be met: `events` total `4` records, `email_open=2`, `order=2`; earliest time `2023-03-15 10:26:00`, latest time `2024-01-14 17:55:00`; `person_campaign_flow` has `4` rows, `distinct campaign=4`; `persons` total `1192`; if results differ, the same-definition statistical logic must be provided.
+- Sub-standard 1.2.C.3 [1 point | Conclusiveness]: Point out that the sample coverage is severely sparse, subsequent analysis must be presented as exploratory, and recommend augmenting with send/behavioral data.
+
+---
+
+## Requirement 2: Construction of Speed-to-Activity, Retention, and Payment Metrics (Up to 12 points)
+
+### Standard 2.1: Speed Metric from First Touch to Peak Activity
+
+#### Path 2.1.A [6 points | Event-level Duration Calculation]
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Define speed metrics: `days_span = order timestamp - first email_open`, `active_months`, `paid_retained_month_count`, `paid_retention_rate_month`.
+- Sub-standard 2.1.A.2 [4 points | Accuracy]: Must provide SQL steps: starting from `email_open`, match order events for the same `person_id`, `days_span = ROUND(julianday(order) - julianday(open),1)`; anchor points: new product sample `days_span=73.4` days, `active_months=8`, `paid_retained_month_count=3`, `paid_retention_rate_month=0.375`; discount sample `days_span=305.3` days, `active_months=8`, `paid_retained_month_count=7`, `paid_retention_rate_month=0.875` (error ≤0.1).
+- Sub-standard 2.1.A.3 [1 point | Conclusiveness]: State that sample-level conclusions are for directional reference only, and warn that long periods greater than 90 days lack statistical significance.
+
+#### Path 2.1.B [6 points | Touchpoint Summary Duration Method]
+- Sub-standard 2.1.B.1 [1 point | Completeness]: When order events are missing, use `first_event_at` to `last_event_at` from the flow table to calculate `days_span = touch_span_days`, and use `persons.active_retention_rate_month` to determine if activity was achieved.
+- Sub-standard 2.1.B.2 [4 points | Accuracy]: Anchor points must align with the flow table: `CMP0001=81` days, `CMP0002=139` days, `CMP0012=168` days, `CMP0016=191` days; `touch_span_days` must match `last_event_at - first_event_at` (julianday difference), with an error ≤1 day.
+- Sub-standard 2.1.B.3 [1 point | Conclusiveness]: Explain that this method may underestimate the true peak activity and clarify the source of deviation from event-level results.
+
+#### Path 2.1.C [6 points | Cohort Propensity Proxy]
+- Sub-standard 2.1.C.1 [1 point | Completeness]: Explain the use of `persons.active_retention_rate_month` and `active_months` to estimate activity speed, e.g., `est_active_months = active_retention_rate_month × active_months / 1.0`; must declare the observation window (this dataset uses the `active_months` field=8 as the window).
+- Sub-standard 2.1.C.2 [4 points | Accuracy]: Verify anchor points: for new product/storytelling user `est_active_months=0.8889×8≈7.11`, for discount user `0.875×8≈7.0`, and the deviation from `active_months=8` is ≤1 month; must not introduce cleaning assumptions.
+- Sub-standard 2.1.C.3 [1 point | Conclusiveness]: Emphasize this method only estimates activity propensity and note that true behavior should be based on event/touchpoint results.
+
+### Standard 2.2: Retention and Payment Metrics System
+
+#### Path 2.2.A [6 points | Direct Retention Average Method]
+- Sub-standard 2.2.A.1 [1 point | Completeness]: Output `avg_retention_week`, `avg_retention_month`, `paid_retained_month_count`, `paid_retention_rate_month` at the "time window × theme" dimension.
+- Sub-standard 2.2.A.2 [4 points | Accuracy]: Must align with anchor points: overall baseline `avg_retention_week=0.7871`, `avg_retention_month=0.8028`; discount × weekday morning `retention_week=1.0000`, `retention_month=1.0000`; new product × weekday morning `0.9429/0.8889`; storytelling × weekday morning `0.9429/0.8889`; error ≤0.0001 allowed.
+- Sub-standard 2.2.A.3 [1 point | Conclusiveness]: Point out combinations that are above baseline (e.g., discount × weekday morning +0.2129pp) and emphasize the conclusion is not causal.
+
+#### Path 2.2.B [6 points | Post-Event Window Conversion]
+- Sub-standard 2.2.B.1 [1 point | Completeness]: Define 7/30/90-day `open→order` conversion rates based on the `email_open` time window.
+- Sub-standard 2.2.B.2 [4 points | Accuracy]: Anchor check: for the discount sample, `7/30/90-day conversion rate=0`; for the new product sample, `7/30-day=0`, `90-day=1.0000` (error ≤0.0001).
+- Sub-standard 2.2.B.3 [1 point | Conclusiveness]: Note that only the new product sample converted at 90 days, and warn to use with caution due to the sparse sample.
+
+#### Path 2.2.C [6 points | Robust Mean/Quantile Analysis]
+- Sub-standard 2.2.C.1 [1 point | Completeness]: Explain the intent to use quantiles or a trimmed mean (e.g., removing the top/bottom 5%) to mitigate extreme values; if not feasible due to insufficient sample size, this must be explicitly stated in the plan with an alternative analysis provided.
+- Sub-standard 2.2.C.2 [4 points | Accuracy]: If performing robust statistics, provide the steps (sort → trim → average); if abandoned, must provide evidence of "insufficient for robust estimation" (e.g., sample size of only 2) and propose an alternative (e.g., reporting the raw mean directly).
+- Sub-standard 2.2.C.3 [1 point | Conclusiveness]: Report the impact of robust statistics on the conclusion; if not performed, state the risk of not reducing uncertainty.
+
+---
+
+## Requirement 3: Touchpoint Efficiency and Sequence Path Analysis (Up to 8 points)
+
+### Standard 3.1: Touchpoint Efficiency (Open/Click/CTO) Interaction Dashboard
+
+#### Path 3.1.A [6 points | Touchpoint-level Weighted Summary]
+- Sub-standard 3.1.A.1 [1 point | Completeness]: Output `Σreceived`, `Σopened`, `Σclicked`, `open_rate_wt`, `click_rate_wt`, `CTO_wt` on dashboards for "weekday/weekend × theme", "morning/afternoon × theme", and "pre/post/non-holiday × theme".
+- Sub-standard 3.1.A.2 [4 points | Accuracy]: Anchor points must be met (error ≤0.0001): discount × weekday morning `open=0.535714`, `click=0.214286`, `CTO=0.4000`; discount × weekend morning `open=0.445652`, `click=0.152174`, `CTO=0.341463`; new product × weekday morning `open=0.461538`, `click=0.153846`, `CTO=0.333333`; storytelling × weekday morning `open=0.34375`, `click=0.109375`, `CTO=0.318182`; must note that samples for "afternoon" and "3 days post-holiday" are missing.
+- Sub-standard 3.1.A.3 [1 point | Conclusiveness]: Point out the directional conclusions (discount > new product > storytelling, weekday morning better than weekend morning) and warn about the extremely small sample size.
+
+#### Path 3.1.B [6 points | Cohort Average Proxy]
+- Sub-standard 3.1.B.1 [1 point | Completeness]: Calculate `AVG(persons.email_open_rate)` and `AVG(persons.count_clicked_email / count_received_email)` for each dashboard combination.
+- Sub-standard 3.1.B.2 [4 points | Accuracy]: Anchor points must be met (error ≤0.0001): overall baseline `avg_email_open_rate=0.3537`, `avg_click_rate=0.0546`; discount cohort `open≈0.42`, `click≈0.0758`; new product/storytelling cohort `open≈0.41`, `click≈0.0625`.
+- Sub-standard 3.1.B.3 [1 point | Conclusiveness]: State that cohort propensity is directionally consistent with the touchpoint weighted rate, which helps corroborate that "the discount cohort is more responsive".
+
+#### Path 3.1.C [6 points | Event-level True Rates (if send/deliver is available)]
+- Sub-standard 3.1.C.1 [1 point | Completeness]: If send/deliver events are added, should output open/click/CTO with a true denominator; must explicitly state this is missing in the current dataset and provide an alternative plan (e.g., continuing with weighted touchpoint rates).
+- Sub-standard 3.1.C.2 [4 points | Accuracy]: If unable to calculate, should explain why (missing event column) and provide reproducible logic; if calculable, provide statistics for send/deliver→open/click, deduplication methods, and anchor points.
+- Sub-standard 3.1.C.3 [1 point | Conclusiveness]: Compare the difference between the true send definition and the proxy definition; if data is missing, state "proxy metrics are presented for now, pending data completion".
+
+### Standard 3.2: Touch Sequence and the Role of `touch_type`
+
+#### Path 3.2.A [6 points | Sequence Frequency Matrix]
+- Sub-standard 3.2.A.1 [1 point | Completeness]: Construct `touch_type` sequences at the person level (length ≤5), and count the frequency of typical sequences and the first/last touchpoint types.
+- Sub-standard 3.2.A.2 [4 points | Accuracy]: Anchor point must match: the only sequence is `email→order`, covering `2` users; must show the generation method (sort by `occurred_at` → window function aggregation).
+- Sub-standard 3.2.A.3 [1 point | Conclusiveness]: Point out the retention/conversion performance corresponding to this sequence (90-day conversion: new product=1.0, discount=0), and state that more touchpoint types are needed to expand path analysis.
+
+#### Path 3.2.B [6 points | State Transition / Markov Analysis]
+- Sub-standard 3.2.B.1 [1 point | Completeness]: Construct a `touch_type` transition matrix, calculating `P(next_touch | current_touch)`, and overlay open/conversion rates.
+- Sub-standard 3.2.B.2 [4 points | Accuracy]: Anchor point: `P(order | email)=1.0` (both email events transitioned to order), must provide the calculation formula `count(email→order)/count(email)`; other missing transitions should be marked as 0.
+- Sub-standard 3.2.B.3 [1 point | Conclusiveness]: Point out that the current path suggests an exploratory trend of "direct order after email" and emphasize the need to add send/click events for validation.
+
+---
+
+## Requirement 4: Insight Generation and Strategy Implementation (Up to 8 points)
+
+### Standard 4.1: Interaction Dashboard Insights and Baseline Comparison
+
+#### Path 4.1.A [6 points | Structured Insight Output]
+- Sub-standard 4.1.A.1 [1 point | Completeness]: Output at least three "time window × theme" conclusions, accompanied by open/click/CTO/retention/conversion metrics.
+- Sub-standard 4.1.A.2 [4 points | Accuracy]: Each insight must reference an anchor point or difference value, such as "Discount × weekday morning: open=0.535714, click=0.214286, CTO=0.4000, retention_week=1.0, a +18.2pp/+15.97pp lift over baseline"; "New Product × weekday morning: open=0.461538, retention_month=0.8889"; "Discount × weekend morning: open=0.445652, click=0.152174".
+- Sub-standard 4.1.A.3 [1 point | Conclusiveness]: Form a priority ranking (Top1=Discount × weekday morning, Top2=New Product × weekday morning, Alternative=Discount × weekend morning) and explain the applicable scenarios and sample risks.
+
+#### Path 4.1.B [6 points | Baseline Comparison Method]
+- Sub-standard 4.1.B.1 [1 point | Completeness]: Calculate overall baselines: `open=0.3537`, `click=0.0546`, `retention_week=0.7871`, `retention_month=0.8028`, and compare them against key combinations item by item.
+- Sub-standard 4.1.B.2 [4 points | Accuracy]: Must provide the difference values (error ≤0.0001): Discount × weekday morning `Δopen=+0.1820`, `Δclick=+0.1597`, `Δretention_week=+0.2129`; New Product × weekday morning `Δopen=+0.1078`; Storytelling × weekday morning `Δopen=-0.0100`.
+- Sub-standard 4.1.B.3 [1 point | Conclusiveness]: Point out combinations worth expanding (Discount × weekday morning) and those to be cautious about (Storytelling × weekday morning open rate is below baseline), and highlight the high uncertainty due to insufficient sample size.
+
+### Standard 4.2: Actionable Recommendations and Experiment Design
+
+#### Path 4.2.A [6 points | Factorial Experiment Design]
+- Sub-standard 4.2.A.1 [1 point | Completeness]: Should propose a factorial experiment design including "time of day (morning/afternoon) × day type (weekday/weekend) × pre/post holiday × theme (discount/new product/storytelling)", with core metrics covering open/click/CTO/7/30/90-day conversion/retention.
+- Sub-standard 4.2.A.2 [4 points | Accuracy]: Should recommend a sample size of ≥300–500 sends per experiment cell to detect a 3–5pp difference, explain the randomization/stratification strategy (stratify by `timezone` and historical activity), specify at least a 90-day observation window, and ensure alignment with the previously defined metrics.
+- Sub-standard 4.2.A.3 [1 point | Conclusiveness]: Clearly state the hypothesis to be tested (e.g., "Discount × weekday morning increases CTO to ≥0.40") and require that the rollout decision be based on experiment results.
+
+#### Path 4.2.B [6 points | Data Enhancement and Monitoring Loop]
+- Sub-standard 4.2.B.1 [1 point | Completeness]: Should propose at least three data enhancement recommendations: implement collection of send/deliver/email_click events, introduce a localized holiday table, and use `persons.timezone` for localized time-of-day classification.
+- Sub-standard 4.2.B.2 [4 points | Accuracy]: Explain the benefit of each improvement: e.g., send/deliver provides a true denominator, a holiday table avoids misjudging "3 days pre-holiday", and timezone localization matches user behavior; must explain how it's compatible with the existing process.
+- Sub-standard 4.2.B.3 [1 point | Conclusiveness]: Set monitoring KPIs (e.g., target `CTO` lift to ≥0.38, 90-day order conversion >0.30), define a quarterly review cadence and responsible parties, thus forming a closed loop.
+
+---

@@ -1,0 +1,111 @@
+# [Total Score | 20 points] The solution needs to meet 1 requirement:
+- Requirement 1: Accurately identify the key influencing factors behind profit volatility in South China.
+---
+## Requirement 1: Analysis of factors influencing profit volatility (maximum score for this requirement: 16 points)
+### Criterion 1.1 [maximum 3 points]: Data preprocessing and basic statistics
+#### Path 1.1.A [3 points]: Comprehensive preprocessing method
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Correctly filter the South China data.
+- Sub-criterion 1.1.A.2 [1 point | Accuracy]: Compute the monthly total Profit in South China, with accurate calculations. Validation baseline (deviation must not exceed 1%): 
+    2023-01: approximately 753,000 yuan, 2023-02: approximately 638,000 yuan, 2023-03: approximately 756,000 yuan
+    2023-04: approximately 684,000 yuan, 2023-05: approximately 713,000 yuan, 2023-06: approximately 675,000 yuan
+    2023-07: approximately 773,000 yuan, 2023-08: approximately 774,000 yuan, 2023-09: approximately 769,000 yuan
+    2023-10: approximately 764,000 yuan, 2023-11: approximately 744,000 yuan, 2023-12: approximately 790,000 yuan
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness]: Based on the actual computed results, describe the profit volatility phenomenon and confirm the instability.
+---
+### Criterion 1.2 [maximum 4 points]: Impact analysis of order count fluctuations
+#### Path 1.2.A [4 points]: Correlation analysis method
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Compute the monthly order count in South China and analyze the relationship between order count and Profit.
+- Sub-criterion 1.2.A.2 [2 points | Accuracy]: Use correlation coefficients and other statistical methods to quantify the strength of the relationship between order count and Profit. Code validation: check whether the code logic for computing the correlation coefficient is correct.
+  Reference data:
+  Correlation between order count and total Profit (Pearson correlation coefficient formula): 0.802 (strong positive correlation)
+  Coefficient of variation of order count (standard deviation / mean): 5.5%
+- Sub-criterion 1.2.A.3 [1 point | Conclusiveness]: Based on the computed results, conclude how order count fluctuations affect profit, for example, that order count fluctuations are the primary driver of profit instability.
+#### Path 1.2.B [3 points]: Descriptive analysis method
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: Compute the monthly order count in South China.
+- Sub-criterion 1.2.B.2 [1 point | Accuracy]: Use charts or data comparisons to show the trend of order count changes or month-over-month changes.
+- Sub-criterion 1.2.B.3 [1 point | Conclusiveness]: Based on observations, draw a qualitative conclusion about the relationship between order count and profit.
+---
+### Criterion 1.3 [maximum 4 points]: Product category impact analysis
+#### Path 1.3.A [4 points]: Profit volatility analysis method
+- Sub-criterion 1.3.A.1 [1 point | Completeness]: Group by product category and compute each category’s Profit contribution and volatility metrics (e.g., coefficient of variation, standard deviation, etc.).
+- Sub-criterion 1.3.A.2 [2 points | Accuracy]: Volatility calculations are accurate and identify high-volatility product categories.
+  Coefficient of variation reference data:
+  Bedding Sets (19.32% share): 1.71 million yuan profit, volatility 9.79% 
+  Bathroom supplies (14.92% share): 1.32 million yuan profit, volatility 14.42%
+  Auto Parts (14.60% share): 1.29 million yuan profit, volatility 12.05%
+  Home Decorations (13.33% share): 1.18 million yuan profit, volatility 12.81%
+  Kitchen Appliances (12.55% share): 1.11 million yuan profit, volatility 21.41% High volatility
+  Bedroom Furniture (11.90% share): 1.05 million yuan profit, volatility 16.08%
+  Computer hardware (11.62% share): 1.03 million yuan profit, volatility 15.57%
+  Office Furniture (1.76% share): 0.16 million yuan profit, volatility 42.69% Most unstable
+  You can support with other data, such as standard deviation; reasonable is acceptable.
+- Sub-criterion 1.3.A.3 [1 point | Conclusiveness]: Based on the volatility analysis results, identify the product categories that most affect overall profit stability, for example:
+  Bedding Sets are the most stable profit source in South China and should be prioritized for maintenance.
+  Kitchen Appliances have a nontrivial share but large volatility and need attention.
+  Office Furniture has a small share but is the most unstable; consider adjusting strategy.
+  Reasonable explanatory content is acceptable.
+
+#### Path 1.3.B [3 points]: Product order count volatility analysis method
+- Sub-criterion 1.3.B.1 [1 point | Completeness]: Group by product category and compute each category’s order count and volatility metrics (e.g., coefficient of variation, standard deviation, etc.).
+- Sub-criterion 1.3.A.2 [1 point | Accuracy]: Volatility calculations are accurate and identify high-volatility product categories.
+  Coefficient of variation reference data:
+  Office Furniture: 23.11%
+  Bedroom Furniture: 12.45%
+  Kitchen Appliances: 12.78%
+  Home Decorations: 10.82%
+  Bedding Sets: 5.99%
+  Auto Parts: 9.71%
+  Bathroom supplies: 11.42%
+  Computer hardware: 14.65%
+  You can support with other data, such as standard deviation; reasonable is acceptable.
+- Sub-criterion 1.3.A.3 [1 point | Conclusiveness]: Based on the volatility analysis results, identify the product categories that most affect overall profit stability, for example:
+  Office Furniture has the largest order count volatility; measures should be taken to stabilize it.
+  Reasonable explanatory content is acceptable.
+
+#### Path 1.3.C [1 point]: Simple categorical statistics method
+- Sub-criterion 1.3.C.1 [1 point | Accuracy]: Only tally basic counts or amounts by product category, without deep analysis.
+---
+### Criterion 1.4 [maximum 3 points]: Geographical region impact analysis
+#### Path 1.4.A [3 points]: Province volatility analysis method
+- Sub-criterion 1.4.A.1 [1 point | Completeness]: Group by province to analyze each province in South China for Profit contribution and volatility (e.g., coefficient of variation, standard deviation, etc.).
+- Sub-criterion 1.4.A.2 [1 point | Accuracy]: Identify high-volatility provinces (e.g., Hainan Province, Hubei Province—smaller markets) and stable provinces (e.g., Guangdong Province).
+  Reference data:
+  Guangdong Province (42.71% share): 3.77 million yuan profit,, volatility 8.9% 
+  Guangxi (25.79% share): 2.28 million yuan profit, volatility 9.76%
+  Henan Province (11.72% share): 1.04 million yuan profit, volatility 17.35%
+  Hainan Province (7.77% share): 0.69 million yuan profit, volatility 20.87% ⚠️ High volatility
+  Hubei Province (6.50% share): 0.57 million yuan profit, volatility 23.91% ⚠️ High volatility
+  Hunan Province (5.52% share): 0.49 million yuan profit, volatility 20.07%
+  You can support with other data, such as standard deviation; reasonable is acceptable.
+- Sub-criterion 1.4.A.3 [1 point | Conclusiveness]: Based on the province analysis results, explain how geographical distribution affects overall profit stability, for example:
+  Guangdong Province contributes 42% of profit and is the most stable.
+  Hainan Province and Hubei Province have smaller shares but large volatility, affecting overall stability.
+  Reasonable explanatory content is acceptable.
+---
+### Criterion 1.5 [maximum 2 points]: Discount rate impact
+#### Path 1.5.A [2 points]: Discount impact analysis
+- Sub-criterion 1.5.A.1 [1 point | Accuracy]: Profit Margin is correlated with discount rate = -0.8253; discount rate is correlated with Average Order Value (AOV) = -0.8948, and with revenue = -0.67. Increasing discounts significantly depresses AOV and revenue, thereby amplifying profit volatility.
+- Sub-criterion 1.5.A.2 [1 point | Conclusiveness]: A higher discount rate significantly depresses Average Order Value and revenue, thereby amplifying profit volatility.
+
+---
+### Criterion 1.6 [maximum 2 points]: Cost impact
+#### Path 1.6.A [2 points]: Cost volatility analysis
+- Sub-criterion 1.6.A.1 [1 point | Completeness]: Compute the volatility (e.g., coefficient of variation, standard deviation, month-over-month change rate, etc.) of Freight Cost, Warehousing Cost, and other costs. Alternatively, compute the volatility of the monthly total cost (e.g., coefficient of variation, standard deviation, month-over-month change rate, etc.).
+- Sub-criterion 1.6.A.2 [1 point | Accuracy]: Below are reference coefficients of variation for Freight Cost, Warehousing Cost, and other costs. If the model uses different methods or dimensions, then verify code correctness; if methods, dimensions, and code are reasonable, award points.
+  Coefficient of variation for Freight Cost: 7.01%
+  Coefficient of variation for Warehousing Cost: 5.83%
+  Coefficient of variation for other costs: 5.81%
+
+#### Path 1.6.B [2 points]: Cost correlation analysis
+- Sub-criterion 1.6.B.1 [1 point | Completeness]: Compute the shares of Freight Cost, Warehousing Cost, and other costs and their relationship with Profit Margin. You may also use other cost dimensions to compute the relationship with Profit.
+- Sub-criterion 1.6.B.2 [1 point | Accuracy]: Below are Pearson coefficients computed at the monthly level for the shares of Freight Cost, Warehousing Cost, and other costs vs. Profit Margin. If the model uses different methods or dimensions, then verify code correctness; if methods, dimensions, and code are reasonable, award points.
+  Correlation between Freight Cost share and Profit Margin: -0.29
+  Correlation between Warehousing Cost share and Profit Margin: +0.05
+  Correlation between other costs share and Profit Margin: +0.54
+
+---
+### Criterion 1.7 [maximum 2 points]: Revenue impact
+#### Path 1.7.A [2 points]: Revenue volatility analysis
+- Sub-criterion 1.7.A.1 [1 point | Completeness]: Compute the volatility (e.g., coefficient of variation, standard deviation, month-over-month change rate, etc.) of monthly Total Logistics Revenue or monthly List Price Revenue.
+- Sub-criterion 1.7.A.2 [1 point | Accuracy]: Below is the reference coefficient of variation; if the model computes standard deviation, month-over-month change rate, etc., you can determine scoring by validating code correctness.
+  The coefficient of variation for monthly total revenue is approximately 6%

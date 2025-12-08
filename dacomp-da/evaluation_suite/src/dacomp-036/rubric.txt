@@ -1,0 +1,75 @@
+# [Total Score | 16 points] The solution must satisfy two requirements:
+- Requirement 1: Accurately analyze the weak points in 2024 across scenarios that combine different Login Methods and Authentication Methods.
+- Requirement 2: Scientifically recommend the Login - Authentication methods to adopt subsequently.
+---
+## Requirement 1: Weak point analysis (Maximum 10 points for this requirement)
+### Standard 1.1 [Maximum 3 points]: Login Method success rate analysis
+#### Path 1.1.A [3 points | Detailed success rate analysis]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: For each Login Method, separately tally success and failure counts, and compute success/failure rates.
+- Sub-standard 1.1.A.2 [2 points | Accuracy]: Verify against the baseline values below (deviation must not exceed 1%)
+  | Login Method | Success Count | Failure Count | Success Rate | Failure Rate |
+  |--------------|---------------|---------------|--------------|--------------|
+  | Password Login | 20 | 24 | 45.45% | 54.55% |
+  | SMS verification code login | 21 | 24 | 46.67% | 53.33% |
+  | Scan Code Login | 25 | 21 | 54.35% | 45.65% |
+  | Fingerprint authentication | 19 | 23 | 45.24% | 54.76% |
+#### Path 1.1.B [2 points | Success rate comparative analysis]
+- Sub-standard 1.1.B.1 [1 point | Completeness]: Compare success rates across multiple Login Methods, and identify which methods have higher and lower success rates.
+- Sub-standard 1.1.B.2 [1 point | Accuracy]: The comparative success rate analysis is correct; the identified methods with high and low success rates match actual conditions (use the baseline values in Path 1.1.A as reference; comparative result deviation must not exceed 1%).
+---
+### Standard 1.2 [Maximum 3 points]: Two-Factor Authentication analysis
+### Must be data-based analysis of Two-Factor Authentication; if no conclusion is reached, then all points under Standard 1.2 will be forfeited.
+#### Path 1.2.A [3 points | Comprehensive Two-Factor Authentication analysis]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: For each Two-Factor Authentication Method, compute the enablement proportion, analyze how enablement rate impacts security, and compare success rates between enabled and not enabled Two-Factor Authentication.
+- Sub-standard 1.2.A.2 [2 points | Accuracy]: Verify against the baseline values below (deviation must not exceed 1%)
+  | Two-Factor Authentication Method | Enabled Proportion |
+  |-------------|---------|
+  | APP verification code | 41% |
+  | SMS | 49% |
+  | Email | 47% |
+
+  Success rate with Two-Factor Authentication enabled: 48.78%
+  Success rate with Two-Factor Authentication not enabled: 47.37%
+#### Path 1.2.B [2 points | Two-Factor Authentication enablement proportion analysis]
+- Sub-standard 1.2.B.1 [1 point | Completeness]: For each Two-Factor Authentication Method, compute the enablement proportion and identify the methods with lower enablement rates.
+- Sub-standard 1.2.B.2 [1 point | Accuracy]: Enablement proportion calculations are correct; the identified methods with lower enablement rates match actual conditions (use the baseline values in Path 1.2.A as reference; deviation must not exceed 1%).
+---
+### Standard 1.3 [Maximum 4 points]: Specific combinations and security event analysis
+### If no event analysis is conducted for specific combinations, then no points will be awarded for any path under Standard 1.3.
+#### Path 1.3.A [4 points | Detailed combination and event analysis]
+- Sub-standard 1.3.A.1 [1 point | Completeness]: Analyze the success rates of specific combinations of Login Method and Authentication Method, identify combinations with extremely low success rates, and tally the number of security events under different combinations.
+- Sub-standard 1.3.A.2 [3 points | Accuracy]: Verify against the baseline values below (deviation must not exceed 1%)
+
+  | Login Method | Two-Factor Authentication Method | Whether Two-Factor Authentication is Enabled | Success Rate |
+  |--------------|----------------------------------|----------------------------------------------|--------------|
+  | Fingerprint authentication | SMS | Two-Factor Authentication Not Enabled (high level) | 0% |
+  | SMS verification code login | APP verification code | Two-Factor Authentication Not Enabled (low level) | 0% |
+  | Password Login | SMS | Two-Factor Authentication Enabled (high level) | 14.29% |
+  | Fingerprint authentication | SMS | Two-Factor Authentication Not Enabled (overall) | 11.11% |
+
+
+  | Login Method | Two-Factor Authentication Status | Severe anomaly count |
+  |--------------|----------------------------------|----------------------|
+  | SMS verification code login | Not Enabled | 9 times |
+  | Fingerprint authentication | Not Enabled | 8 times |
+  | Password Login | Enabled | 7 times |
+#### Path 1.3.B [2 points | Combination success rate analysis]
+- Sub-standard 1.3.B.1 [1 point | Completeness]: Analyze the success rates of specific combinations of Login Method and Authentication Method, and identify combinations with extremely low success rates.
+- Sub-standard 1.3.B.2 [1 point | Accuracy]: The identified combinations with extremely low success rates are correct; compared with the baseline values in Path 1.3.A, the deviation must not exceed 1%.
+---
+## Requirement 2: Recommendations for Login - Authentication methods (Maximum 6 points for this requirement)
+### Standard 2.1 [Maximum 4 points]: Login Method recommendations
+#### Path 2.1.A [4 points | Comprehensive recommendation]
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Based on multiple factors such as Login Method success rate and user experience, recommend suitable Login Methods for different scenarios and explain the rationale.
+- Sub-standard 2.1.A.2 [1 point | Accuracy]: The recommended Login Methods are reasonable, with sufficient rationale grounded in the preceding analysis.
+- Sub-standard 2.1.A.3 [2 points | Conclusiveness]: Clearly specify the recommended Login Methods for different scenarios, such as medium/low-risk scenarios and high-risk scenarios.
+#### Path 2.1.B [2 points | Simple recommendation]
+- Sub-standard 2.1.B.1 [1 point | Completeness]: Recommend one or several Login Methods and briefly explain the rationale.
+- Sub-standard 2.1.B.2 [1 point | Accuracy]: The recommended Login Methods are reasonably justified and have some connection to the preceding analysis.
+---
+### Standard 2.2 [Maximum 2 points]: Two-Factor Authentication strategy
+#### Path 2.2.A [2 points | Comprehensive Two-Factor Authentication strategy]
+- Sub-standard 2.2.A.1 [1 point | Completeness]: Propose mandatory (must) or incentive measures to enable Two-Factor Authentication, including mandatory requirements for different operations, incentive approaches, and optimizing the enablement flow.
+- Sub-standard 2.2.A.2 [1 point | Accuracy]: The proposed measures are reasonable and actionable, effectively improving the adoption rate of Two-Factor Authentication.
+#### Path 2.2.B [1 point | Simple Two-Factor Authentication recommendation]
+- Sub-standard 2.2.B.1 [1 point | Accuracy]: Provide a simple recommendation for Two-Factor Authentication, such as encouraging users to enable Two-Factor Authentication.

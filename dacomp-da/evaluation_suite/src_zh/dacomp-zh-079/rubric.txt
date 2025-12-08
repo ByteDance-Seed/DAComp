@@ -1,0 +1,214 @@
+# [总分 | 42分] 功能使用单一用户群体行为洞察评分标准
+
+  - 需求1：构建研究群体与基线对比
+  - 需求2：主要功能与产品域分析
+  - 需求3：使用强度与留存影响评估
+  - 需求4：机制归因与策略建议
+
+———
+
+## 需求1：构建研究群体与基线对比（最高可得 12分）
+
+### 标准1.1：分群口径与样本规模核验
+
+#### 路径1.1.A [6分 | SQL访客聚合法]
+
+- 小标准1.1.A.1 [1分 | 完备性]：说明分群口径（活跃天数count_active_days>60；功能点击种类=COUNT(DISTINCT CASE WHEN sum_clicks>0 THEN feature_id END)；单一组<5，对照组≥5），并在查询中落实。
+- 小标准1.1.A.2 [4分 | 精确性]：SQL需按以下逻辑复现：
+  ```
+  WITH feature_counts AS (
+      SELECT visitor_id,
+             COUNT(DISTINCT CASE WHEN sum_clicks>0 THEN feature_id END) AS distinct_features
+      FROM pendo__visitor_feature
+      GROUP BY visitor_id
+  ),
+  visitor_base AS (
+      SELECT v.visitor_id,
+             v.count_active_days,
+             COALESCE(fc.distinct_features,0) AS distinct_features
+      FROM pendo__visitor v
+      LEFT JOIN feature_counts fc USING (visitor_id)
+  )
+  SELECT COUNT(*) AS total_visitors,
+         SUM(count_active_days>60) AS active_gt60,
+         SUM(count_active_days>60 AND distinct_features<5) AS single_group,
+         SUM(count_active_days>60 AND distinct_features>=5) AS normal_group
+  FROM visitor_base;
+  ```
+  期望锚点：总访客数=8000、活跃>60人数=3171、单一组=1184、正常组=1987；占比（单一/活跃>60=37.34%，单一/全量=14.80%）。允许误差≤±0.5pp。
+- 小标准1.1.A.3 [1分 | 结论性]：明确标注分母口径，并解释题述“≈15%”与实算37.34%的差异来源（题干取全量分母 vs 本分析限定活跃>60）。
+
+#### 路径1.1.B [6分 | 字段映射流程陈述]
+
+- 小标准1.1.B.1 [1分 | 完备性]：逐字段说明如何从pendo__visitor与pendo__visitor_feature映射出count_active_days（访客级活跃天数）、distinct_features（去重功能数，过滤sum_clicks>0），定义单一/正常口径，并保留visitor_id关联主表。
+- 小标准1.1.B.2 [4分 | 精确性]：流程须包含：① visitor_feature按visitor_id聚合distinct_features；② 连接pendo__visitor后筛选count_active_days>60；③ 统计单一/正常样本量与占比：
+  ```
+  visitors = Filter(pendo__visitor, count_active_days > 60)
+  features = GroupBy(pendo__visitor_feature, visitor_id)
+             .Agg(distinct_features = COUNT_DISTINCT(feature_id WHERE sum_clicks>0))
+  base = LeftJoin(visitors, features, on='visitor_id').FillNA(0)
+  ```
+  输出须复现锚点：单一=1184、正常=1987、37.34%与14.80%。误差容差与1.1.A一致。
+- 小标准1.1.B.3 [1分 | 结论性]：给出两种分母口径（全量 vs count_active_days>60）的占比比较，阐明差异原因（活跃门槛缩小分母，使占比从14.80%升至37.34%）。
+
+### 标准1.2：核心基线指标对比
+
+#### 路径1.2.A [6分 | 均值对比法]
+
+- 小标准1.2.A.1 [1分 | 完备性]：同时比较单一/正常两组的平均NPS（latest_nps_rating）与平均每日时长（average_daily_minutes）；可选补充平均活跃月份（count_active_months）。
+- 小标准1.2.A.2 [4分 | 精确性]：推荐SQL：
+  ```
+  SELECT group_name,
+         AVG(latest_nps_rating) AS avg_nps,
+         AVG(average_daily_minutes) AS avg_daily_minutes,
+         AVG(count_active_months) AS avg_active_months
+  FROM visitor_base
+  GROUP BY group_name;
+  ```
+  期望锚点：NPS 单一=5.5828±0.02、正常=8.0070±0.02；平均每日时长 单一=32.4677±0.1分钟、正常=82.2691±0.1分钟；活跃月均值 单一=3.5659±0.02、正常=3.8863±0.02。
+- 小标准1.2.A.3 [1分 | 结论性]：说明“单一群体满意度显著更低（–2.42分）、使用深度显著不足（–49.80分钟）；活跃月份仅略低，差距主要来自体验深度缺失”。
+
+#### 路径1.2.B [6分 | NPS分布结构]
+
+- 小标准1.2.B.1 [1分 | 完备性]：输出Promoter(≥9)、Passive(7–8)、Detractor(≤6)占比，并与正常组对比。
+- 小标准1.2.B.2 [4分 | 精确性]：实现可参考：
+  ```
+  SELECT group_name,
+         100.0*AVG(latest_nps_rating>=9) AS promoter_pct,
+         100.0*AVG(latest_nps_rating BETWEEN 7 AND 8) AS passive_pct,
+         100.0*AVG(latest_nps_rating<=6) AS detractor_pct
+  FROM visitor_base
+  GROUP BY group_name;
+  ```
+  锚点：单一组Promoter=0.00%±0.1pp、Passive=26.35%±0.5pp、Detractor=73.65%±0.5pp；正常组Promoter=39.56%±0.5pp、Passive=40.97%±0.5pp、Detractor=19.48%±0.5pp。
+- 小标准1.2.B.3 [1分 | 结论性]：指出单一组“几乎无推广者，贬损者占73.65%，存在强烈口碑风险”。
+
+———
+
+## 需求2：主要功能与产品域分析（最高可得 12分）
+
+### 标准2.1：主功能/产品域的集中使用
+
+#### 路径2.1.A [6分 | 覆盖率Top功能法]
+
+- 小标准2.1.A.1 [1分 | 完备性]：在单一组上统计每个功能的覆盖访客数、覆盖占比、总点击、总分钟，并关联feature_name与product_area_name。
+- 小标准2.1.A.2 [4分 | 精确性]：样例SQL：
+  ```
+  SELECT f.feature_name,
+         f.product_area_name,
+         COUNT(DISTINCT vf.visitor_id) AS visitors,
+         100.0*COUNT(DISTINCT vf.visitor_id)/1184 AS coverage_pct,
+         SUM(vf.sum_clicks) AS total_clicks,
+         SUM(vf.sum_minutes) AS total_minutes
+  FROM single_visitors sv
+  JOIN pendo__visitor_feature vf USING (visitor_id)
+  JOIN pendo__feature f USING (feature_id)
+  WHERE vf.sum_clicks>0
+  GROUP BY f.feature_id
+  ORDER BY visitors DESC;
+  ```
+  Top功能需命中以下至少8项（覆盖误差≤±2名/±0.2pp）：logout(6.42%)、contact_support(6.08%)、user_profile(6.00%)、view_analytics(6.00%)、trend_analysis(5.91%)、subscription_manage(5.91%)、billing_info(5.83%)、export_api(5.74%)、user_roles(5.74%)、permissions(5.66%)、widgets_config(5.66%)、preferences(5.57%)、settings(5.57%)、create_report(5.49%)、login(5.41%)、custom_metrics(5.32%)、invoices(5.32%)、share_content(5.24%)。
+- 小标准2.1.A.3 [1分 | 结论性]：总结“高频聚焦于认证/权限/计费/支持/分析型功能，多为运营支撑入口，难以自然过渡至核心业务流程”。
+
+#### 路径2.1.B [6分 | 主功能判定法]
+
+- 小标准2.1.B.1 [1分 | 完备性]：为每位单一用户选取主功能（sum_clicks最大，若并列取feature_id最小），统计Top主功能列表并附产品域。
+- 小标准2.1.B.2 [4分 | 精确性]：逻辑示例：
+  ```
+  ranked = WindowRank(single_visitors_features,
+                      partition_by='visitor_id',
+                      order_by='sum_clicks DESC, feature_id')
+  main = Filter(ranked, rn == 1)
+  ```
+  Top10主功能需覆盖（允许±1人）：contact_support(34)、permissions(31)、signup(30)、trend_analysis(30)、user_profile(30)、view_analytics(30)、custom_metrics(29)、filter_data(29)、invoices(29)、schedule_report(29)；可补充widgets_config(29)、feedback(28)等。
+- 小标准2.1.B.3 [1分 | 结论性]：阐明“主用功能集中在支持/管理/报表/配置链路，缺乏核心产出动作，用户被困在外围治理场景”。
+
+### 标准2.2：功能集中度量化
+
+#### 路径2.2.A [6分 | Top功能点击占比分布]
+
+- 小标准2.2.A.1 [1分 | 完备性]：计算每位用户Top1功能点击占比（top_feature_share）并输出均值及占比桶（<50%、50–70%、70–90%、≥90%）。
+- 小标准2.2.A.2 [4分 | 精确性]：实现示例：
+  ```
+  top_share = sum_clicks_top1 / sum_clicks_total
+  buckets = {
+      '<50%': AVG(top_share < 0.5),
+      '50-70%': AVG(0.5 <= top_share AND top_share < 0.7),
+      ...
+  }
+  ```
+  锚点：单一组均值=0.643±0.01；<50%=36.40%±1pp、50–70%=29.31%±1pp、70–90%=7.52%±1pp、≥90%=26.77%±1pp；正常组均值=0.170±0.01、<50%=99.85%、≥90%=0.00%。
+- 小标准2.2.A.3 [1分 | 结论性]：强调“大多数单一用户将≥50%的点击集中于单功能，探索度极低”。
+
+#### 路径2.2.B [6分 | 主产品域点击占比]
+
+- 小标准2.2.B.1 [1分 | 完备性]：按产品域聚合sum_clicks，求各用户主域占比、均值及≥60%/≥80%占比。
+- 小标准2.2.B.2 [4分 | 精确性]：伪代码：
+  ```
+  clicks_by_area = GroupBy(visitor_id, product_area_name).Sum(sum_clicks)
+  top_area_share = max(clicks_by_area) / total_clicks
+  ```
+  锚点：单一组均值=0.679±0.01、≥60%=52.28%±1pp、≥80%=34.38%±1pp；正常组均值=0.281±0.01、≥60%=0.65%±0.2pp、≥80%=0.15%±0.1pp。
+- 小标准2.2.B.3 [1分 | 结论性]：指出“单一组在单一产品域高度停留，跨域延展严重不足”。
+
+#### 路径2.2.C [6分 | 核心事件分钟占比]
+
+- 小标准2.2.C.1 [1分 | 完备性]：计算核心事件分钟占比（基于pendo__feature.is_core_event=1的sum_minutes），输出均值及≥60%/≥80%占比。
+- 小标准2.2.C.2 [4分 | 精确性]：核心公式：
+  ```
+  core_share = SUM(sum_minutes WHERE is_core_event=1) / SUM(sum_minutes)
+  ```
+  锚点：单一组均值=0.411±0.01、≥60%=32.26%±0.8pp、≥80%=22.97%±0.7pp；正常组均值=0.321±0.01、≥60%=4.48%±0.3pp、≥80%=0.81%±0.2pp。
+- 小标准2.2.C.3 [1分 | 结论性]：说明“单一组停留在核心入口动作更多，但未延伸到高价值流程”。
+
+———
+
+## 需求3：使用强度与留存影响评估（最高可得 12分）
+
+### 标准3.1：每日时长分布与事件密度
+
+#### 路径3.1.A [6分 | 分布+均值法]
+
+- 小标准3.1.A.1 [1分 | 完备性]：提供平均值、中位数、Q1、Q3及分桶占比（<15、15–30、30–60、60–120、≥120分钟）。
+- 小标准3.1.A.2 [4分 | 精确性]：需输出锚点：单一均值32.4677±0.1、中位32.5926±0.5、Q1=25.8344±0.5、Q3=39.0825±0.5；分布15–30=41.55%±1pp、30–60=58.45%±1pp、≥60=0%；正常均值82.2691±0.1、中位82.2667±0.5、Q1=62.4967±0.5、Q3=101.0881±0.5；分布30–60=21.84%±1pp、60–120=75.94%±1pp、≥120=2.21%±0.5pp。
+- 小标准3.1.A.3 [1分 | 结论性]：指出“单一组深度使用缺失（无≥60分钟尾部），正常组以60–120分钟长会话为主”。
+
+#### 路径3.1.B [6分 | 分桶+事件密度法]
+
+- 小标准3.1.B.1 [1分 | 完备性]：沿用3.1.A分桶，并补充事件密度=average_daily_events/average_daily_minutes。
+- 小标准3.1.B.2 [4分 | 精确性]：锚点：事件密度 单一=0.961±0.02、正常=0.394±0.02；分桶占比需与3.1.A一致。
+- 小标准3.1.B.3 [1分 | 结论性]：说明“单一组呈现短时高频点击（高events/min），反映流程碎片或摩擦”。
+
+### 标准3.2：长期留存指标
+
+#### 路径3.2.A [6分 | 活跃月份阈值法]
+
+- 小标准3.2.A.1 [1分 | 完备性]：报告平均活跃月份及≥4月、≥6月占比，双组对比。
+- 小标准3.2.A.2 [4分 | 精确性]：锚点：单一均值=3.5659±0.02、≥4月=52.36%±0.5pp、≥6月=0.84%±0.2pp；正常均值=3.8863±0.02、≥4月=57.42%±0.5pp、≥6月=15.30%±0.5pp。
+- 小标准3.2.A.3 [1分 | 结论性]：强调“单一组长期留存显著弱（≥6月仅0.84%）”。
+
+#### 路径3.2.B [6分 | 生命周期跨度法]
+
+- 小标准3.2.B.1 [1分 | 完备性]：计算使用跨度=julianday(last_event_on)−julianday(first_event_on)+1及≥180天占比。
+- 小标准3.2.B.2 [4分 | 精确性]：锚点：单一平均跨度=136.8±1天、≥180天=13.43%±0.7pp；正常平均跨度=145.8±1天、≥180天=25.92%±0.7pp。
+- 小标准3.2.B.3 [1分 | 结论性]：说明“长期活跃阈值差异显著，需以跨度/月份视角替代近30天指标”。
+
+#### 路径3.2.C [6分 | 功能多样性相关性]
+
+- 小标准3.2.C.1 [1分 | 完备性]：分析distinct_features与NPS、平均每日时长、生命周期跨度的相关性或梯度趋势。
+- 小标准3.2.C.2 [4分 | 精确性]：计算Pearson相关系数，需给出：corr(features,NPS)=0.545±0.02、corr(features,average_daily_minutes)=0.627±0.02、corr(features,lifespan_days)=0.094±0.02；或等价分桶趋势。
+- 小标准3.2.C.3 [1分 | 结论性]：指出“功能多样性是满意度与深度的关键杠杆，对生命周期亦有正向但弱相关”。
+
+———
+
+## 需求4：机制归因与策略建议（最高可得 6分）
+
+### 标准4.1：链路性洞察与行动方案
+
+#### 路径4.1.A [6分 | 数据驱动的归因+策略闭环]
+
+- 小标准4.1.A.1 [1分 | 完备性]：归纳链路“短时高频（32.47分钟、events/min=0.961）→集中在支持/认证/计费功能（Top coverage集中在logout/contact_support等，top_feature_share=64.3%，主域占比≥60%达52.28%）→NPS低（5.58 vs 8.01）→长期留存弱（≥6月仅0.84%、跨度136.8天）”。
+- 小标准4.1.A.2 [4分 | 精确性]：策略需对应量化指标，至少提出3条，例如：① 上线引导包引导单一用户解锁≥5个功能，目标将top_feature_share降至≤50%、corr验证NPS提升≥1分；② 对高events/min路径开展摩擦排查（A/B实验监控average_daily_minutes向≥60分钟抬升）；③ 针对主域为support/billing的客户设置跨域任务或运营激励，目标≥6月占比提升至≥5%、核心事件占比≥60%人群占比扩大。需明确监控指标与评估方式。
+- 小标准4.1.A.3 [1分 | 结论性]：形成闭环（试点→监控→优化），并提示合规性（仅以行为标签分层，避免性别/年龄硬门槛）。
+
+———

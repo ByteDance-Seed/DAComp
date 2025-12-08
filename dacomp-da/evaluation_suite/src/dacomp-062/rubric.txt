@@ -1,0 +1,161 @@
+# [Total Score | 30 pts] Scoring rubric focuses on 'whether stakeholders with high `direct_network_connections` (DNC) lead to better project outcomes (`complexity_risk_score`, `success_probability`)', using a Demand → Standard → Path → Sub-standard structure. Each sub-standard is measured on Completeness (1 pt), Precision (4 pts), and Conclusiveness (1 pt); all scores are integers.
+
+———
+
+## Demand 1: Data Localization and Analysis Scope Definition (Up to 6 pts)
+
+### Standard 1.1 [Up to 3 pts]: Identify core data tables and define a feasible join path
+
+#### Path 1.1.A [3 pts]: Database exploration + Two-table verification + Declaration of indirect evidence
+
+- Sub-standard 1.1.A.1 [1 pt｜Completeness]: Clearly states the data location `/Users/bytedance/workspace/dacomp-release/dacomp-da/tasks/dacomp-062/dacomp-062.sqlite`, and points out that it only contains the `jira__stakeholder_engagement_insights` table (with fields like `stakeholder_id`, `direct_network_connections`, `engagement_*`, `influence`, `strategic_value_score`, etc.) and the `jira__project_risk_assessment` table (with fields like `project_id`, `complexity_risk_score`, `success_probability`, `total_external_links`, `unique_components`, `unique_issue_types`, `team_stability_percentage`, `value_delivery_percentage`, etc.).
+- Sub-standard 1.1.A.2 [4 pts｜Precision]: Provides anchor points via SQL/dataframe counts and states the absence of a direct stakeholder→project mapping: record count for `jira__stakeholder_engagement_insights` = 4524, for `direct_network_connections`, `min=2`, `mean≈15.97`, `max=65`, `P75=21`; record count for `jira__project_risk_assessment` = 200, mean `success_probability` ≈0.8259, mean `complexity_risk_score` ≈45.46; verifies that no `project_id × stakeholder_id` join key exists in either table (no shared field names or foreign keys found). Tolerance: count error within ±1; mean and percentile error within ±0.01.
+- Sub-standard 1.1.A.3 [1 pt｜Conclusiveness]: States that the subsequent analysis will use a 'two-stage indirect evidence chain' (Stakeholder profile comparison + Project-side collaboration proxy check) and declares the limitation of not being able to perform direct causal attribution.
+
+#### Path 1.1.B [3 pts]: Direct proof plan assuming an engagement mapping exists
+
+- Sub-standard 1.1.B.1 [1 pt｜Completeness]: Describes an ideal data structure `stakeholder_project_map(stakeholder_id, project_id, role, participation_weight)`, which should retain project metrics like `success_probability` and `complexity_risk_score`.
+- Sub-standard 1.1.B.2 [4 pts｜Precision]: Provides a reproducible SQL/process flow: ① Join stakeholder and project tables using the map table and flag 'whether a project includes ≥1 high-DNC member'; ② Perform project-level group aggregation on `success_probability` and `complexity_risk_score`; ③ Avoid duplicate records (deduplicate or weight by `participation_weight` for multiple engagement records for the same project).
+- Sub-standard 1.1.B.3 [1 pt｜Conclusiveness]: States that if this path could be executed, it should compare project outcomes for 'includes ≥1 high-DNC member vs. does not' and perform a significance test; if the mapping data is still unavailable, it should revert to the indirect evidence chain and state the limitation.
+
+### Standard 1.2 [Up to 3 pts]: Defining the high-DNC group
+
+#### Path 1.2.A [3 pts]: P75 percentile threshold method (Recommended)
+
+- Sub-standard 1.2.A.1 [1 pt｜Completeness]: Explains using the upper quartile (P75) of `direct_network_connections` as the 'high DNC' threshold, defining the high group as `DNC ≥ threshold` and the rest as the control group.
+- Sub-standard 1.2.A.2 [4 pts｜Precision]: Reproduces and validates the anchor points (tolerance ±1 unit / ±1%): P75=21, high group sample size=1231, control group sample size=3293; also reports the overall distribution `min=2`, `mean≈15.97`, `max=65`.
+- Sub-standard 1.2.A.3 [1 pt｜Conclusiveness]: Explicitly states 'The high-DNC threshold = 21, which will serve as the baseline for subsequent stakeholder profiling and comparative analysis'.
+
+#### Path 1.2.B [3 pts]: Top 25% or Z-score grouping method
+
+- Sub-standard 1.2.B.1 [1 pt｜Completeness]: Clarifies the chosen method (e.g., taking the top 25% by descending order or Z-score≥0.67) and explains the rationale for balancing sample sizes.
+- Sub-standard 1.2.B.2 [4 pts｜Precision]: Outputs the threshold and sample size, which should be of the same order of magnitude as the P75 method (threshold between 20–22, high group proportion 23%–27%); if using Z-score, must provide the calculation logic and threshold.
+- Sub-standard 1.2.B.3 [1 pt｜Conclusiveness]: States that this high-DNC group will be used alongside the control group in subsequent analysis to verify robustness.
+
+———
+
+## Demand 2: Characterizing cross-functional capability and influence at the stakeholder level (Up to 6 pts)
+
+### Standard 2.1 [Up to 3 pts]: Multi-metric comparison of high DNC vs. others
+
+#### Path 2.1.A [3 pts]: Multi-metric mean comparison (Recommended)
+
+- Sub-standard 2.1.A.1 [1 pt｜Completeness]: Covers at least 10 metrics using an 'uncleaned' scope: `total_projects_involved`, `cross_functional_projects`, `cross_functional_ratio = cross_functional_projects / total_projects_involved (0→NULL)`, `engagement_impact_score`, `total_engagement_score`, `engagement_quality_score`, `engagement_breadth_score`, `total_outbound_influence`, `total_inbound_influence`, `avg_outbound_influence_strength`, `strategic_value_score`.
+- Sub-standard 2.1.A.2 [4 pts｜Precision]: The mean values for the high group (n=1231) vs. the control group (n=3293) must be within ±1% of the anchor points: `total_projects_involved 6.505 vs 4.959`; `cross_functional_projects 6.602 vs 3.010`; `cross_functional_ratio ≈1.074 vs ≈0.675` (explicitly stating that >1 indicates a discrepancy in how multiple projects are counted); `engagement_impact_score 74.84 vs 48.70`; `total_engagement_score 55.68 vs 40.29`; `engagement_quality_score 72.83 vs 46.74`; `engagement_breadth_score 36.91 vs 16.37`; `total_outbound_influence 155.14 vs 48.51`; `total_inbound_influence 162.74 vs 50.92`; `avg_outbound_influence_strength 4.83 vs 4.85`; `strategic_value_score 77.09 vs 48.41`.
+- Sub-standard 2.1.A.3 [1 pt｜Conclusiveness]: Summarizes that 'high-DNC stakeholders are significantly higher in engagement breadth, cross-functional involvement, influence scale, and strategic value, with a minimal difference in average influence strength, and notes the data scope risk of `cross_functional_ratio` > 1'.
+
+#### Path 2.1.B [3 pts]: Standardized composite profile score
+
+- Sub-standard 2.1.B.1 [1 pt｜Completeness]: Explains calculating Z-scores based on at least 5 collaboration/influence metrics (e.g., `total_projects_involved`, `cross_functional_projects`, `engagement_impact_score`, `total_outbound_influence`, `strategic_value_score`) and summing them with equal weights to create a composite profile score for comparing the high and control groups.
+- Sub-standard 2.1.B.2 [4 pts｜Precision]: Provides the calculation process (mean/std dev → Z-score → sum → group mean); results must show the high group's average score ≈4.70, control group ≈-1.76, with a difference ≥5 (tolerance ±0.5).
+- Sub-standard 2.1.B.3 [1 pt｜Conclusiveness]: States that 'the significantly higher composite profile score indicates that high DNC is associated with a synergistic increase in network coverage and influence'.
+
+### Standard 2.2 [Up to 3 pts]: Statistical association between DNC and collaboration/influence metrics
+
+#### Path 2.2.A [3 pts]: Pearson correlation coefficient method (Recommended)
+
+- Sub-standard 2.2.A.1 [1 pt｜Completeness]: Calculates the Pearson's r between DNC and the following metrics: `cross_functional_projects`, `total_projects_involved`, `cross_functional_ratio`, `engagement_impact_score`, `total_engagement_score`, `engagement_quality_score`, `total_outbound_influence`, `total_inbound_influence`, `strategic_value_score`, `avg_outbound_influence_strength`.
+- Sub-standard 2.2.A.2 [4 pts｜Precision]: Correlation coefficients must be within ±0.01 of the anchor points: `r(DNC, CFP)=0.794`; `r(DNC, TPI)=0.401`; `r(DNC, Ratio)=0.496`; `r(DNC, engagement_impact)=0.715`; `r(DNC, total_engagement)=0.679`; `r(DNC, total_outbound)=0.808`; `r(DNC, total_inbound)=0.778`; `r(DNC, engagement_quality)=0.671`; `r(DNC, strategic_value)=0.614`; `r(DNC, avg_outbound_strength)=0.008`.
+- Sub-standard 2.2.A.3 [1 pt｜Conclusiveness]: Emphasizes that 'DNC is significantly positively correlated with collaboration breadth and influence scale, but is almost unrelated to single-connection strength'.
+
+#### Path 2.2.B [3 pts]: Quantile trend / monotonicity check
+
+- Sub-standard 2.2.B.1 [1 pt｜Completeness]: Divides data by DNC quartiles and calculates the mean of `cross_functional_projects`, `engagement_impact_score`, `total_outbound_influence`, and `engagement_quality_score` for each tier.
+- Sub-standard 2.2.B.2 [4 pts｜Precision]: Results must show a monotonic increase (tolerance ±1%): mean values should be approx. `cross_functional_projects 2.19 → 3.29 → 3.86 → 6.81`; `engagement_impact_score 34.73 → 50.70 → 62.40 → 75.42`; `total_outbound_influence 20.94 → 46.07 → 83.75 → 159.34`; `engagement_quality_score 33.33 → 51.87 → 60.09 → 73.38`.
+- Sub-standard 2.2.B.3 [1 pt｜Conclusiveness]: States that 'as DNC increases, collaboration and influence metrics show a step-wise growth, verifying a strong positive rank trend'.
+
+———
+
+## Demand 3: Overall relationship between project-level collaboration proxies and outcomes (Up to 6 pts)
+
+### Standard 3.1 [Up to 3 pts]: Full-sample baseline and linear correlation
+
+#### Path 3.1.A [3 pts]: Pearson correlation + overall means
+
+- Sub-standard 3.1.A.1 [1 pt｜Completeness]: Outputs overall project metrics: sample size n=200, `avg_success_probability≈0.8259`, `avg_complexity_risk_score≈45.46`.
+- Sub-standard 3.1.A.2 [4 pts｜Precision]: Calculates and reports correlation coefficients (tolerance ±0.01): `r(success, complexity)=-0.0047`; `r(success, total_external_links)=-0.0067`; `r(success, unique_components)=0.0214`; `r(success, unique_issue_types)=-0.0387`; `r(complexity, total_external_links)=0.0966`; `r(complexity, unique_components)=-0.0193`; `r(complexity, unique_issue_types)=0.0575`.
+- Sub-standard 3.1.A.3 [1 pt｜Conclusiveness]: Points out that 'the linear correlation between quantitative collaboration proxies and `success_probability` is near zero, as is the correlation between complexity and success; `total_external_links` shows a weak positive correlation with complexity'.
+
+#### Path 3.1.B [3 pts]: Quantile/binned mean comparison
+
+- Sub-standard 3.1.B.1 [1 pt｜Completeness]: Groups data by quartiles of `total_external_links` and `complexity_risk_score` respectively, and outputs the sample size and mean for each group.
+- Sub-standard 3.1.B.2 [4 pts｜Precision]: Anchor points (tolerance ±0.007): for external links quartiles, `n≈[64,46,41,49]`, `avg_success ≈ [0.818, 0.837, 0.825, 0.826]`, `avg_complexity ≈ [45.59, 40.02, 43.95, 51.65]`; for complexity quartiles, `avg_success ≈ [0.829, 0.812, 0.836, 0.827]`.
+- Sub-standard 3.1.B.3 [1 pt｜Conclusiveness]: States that 'success rate fluctuates little across different bins with no monotonic increase, while the bin with the most external links has markedly higher complexity'.
+
+### Standard 3.2 [Up to 3 pts]: Structural check of different collaboration proxies
+
+#### Path 3.2.A [3 pts]: Single-variable high/low group comparison
+
+- Sub-standard 3.2.A.1 [1 pt｜Completeness]: Constructs high/low groups using thresholds `unique_components≥10` and `unique_issue_types≥12`, then calculates the mean `success_probability` and `complexity_risk_score`.
+- Sub-standard 3.2.A.2 [4 pts｜Precision]: Results must match anchor points (tolerance ±0.01): high components group `n=58`, `avg_success≈0.826`, `avg_complexity≈43.19`; low group `n=142`, `avg_success≈0.826`, `avg_complexity≈46.39`; high issue types group `n=56`, `avg_success≈0.822`, `avg_complexity≈44.32`; low group `n=144`, `avg_success≈0.827`, `avg_complexity≈45.90`.
+- Sub-standard 3.2.A.3 [1 pt｜Conclusiveness]: Points out that 'diversity in components/issue types has limited impact on success rate, and complexity in the high groups did not significantly decrease'.
+
+#### Path 3.2.B [3 pts]: Composite Collaboration Intensity (CFI) index
+
+- Sub-standard 3.2.B.1 [1 pt｜Completeness]: Constructs a `CFI = z(total_external_links)+z(unique_components)+z(unique_issue_types)` and bins the data by tertiles.
+- Sub-standard 3.2.B.2 [4 pts｜Precision]: Outputs tertile anchor points (tolerance ±0.01): low group `n=67`, `avg_success≈0.835`, `avg_complexity≈43.30`; medium group `n=66`, `avg_success≈0.827`, `avg_complexity≈46.20`; high group `n=67`, `avg_success≈0.816`, `avg_complexity≈46.90`.
+- Sub-standard 3.2.B.3 [1 pt｜Conclusiveness]: Points out that 'as CFI increases, success rate slightly decreases while complexity rises, indicating that quantitative collaboration intensity does not yield benefits'.
+
+———
+
+## Demand 4: Stratified/Robustness Checks (Up to 6 pts)
+
+### Standard 4.1 [Up to 3 pts]: Impact of external links in high-complexity scenarios
+
+#### Path 4.1.A [3 pts]: Correlation and binning within a high-complexity subset
+
+- Sub-standard 4.1.A.1 [1 pt｜Completeness]: Sets a complexity threshold=62 (P75) to filter a high-complexity subset `n=51`, and reports `avg_success≈0.8239`, `avg_total_external_links≈12.90`.
+- Sub-standard 4.1.A.2 [4 pts｜Precision]: Within this subset, calculates `r(total_external_links, success_probability)≈-0.1202` (tolerance ±0.02); by quartiles of external links (sample sizes approx. `[15,12,14,10]`), provides `avg_success ≈ [0.853, 0.801, 0.815, 0.820]` (tolerance ±0.015).
+- Sub-standard 4.1.A.3 [1 pt｜Conclusiveness]: Summarizes that 'when complexity is high, more external links are associated with a decreasing or non-monotonic success probability, amplifying coordination costs'.
+
+#### Path 4.1.B [3 pts]: Regression/partial correlation controlling for complexity
+
+- Sub-standard 4.1.B.1 [1 pt｜Completeness]: Establishes a linear model `success_probability = β0 + β1·complexity_risk_score + β2·total_external_links`, stating the fitting method (OLS).
+- Sub-standard 4.1.B.2 [4 pts｜Precision]: Outputs coefficients (tolerance ±50%): `β0≈0.8288`, `β1≈-3.1×10⁻⁵`, `β2≈-1.23×10⁻⁴`; model `R²≈6.1×10⁻⁵`, showing extremely weak explanatory power.
+- Sub-standard 4.1.B.3 [1 pt｜Conclusiveness]: Points out that 'even after controlling for complexity, the coefficient for `external_links` remains negative and close to zero, corroborating that quantitative collaboration does not lead to increased success'.
+
+### Standard 4.2 [Up to 3 pts]: Complexity × collaboration interaction or sensitivity analysis
+
+#### Path 4.2.A [3 pts]: 3x3 interaction matrix of complexity and external links tertiles
+
+- Sub-standard 4.2.A.1 [1 pt｜Completeness]: Constructs a 3×3 cross-tabulation (complexity and external_links each divided by tertiles), outputting the sample size and mean success for each cell.
+- Sub-standard 4.2.A.2 [4 pts｜Precision]: The matrix must match anchor points (tolerance ±0.02): low-complexity × high-links `n=19`, `avg_success≈0.863`; medium-complexity × high-links `n=19`, `avg_success≈0.791`; high-complexity × high-links `n=28`, `avg_success≈0.821`; other examples: low×low `avg_success≈0.815`, medium×low `≈0.812`, high×low `≈0.845`.
+- Sub-standard 4.2.A.3 [1 pt｜Conclusiveness]: States that 'external links have a slight positive effect in low complexity, but the benefit turns negative as complexity rises, suggesting a need for combined governance'.
+
+#### Path 4.2.B [3 pts]: Contextual sensitivity / Monte Carlo re-weighting
+
+- Sub-standard 4.2.B.1 [1 pt｜Completeness]: Stratifies by `complexity_risk_score` (<62 as base, ≥62 as high), constructs Z-scores for `total_external_links`, `unique_components`, `unique_issue_types`, and performs 1000 Monte Carlo re-weighting simulations (weight = Normal noise × (1+0.15·Total collaboration Z-score sum, truncated to be non-negative)), comparing the re-weighted average success rate with the baseline.
+- Sub-standard 4.2.B.2 [4 pts｜Precision]: Provides the result intervals: base group baseline mean ≈0.8266, re-weighted mean change `Δmean≈+0.00018` (10%–90% quantiles `≈-0.00060 → +0.00095`); high group baseline mean ≈0.8239, re-weighted mean change `Δmean≈-0.00553` (10%–90% quantiles `≈-0.00690 → -0.00415`).
+- Sub-standard 4.2.B.3 [1 pt｜Conclusiveness]: Summarizes that 'in different contexts, perturbations in collaboration quantity have an effect on the success rate of high-complexity projects that is concentrated in the zero or negative range, indicating a need to focus on collaboration quality and dependency governance'.
+
+———
+
+## Demand 5: Synthesizing Inferences, Causal Boundaries, and Actionable Recommendations (Up to 6 pts)
+
+### Standard 5.1 [Up to 3 pts]: Integrate evidence and define causal boundaries
+
+#### Path 5.1.A [3 pts]: Induction from a dual evidence chain (Recommended for actual data)
+
+- Sub-standard 5.1.A.1 [1 pt｜Completeness]: Connects the two evidence chains: ① High DNC → significantly higher cross-functional participation/influence; ② On the project side, quantitative collaboration metrics have near-zero overall correlation with `success_probability`, and a negative tendency in high-complexity scenarios.
+- Sub-standard 5.1.A.2 [4 pts｜Precision]: Cites key anchor points (tolerance ±0.01): `r(DNC, cross_functional_projects)=0.794`, mean difference `6.60 vs 3.01`; `r(success, total_external_links)=-0.0067`, `r(success, complexity)=-0.0047`; high-complexity subset `r(extlinks, success)=-0.1202`; adds quality metrics: `r(success, team_stability)=-0.0636` (high complexity ≈-0.2318), `r(success, value_delivery)=+0.0953`; notes that the highest external links bin complexity is ≈51.65, and success for high-complexity, high-links projects is ≈0.791.
+- Sub-standard 5.1.A.3 [1 pt｜Conclusiveness]: Concludes that 'high DNC represents collaboration potential but does not directly translate to higher success rates; be cautious of reverse causality, and emphasize the data limitation of the missing stakeholder→project mapping'.
+
+#### Path 5.1.B [3 pts]: Causal testing framework if a direct mapping were established
+
+- Sub-standard 5.1.B.1 [1 pt｜Completeness]: Proposes an analysis plan after introducing a map table (e.g., Propensity Score Matching or OLS/Logit: `success ~ high_DNC_presence + complexity + team_stability + value_delivery + collaboration_proxies`), and specifies the covariates to be controlled for.
+- Sub-standard 5.1.B.2 [4 pts｜Precision]: Provides pseudocode for the model/matching: ① Estimate propensity score `P(high_DNC_presence | complexity, team_stability, value_delivery, external_links, components, issue_types)`; ② Match projects based on the score or use it for weighting in a regression; ③ Avoid double counting (aggregate by participation weight when multiple stakeholders are in one project).
+- Sub-standard 5.1.B.3 [1 pt｜Conclusiveness]: States that if results still show high DNC does not improve success, one should revert to indirect evidence and emphasize quality factors; if future results are positive, they should be paired with an external link governance strategy.
+
+### Standard 5.2 [Up to 3 pts]: Actionable recommendations and data improvements
+
+#### Path 5.2.A [3 pts]: Quality-first improvement plan
+
+- Sub-standard 5.2.A.1 [1 pt｜Completeness]: Proposes at least 3 recommendations covering operational governance and data infrastructure, e.g., ① Set a warning threshold for external links (≥18) in high-complexity projects and assign high-DNC members as integration leads; ② Develop collaboration quality metrics (response time, blocker resolution time, decision closure rate) and incorporate `engagement_quality_score` and `value_delivery_percentage` into KPIs; ③ Build a stakeholder-project engagement log to track the relationship between high-DNC investment and success; ④ Pilot a quasi-experiment of early high-DNC intervention in low-complexity projects to compare success and delay rates.
+- Sub-standard 5.2.A.2 [4 pts｜Precision]: Recommendations must align with data insights and cite anchor points: negative correlation of external links with success (`r=-0.0067` overall, `r=-0.1202` in high complexity), weak negative `team_stability` (`r=-0.0636`, high complexity ≈-0.2318), weak positive `value_delivery` (`r=+0.0953`), explaining why one should 'control quantity, improve quality, and augment data'.
+- Sub-standard 5.2.A.3 [1 pt｜Conclusiveness]: Summarizes that 'the network advantage of high-DNC members should be shifted towards quality-driven outcomes (dependency governance, pace control, value delivery), with effectiveness enhanced through data infrastructure and pilot validation'.
+
+#### Path 5.2.B [3 pts]: Modeling and monitoring roadmap (Alternative)
+
+- Sub-standard 5.2.B.1 [1 pt｜Completeness]: Plans a monitoring system (collaboration quality dashboard, complexity × collaboration heatmap, external link alerts) and proposes a periodic review mechanism.
+- Sub-standard 5.2.B.2 [4 pts｜Precision]: Provides specific metrics and thresholds: e.g., `total_external_links>18` triggers governance; `high-complexity×high-links` success rate of ≈0.791 as a risk baseline; uses time series to overlay trends of `team_stability` and `value_delivery` and records threshold breaches.
+- Sub-standard 5.2.B.3 [1 pt｜Conclusiveness]: Emphasizes that 'the focus of monitoring should shift from collaboration quantity to quality and dependency management' and proposes a closed loop for evaluating the effectiveness of high-DNC pilots (objectives, accountability, frequency).

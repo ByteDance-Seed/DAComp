@@ -1,0 +1,173 @@
+# [Total Score | 25 points] The solution must satisfy two core requirements:
+- Requirement 1: Analyze the marketing characteristics of user groups across different age segments (churn risk, share rate, feedback rating)
+- Requirement 2: Design differentiated product and marketing campaign recommendation strategies
+---
+## Requirement 1: Analyze the marketing characteristics of user groups across different age segments (churn risk, share rate, feedback rating) (This requirement is worth up to 13 points)
+- Code verification method: Suitable when it is difficult to enumerate all reference answers; assume the code is correct if logic is correct. First, read comments and quickly scan the relevant code to verify whether the overall logic matches the analytical approach; then verify line-by-line to check whether each line truly implements what the comment describes.
+### Criterion 1.1: Reasonableness and coverage of age group segmentation (up to 2 points)
+#### Path 1.1.A [2 points | Four segments specified by the prompt]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Use the four age segments <25, 25–35, 36–50, 50+. Also compute sample sizes
+- Sub-criterion 1.1.A.2 [1 point | Accuracy]: The following are reference figures; if the model only computes these in code without displaying the results, it is acceptable.
+25-35: 69 people
+36-50: 106 people
+50+: 106 people
+<25: 56 people
+
+
+---
+### Criterion 1.2: Churn risk analysis (up to 3 points)
+#### Path 1.2.A [3 points | Average churn risk]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Group by days since last login, assign different risk indices, and compute the average churn risk for each age segment
+- Sub-criterion 1.2.A.2 [2 points | Accuracy]: Using 2024-11-01 as the baseline, compute days since last login, and group by different ranges with weights (<30, 30-90, >90) to calculate the average churn risk. If the solution uses a different baseline date | grouping | weights | calculation definitions or other methods to analyze time since last login, these values are not directly comparable; score using the code verification method, and award points if the logic is correct.
+   25-35  0.645
+   36-50  0.753
+   50+  0.745
+   <25  0.736
+
+#### Path 1.2.B [3 points | Analysis based on days since last login and Login Count]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: Assign different weights to days since last login and Login Count, and compute the average churn risk for different age segments
+- Sub-criterion 1.2.B.2 [2 points | Accuracy]: Using 2024-12-29 as the baseline, compute days since last login, and apply the weighting formula 0.6*days since last login + 0.4*Login Count. The following are reference results. If the solution uses a different baseline time | weights | calculation definitions, these values are not directly comparable; score using the code verification method, and award points if the logic is correct.
+   25-35  0.286
+   36-50  0.353
+   50+  0.368
+   <25  0.346
+
+#### Path 1.2.C [2 points | Basic churn risk analysis]
+- Sub-criterion 1.2.C.1 [1 point | Completeness]: Define a time baseline and a days-since-last-login threshold; based on the threshold and baseline, compute churn risk by population proportion
+- Sub-criterion 1.2.C.2 [1 point | Accuracy]: Using 2024-10-06 as the time baseline, and >90 days since last login as the threshold, compute the churn risk proportion. If the solution uses a different baseline time | threshold | calculation definitions, these values are not directly comparable; score using the code verification method, and award points if the logic is correct.
+Age group  Churn risk proportion
+25-35  60.87%
+36-50 74.53%
+50+  76.42%
+<25   66.07%
+
+---
+### Criterion 1.3: Share rate analysis (up to 4 points)
+#### Path 1.3.A [4 points | Multi-factor share propensity analysis]
+- Sub-criterion 1.3.A.1 [1 point | Completeness]: Using three dimensions—Age group, Membership Level, and Marketing SMS subscription status—stack influence factors (other reasonable dimensions are also acceptable) to compute share rates for different age segments
+- Sub-criterion 1.3.A.2 [3 points | Accuracy]: Starting from a base value (0.3), add corresponding adjustment terms and random noise to obtain each user's share rate (between 0–1), and finally take the group average as the average share rate metric for that age segment. If the solution uses a different base value | influence parameters | calculation definitions | dimensions, these values are not directly comparable; score using the code verification method, and award points if the logic is correct.
+Data explanation
+| Item | Meaning | Value | 
+| ------------------ | ------- | ------------------------------------------- | 
+| (\text{Base}) | Base share propensity | 0.3 | 
+| (f_1(\text{Age group})) | Age influence factor | <25:+0.25; 25–35:+0.15; 36–50:+0.05; 50+:+0.02 | 
+| (f_2(\text{Membership Level})) | Loyalty influence factor | Diamond:+0.15; Platinum:+0.10; Gold:+0.05; Regular:+0 | 
+| (f_3(\text{Marketing SMS subscription status})) | Marketing reach factor | Subscribed:+0.10; Not Subscribed:+0 | 
+| (\varepsilon) | Random noise term | (N(0, 0.05)) |
+Computation results
+   25-35  0.566
+   36-50  0.458
+   50+   0.438
+   <25  0.674
+
+#### Path 1.3.B [4 points | Multi-dimensional activity-feature weighting]
+- Sub-criterion 1.3.B.1 [1 point | Completeness]: Use three observable features—Login Count, device diversity, and Marketing SMS subscription status—to build a weighted composite "share propensity index"
+- Sub-criterion 1.3.B.2 [3 points | Accuracy]: The following are computed using weights: 0.6 → Login Count, 0.2 → Device count, 0.2 → Marketing SMS subscription status. If the solution uses different weights | calculation definitions, these values are not directly comparable; score using the code verification method, and award points if the logic is correct.
+| Age group | Average share propensity | 
+| ----- | ------ | 
+| <25 | 0.518 | 
+| 25–35 | 0.580 | 
+| 36–50 | 0.483 | 
+| 50+ | 0.504 | 
+
+#### Path 1.3.C [3 points | People-count analysis]
+- Sub-criterion 1.3.C.1 [1 point | Completeness]: Use the number of users who shared versus total users to compute the share rate by age segment
+- Sub-criterion 1.3.C.2 [2 points | Accuracy]: The following are reference values for share rates, allowing a 1% data difference. If the solution's calculation definitions or dimensions differ, these values are not directly comparable; score using the code verification method, and award points if the logic is correct.
+| Age group | Share rate(%) | 
+| :---- | -------: | 
+| <25 | 0.768| 
+| 25–35 | 0.652| 
+| 36–50 | 0.632| 
+| 50+ | 0.491|
+  
+#### Path 1.3.D [2 points | Basic potential assessment]
+- Sub-criterion 1.3.D.1 [1 point | Completeness]: Using Marketing SMS subscription status as the core potential feature, compute the subscription rate by age segment
+- Sub-criterion 1.3.D.2 [1 point | Accuracy]: The following are reference subscription rates, allowing a 1% data difference.
+| Age group | Marketing subscription rate | 
+| :---- | -------: | 
+| <25 | 57.14% | 
+| 25–35 | 57.97% | 
+| 36–50 | 52.83% | 
+| 50+ | 50.94%|
+
+
+### Criterion 1.4: Feedback rating analysis (up to 4 points)
+#### Path 1.4.A [4 points | Normalized scoring for user feedback potential]
+- Sub-criterion 1.4.A.1 [1 point | Completeness]: Analyze dimensions such as Membership Level, Account security level, Payment enabled (or other reasonable dimensions). Normalize and weight the data to combine factors by importance into a feedback rating
+- Sub-criterion 1.4.A.2 [3 points | Accuracy]: Use the weighted formula: Feedback rating = Membership Level*0.5 + Account security level*0.2 + Payment enabled*0.3. If the solution uses different calculation definitions, dimensions, or weightings, these values are not directly comparable; score using the code verification method, and award points if the logic is correct.
+| Age group | Average feedback rating proxy | High-feedback proportion | 
+| ----- | -------- | ----- | 
+| <25 | 0.590 | 0.554 | 
+| 25–35 | 0.617 | 0.565 | 
+| 36–50 | 0.589 | 0.509 | 
+| 50+ | 0.584 | 0.557 | 
+
+
+#### Path 1.4.B [4 points | Behavior-weighted feedback rating]
+- Sub-criterion 1.4.B.1 [1 point | Completeness]: Combine Membership Level, Login Count, Payment enabled (or other reasonable dimensions). Apply a weighted scoring model plus small random fluctuation to compute individual feedback ratings (range 1–5), then group by Age group and take averages
+- Sub-criterion 1.4.B.2 [3 points | Accuracy]: The following is an illustrative reference. If the solution's calculation definitions, dimensions, or rules differ, these values are not directly comparable; score using the code verification method, and award points if the logic is correct.
+Computation method:
+| Item | Rule | Bonus range | 
+| :--------- | :--------------------------------------------- | :-------- | 
+| **Base score** | Fixed at `3.5` | +3.5 | 
+| **Membership Level bonus** | Diamond +0.8; Platinum +0.5; Gold +0.3; Regular +0 | 0~+0.8 | 
+| **Activity bonus** | Login Count >400 → +0.5; 200–400 → +0.3; ≤200 → +0 | 0~+0.5 | 
+| **Payment bonus** | If `Payment enabled='Yes'` → +0.3, else +0 | 0~+0.3 | 
+| **Random fluctuation** | Sample from a normal distribution N(0,0.3) (`np.random.normal(0,0.3)`) | ±0.3 (mean 0) | 
+Average feedback rating = mean(clip(3.5 + f1(Membership Level) + f2(Login Count) + f3(Payment) + ϵ, 1, 5))
+Computation results:
+| Age group | Average feedback rating | 
+| :---- | :----: | 
+| <25 | 4.179 | 
+| 25–35 | 4.198 | 
+| 36–50 | 4.107 | 
+| 50+ | 4.174 | 
+
+ 
+#### Path 1.4.C [2 points | Indirect analysis]
+- Sub-criterion 1.4.C.1 [1 point | Completeness]: Infer feedback ratings indirectly using Device count or other reasonable dimensions
+- Sub-criterion 1.4.C.2 [1 point | Accuracy]: The following are reference averages of device counts by age segment (allowing a 1% data difference). If the model uses other reasonable dimensions, these values are not directly comparable; score using the code verification method, and award points if the logic is correct.
+| Age group | Average feedback rating | 
+| :---- | :----: | 
+| <25 | 2.875000 | 
+| 25–35 | 3.289855 | 
+| 36–50 | 2.764151 | 
+| 50+ | 2.886792 | 
+
+
+---
+## Requirement 2: Design differentiated product and marketing campaign recommendation strategies (This requirement is worth up to 12 points)
+### Criterion 2.1: Differentiated product strategy (up to 5 points)
+#### Path 2.1.A [5 points | Multi-dimensional product strategy design]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Based on multiple dimensions such as churn risk, share rate, feedback rating, subscription rate, Device count (include at least 2 of these), design differentiated products
+- Sub-criterion 2.1.A.2 [4 points | Conclusiveness]:  Based on the following four mini-points, score 1 point for each correct item (up to 4 points)
+  1) Product strategy for ages 25–35: Add more membership products; add cross-device (sync) features. Providing either one earns the point
+  2) Product strategy for ages 36–50: Launch family accounts/family bundles or long-term plan products
+  3) Product strategy for ages <25: Offer student-exclusive/new-user-exclusive/student-priced products
+  4) Product strategy for ages 50+: Simplify workflows or interfaces; reinforce care and services. Providing either one earns the point
+
+#### Path 2.1.B [3 points | Simple product strategy design]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Based on a single metric computed in Requirement 1, design differentiated product strategies, such as churn risk
+- Sub-criterion 2.1.B.2 [2 points | Conclusiveness]:  Must tailor differentiated products for different age segments using the results from Requirement 1; reasonable solutions earn the points
+
+---
+### Criterion 2.2: Marketing campaign strategy (up to 5 points)
+#### Path 2.2.A [5 points | Multi-dimensional marketing campaign strategy]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Based on multiple dimensions such as churn risk, share rate, feedback rating, subscription rate, Device count (include at least 2 of these), design differentiated marketing campaign strategies
+- Sub-criterion 2.2.A.2 [4 points | Conclusiveness]:  Score 1 point for each of the following four mini-points
+  1) Marketing strategy for ages 25–35: Add new membership benefits campaigns or membership upgrade campaigns
+  2) Marketing strategy for ages 36–50: Carry out churned-user recall campaigns
+  3) Marketing strategy for ages <25: Develop campus promotions; share-for-gifts or discount campaigns. Providing either one earns the point
+  4) Marketing strategy for ages 50+: Telemarketing care, callbacks, or add dedicated service channels. Providing either one earns the point;
+
+
+#### Path 2.2.B [3 points | Simple campaign strategy design]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Based on a single metric computed in Requirement 1, design differentiated campaign strategies, such as churn risk
+- Sub-criterion 2.2.B.2 [2 points | Conclusiveness]:  Must tailor differentiated campaign strategies for different age segments using the results from Requirement 1; reasonable solutions earn the points
+
+
+### Criterion 2.3: Implementation plan priority (up to 2 points)
+#### Path 2.3.A [2 points | Resource priority
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Clearly define resource allocation priorities based on user scale, activity level, and conversion potential.
+- Sub-criterion 2.3.A.2 [1 point | Conclusiveness]:  
+  1) Placement priority order: The 36–50 and 25–35 age segments should have higher priority

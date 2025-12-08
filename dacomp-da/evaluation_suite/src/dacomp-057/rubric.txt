@@ -1,0 +1,83 @@
+# [Total Score | 36 Points] Google Ads Acquisition Efficiency Decay Identification, Tiered Diagnosis, and Strategy Recommendation Scoring Rubric
+---
+## Requirement 1: Identify campaigns running for ≥120 days with "in the last 30 days, CAC↑>25% & LTV/CAC↓>20%" (Up to 12 Points)
+### Standard 1.1: Cross-Table Alignment and Time Window Definition (Up to 6 Points)
+#### Path 1.1.A [6 Points | Account × Channel Weighted Method]
+- Sub-criterion 1.1.A.1 [1 Point | Completeness]: Explain the use of `google_ads__campaign_report` to calculate `run_days = COUNT(DISTINCT date(substr(date_day,1,10)))` and filter for run_days ≥ 120. Then, aggregate `google_ads__customer_acquisition_analysis` by `account_id + advertising_channel_type + date(substr(date_day,1,10))` to a daily level per account × channel. Define the time windows based on the global max date of 2024-12-31: last 30 days = [2024-12-03, 2024-12-31], previous 30 days = [2024-11-03, 2024-12-02]. No data cleansing should be performed; only use the date.
+- Sub-criterion 1.1.A.2 [4 Points | Accuracy]: Describe the complete process: ① First, calculate `Σspend` and `Σconversions` for the two 30-day windows to derive `CAC = Σspend/Σconversions`; ② Generate `LTV/CAC` using `AVG(ltv_cac_ratio)`; ③ Join back to campaigns within the same account that have run_days ≥ 120. Must provide key calculation points: for the last window, `CAC_last30`=86.4645 and for the previous window, `CAC_prev30`=62.1654 (for ACC_FIN_001×SHOPPING), with `LTV/CAC_last30`=36.7776 and `LTV/CAC_prev30`=46.6671; for ACC_ECOM_002×SEARCH, `CAC_last30`=52.9152, `CAC_prev30`=40.2757, `LTV/CAC_last30`=9.4892, `LTV/CAC_prev30`=12.8598.
+- Sub-criterion 1.1.A.3 [1 Point | Conclusiveness]: Point out that this account × channel approximation can address scenarios where `campaign_id` is missing from `google_ads__customer_acquisition_analysis`. The result must note that "metrics are shared at the account × channel level; if a many-to-one relationship exists after the join, deduplicate by date to maintain accurate aggregation."
+
+### Standard 1.2: Windowed Metric Calculation and Decaying Sample Selection (Up to 6 Points)
+#### Path 1.2.A [6 Points | Fixed Global Window + Metric Checklist]
+- Sub-criterion 1.2.A.1 [1 Point | Completeness]: List the required output fields: `CAC_last30/prev30`, `CAC_growth_rate`, `LTV/CAC_last30/prev30`, `LTV/CAC_decline_rate`, `CPC_last30/prev30`, `CPC_change`, `CTR_last30/prev30`, `CTR_change`, `run_days`, `spend_last30/prev30`, `acquisition_sophistication_score`, `cac_efficiency_percentile`, `channel_diversity_count`, `retention_risk`, `scale_opportunity`.
+- Sub-criterion 1.2.A.2 [4 Points | Accuracy]: Provide the three required campaigns and their values (allowing a ±0.5% margin of error): ①CMP_ACC_FIN_001_007——`CAC_last30`=86.4645, `CAC_prev30`=62.1654, `CAC_growth_rate`=(86.4645−62.1654)/62.1654=0.3909; `LTV/CAC_last30`=36.7776, `LTV/CAC_prev30`=46.6671, `decline_rate`=0.2119; `CPC`: 1.5603→1.5269 (+0.0333); `CTR`: 0.034831→0.030720 (+0.00411); `run_days`=125; `spend_last30`=18,019.67; `acquisition_sophistication_score`: 58.30→55.23; `cac_efficiency_percentile`: 5.89→29.72; `channel_diversity_count`: 6.14→7.00; `retention_risk`=0; `scale_opportunity`=0. ②CMP_ACC_FIN_001_008——Values are consistent with the same account, but `CPC` 2.5317→1.3006 (+1.2311), `CTR` 0.035012→0.032598 (+0.00241), `run_days`=136, `spend_last30`=9,433.18. ③CMP_ACC_ECOM_002_004——`CAC_last30`=52.9152, `CAC_prev30`=40.2757, `growth_rate`=0.3138; `LTV/CAC_last30`=9.4892, `LTV/CAC_prev30`=12.8598, `decline_rate`=0.2621; `CPC`: 2.3298→1.9827 (+0.3471); `CTR`: 0.039783→0.033277 (+0.00651); `run_days`=125; `spend_last30`=25,399.79; `acquisition_sophistication_score`: 43.87→58.34; `cac_efficiency_percentile`: 23.81→51.23; `channel_diversity_count`: 3.20→3.71; `retention_risk`=1; `scale_opportunity`=1.
+- Sub-criterion 1.2.A.3 [1 Point | Conclusiveness]: The output list must state "three campaigns meet the thresholds, from ACC_FIN_001×SHOPPING and ACC_ECOM_002×SEARCH respectively," and clarify that their `CAC` and `LTV/CAC` trends support the subsequent diagnosis.
+
+---
+## Requirement 2: Multi-dimensional diagnosis (lifecycle × channel, maturity, strategic segmentation, etc.) to identify decay patterns (Up to 12 Points)
+### Standard 2.1: Decay Characteristics of Lifecycle × Channel Combinations (Up to 6 Points)
+#### Path 2.1.A [6 Points | Flagged Set vs. Baseline Comparison Method]
+- Sub-criterion 2.1.A.1 [1 Point | Completeness]: Explain the need to statistically analyze the mean values for the "flagged set (3 campaigns)" versus the "entire run_days ≥ 120 baseline (30 campaigns)" across the `campaign_lifecycle_stage × advertising_channel_type` dimension. Metrics to analyze: `CAC_growth_rate`, `LTV/CAC_decline_rate`, `CPC/CTR_change`, `acquisition_sophistication_score`, `cac_efficiency_percentile`, `channel_diversity_count`, `scale_opportunity`, `retention_risk`.
+- Sub-criterion 2.1.A.2 [4 Points | Accuracy]: List the key calculated values (allowing a ±5% margin of error): Flagged set average `CAC_growth_rate`=36.52%, `LTV/CAC_decline_rate`=22.86%, `CPC_change`=+0.537, `CTR_change`=+0.00434; Baseline average `CAC_growth_rate`=14.37%, `LTV/CAC_decline_rate`=−40.68% (i.e., an increase), `CPC_change`=+0.3665, `CTR_change`=+0.00026, `acquisition_sophistication_score`=59.998, `cac_efficiency_percentile`=54.34, `channel_diversity_count`=4.36.
+- Sub-criterion 2.1.A.3 [1 Point | Conclusiveness]: Must point out significant patterns: for `Decline×SHOPPING` (2 campaigns), `CAC_growth`≈39.09%, `LTV/CAC_decline`≈21.19%, `CPC` surged +0.632; for `Revival×SEARCH` (1 campaign), `CAC_growth`≈31.38%, `LTV/CAC_decline`≈26.21%, `CTR` narrowed but still +0.0065. Also, state that the flagged set's `acquisition_sophistication_score` and `cac_efficiency_percentile` are both lower than the baseline, indicating a dual risk of channel inefficiency and declining ad delivery performance.
+
+### Standard 2.2: Impact of Customer/Account Maturity and Strategic Segmentation on Decay (Up to 6 Points)
+#### Path 2.2.A [6 Points | Customer Maturity × Account Maturity Cross-Analysis]
+- Sub-criterion 2.2.A.1 [1 Point | Completeness]: Output the sample size, average `CAC_growth_rate`, and average `LTV/CAC_decline_rate` for both the flagged set and the baseline, broken down by `customer_maturity_stage × account_maturity_stage`.
+- Sub-criterion 2.2.A.2 [4 Points | Accuracy]: For the flagged set: `VIP Customer × Mature Account` (2 campaigns) `CAC_growth`=39.09%, `LTV/CAC_decline`=21.19%; `Growing Customer × Growing Account` (1 campaign) `CAC_growth`=31.38%, `LTV/CAC_decline`=26.21%. For the baseline, the corresponding combinations must be provided: `VIP×Mature` (5 campaigns) average `CAC_growth`≈11.67%, `LTV/CAC_decline`≈−10.37%; `Growing×Growing` (3 campaigns) average `CAC_growth`≈9.67%, `LTV/CAC_decline`≈−22.73%.
+- Sub-criterion 2.2.A.3 [1 Point | Conclusiveness]: Point out that "efficiency collapses when mature accounts serve VIP customers, and aggressive volume acquisition by growing accounts leads to customer quality dilution," and clearly state that budget strategies need to be differentiated.
+
+#### Path 2.2.B [6 Points | Strategic Customer Segment Analysis]
+- Sub-criterion 2.2.B.1 [1 Point | Completeness]: Summarize the proportion and key metrics of the flagged samples, grouped by `strategic_customer_segment`.
+- Sub-criterion 2.2.B.2 [4 Points | Accuracy]: Provide the results: `High Value B2B` (2/3 of sample) `CAC_growth`=39.09%, `LTV/CAC_decline`=21.19%, `CPC_change`=+0.632, `retention_risk`=0, `scale_opportunity`=0; `Bargain Hunters` (1/3 of sample) `CAC_growth`=31.38%, `LTV/CAC_decline`=26.21%, `CPC_change`=+0.347, `retention_risk`=1, `scale_opportunity`=1.
+- Sub-criterion 2.2.B.3 [1 Point | Conclusiveness]: Conclude: The high-value segment shows a steep cost increase with zero opportunity, and actions to reduce costs and restructure should be taken immediately. The "price-sensitive" segment has scaling opportunities but comes with high retention risk, requiring stricter loss-control mechanisms.
+
+---
+## Requirement 3: Build a Comprehensive Decay Risk Assessment Model and Set Thresholds (Up to 12 Points)
+### Standard 3.1: Risk Scoring Model Design and Implementation (Up to 6 Points)
+#### Path 3.1.A [6 Points | Normalized Weighted Scoring Method]
+- Sub-criterion 3.1.A.1 [1 Point | Completeness]: Clearly define the scoring formula: `Risk = 0.28·n(CAC growth) + 0.28·n(LTV/CAC decline) + 0.14·n(CPC growth) + 0.14·n(CTR decline) + 0.08·n(low acquisition sophistication) + 0.04·n(low efficiency percentile) + 0.04·n(low channel diversity)`; where n(·) is min-max normalization on the run_days≥120 sample, CTR decline is handled as (`ctr_decline = max(0,-ΔCTR)`), and metrics where a lower value is worse should use the `1 − n(x)` transformation.
+- Sub-criterion 3.1.A.2 [4 Points | Accuracy]: List the key scores (allowing a ±0.01 margin of error): `CMP_ACC_FIN_001_008`=0.7620, `CMP_ACC_ECOM_002_004`=0.7440, `CMP_ACC_FIN_001_007`=0.6799; the median score for the run_days≥120 sample is 0.4049.
+- Sub-criterion 3.1.A.3 [1 Point | Conclusiveness]: Must provide a high-risk list and an explanation of its drivers. For example, the high risk for CMP_ACC_FIN_001_008 is driven by `CAC +39.09% + CPC +1.2311`; for CMP_ACC_ECOM_002_004, it's driven by `CAC +31.38% + LTV/CAC -26.21% + RetentionRisk=1`.
+
+#### Path 3.1.B [6 Points | Rule-Based Flag Accumulation Method (Optional Bonus)]
+- Sub-criterion 3.1.B.1 [1 Point | Completeness]: If using a rule-based method, list at least 6 threshold rules (e.g., `CAC_growth>30%`, `LTV/CAC_decline>20%`, `CPC_growth>0.3`, `CTR_decline>0`, `cac_efficiency_percentile<30`, `channel_diversity_count<4`) and define their weights.
+- Sub-criterion 3.1.B.2 [4 Points | Accuracy]: Verify that the three campaigns mentioned above trigger at least 4 rules and their total score is above the "high-risk threshold"; the average number of triggered rules for other campaigns should be significantly lower.
+- Sub-criterion 3.1.B.3 [1 Point | Conclusiveness]: Map each flag to an operational action (e.g., "High CAC and High CPC → First, lower bids + review campaign structure").
+
+### Standard 3.2: Risk Threshold Definition and Sensitivity Analysis (Up to 6 Points)
+#### Path 3.2.A [6 Points | Percentile Thresholds + Fluctuation Test]
+- Sub-criterion 3.2.A.1 [1 Point | Completeness]: Provide risk tiers: P90=0.7311 as "Red Light", P80=0.6703 as "Orange Light", and below P50=0.4049 as "Yellow Light".
+- Sub-criterion 3.2.A.2 [4 Points | Accuracy]: Conduct a ±5 percentile sensitivity test and show that the three flagged campaigns remain in the high-risk tiers (score > 0.67) under this perturbation, and that changes in the ranking of other campaigns do not affect the high-risk list.
+- Sub-criterion 3.2.A.3 [1 Point | Conclusiveness]: Present the actions for each risk tier: High-risk requires immediate restructuring, Medium-risk requires enhanced monitoring, and Low-risk campaigns' potential should be preserved. Explain that high thresholds help focus efforts on addressing cost escalations.
+
+#### Path 3.2.B [6 Points | Budget Linkage Matrix]
+- Sub-criterion 3.2.B.1 [1 Point | Completeness]: Construct a "Risk Score × last 30 days spend share" matrix. Propose thresholds: `Risk>0.67 & spend share>3% → Immediately decrease allocation`, `Risk>0.67 & share≤3% → Restructure and strictly control`.
+- Sub-criterion 3.2.B.2 [4 Points | Accuracy]: Validate the recommendations: CMP_ACC_ECOM_002_004 has Risk=0.744, share=5.06% → "Immediately decrease allocation"; CMP_ACC_FIN_001_007 has Risk=0.680, share=3.59% → "Decrease allocation + review"; CMP_ACC_FIN_001_008 has Risk=0.762, share=1.88% → "Set spending caps + detailed review". Must also list the risk-weighted spend: 7.19k, 18.90k, 12.25k.
+- Sub-criterion 3.2.B.3 [1 Point | Conclusiveness]: Output a budget action list (reduction percentages, review checkpoints) and emphasize that "high-risk campaigns account for 10.5% of total spend, and timely action can free up nearly 38.3k in budget."
+
+---
+## Requirement 4: Differentiated Optimization Recommendations and Budget/Monitoring Plan (Up to 12 Points)
+### Standard 4.1: Provide Strategy Recommendations by Lifecycle × Channel (Up to 6 Points)
+#### Path 4.1.A [6 Points | Phased Remediation + Scaling Guardrails]
+- Sub-criterion 4.1.A.1 [1 Point | Completeness]: Cover the two main combinations, `Decline×SHOPPING` and `Revival×SEARCH`, and list specific actions for bidding, audience, creative, structure/frequency control, and channel diversification.
+- Sub-criterion 4.1.A.2 [4 Points | Accuracy]: Recommendations must correspond to the data: ① For `Decline×SHOPPING` (2 campaigns) with `CPC` increased 0.632/1.231, `acq_soph` of only 58.3, and `cac_eff` dropping to 5.89 → Recommend lowering bids, removing low-quality listings, and resuming the use of negative keywords while prioritizing high-margin products. ② For `Revival×SEARCH` (1 campaign) with `CAC` +31.38%, `LTV/CAC` -26.21%, `retention_risk`=1 → Recommend value-based bidding, first-party data segmentation, and raising quality guardrails for remarketing. ③ Use the `scale_opportunity` value (SHOPPING=0, SEARCH=1) to set scaling caps.
+- Sub-criterion 4.1.A.3 [1 Point | Conclusiveness]: Provide an execution timeline (Immediate action / 2-week review / 4-week rolling review) and corresponding KPIs (Goal: within 30 days, achieve a `CAC` fallback ≥20%, `LTV/CAC` recovery ≥10%, `CPC` decrease ≥0.3, and `CTR` no lower than the current level).
+
+#### Path 4.1.B [6 Points | Audience Journey Strategy Matrix (Optional)]
+- Sub-criterion 4.1.B.1 [1 Point | Completeness]: If expanding further, map the "Growing→VIP" customer journey to SEARCH/SHOPPING strategies.
+- Sub-criterion 4.1.B.2 [4 Points | Accuracy]: For example: `Growing×SEARCH` requires a new customer allowlist + ROAS guardrails; `VIP×SHOPPING` requires strengthening high-margin product combinations and inventory synchronization; `Growing×SHOPPING` should pause scaling and shift to precise backfilling of volume.
+- Sub-criterion 4.1.B.3 [1 Point | Conclusiveness]: Clearly define KPIs for each journey stage (e.g., CAC≤60, LTV/CAC≥1.4) to ensure the strategy is testable.
+
+### Standard 4.2: Budget Reallocation and Monitoring/Alerting (Up to 6 Points)
+#### Path 4.2.A [6 Points | Budget Migration + High-Value Segment Prioritization Method]
+- Sub-criterion 4.2.A.1 [1 Point | Completeness]: Formulate a quantitative migration plan (e.g., decrease allocation for CMP_ACC_ECOM_002_004 by 40%; reduce budgets for CMP_ACC_FIN_001_007/008 by 30%/20% respectively; while reserving 10% of the budget for low-risk campaigns with `scale_opportunity=1`).
+- Sub-criterion 4.2.A.2 [4 Points | Accuracy]: Provide evidence of recipient campaigns: e.g., low-risk assets like `CMP_ACC_ECOM_002_003` (risk=0.276, `CPC` -0.508, `scale_opportunity`=1) or `CMP_ACC_EDU_001_005` (risk=0.305, `CAC` only 40.62) that can absorb the reallocated budget.
+- Sub-criterion 4.2.A.3 [1 Point | Conclusiveness]: Output a priority list (e.g., the 3 high-risk campaigns are expected to free up 38.3k in budget; the top priority is to reallocate a total of ≥30k to scaling opportunities like `CMP_ACC_ECOM_002_003`, `CMP_ACC_EDU_001_005`), and emphasize that this must be coordinated with the high-value customer strategy.
+
+#### Path 4.2.B [6 Points | Monitoring Metrics and Alerting Mechanism]
+- Sub-criterion 4.2.B.1 [1 Point | Completeness]: Define weekly monitoring metrics: `CAC_growth`, `LTV/CAC_change`, `CPC_change`, `CTR_change`, `risk_score`, `retention_risk`, `scale_opportunity`; and set red flag thresholds (e.g., `CAC_growth≥50%` or `LTV/CAC_decline≥30%`).
+- Sub-criterion 4.2.B.2 [4 Points | Accuracy]: Example: The three current campaigns all exceed the thresholds. If the thresholds were lowered to 30%/15%, state the number of new alerts generated (e.g., 2 additional campaigns with a risk score ≈0.56) and analyze the impact on the false positive rate.
+- Sub-criterion 4.2.B.3 [1 Point | Conclusiveness]: Provide an "Alert → Action → Review" closed loop (including responsible person, 48h response time, 30-day review cycle, and metric baseline targets) and state the evaluation metrics (alert hit rate, budget savings, ROI improvement).
+
+---

@@ -1,0 +1,123 @@
+==============================
+# [总分 | 60分] 邮件投放时机 × 主题文案交互分析评分标准
+==============================
+---
+## 需求1：数据与口径说明（最高 12分）
+### 标准1.1：字段映射与数据质检（6分，deterministic）
+#### 路径1.1.A【6分 | 字段核验与锚点确认】
+- 小标准1.1.A.1【1分 | 完备性】需说明 klaviyo__campaigns 的 SENT_AT、SUBJECT、is_archived、variation_id、campaign_variation_key、total_count_unique_people、count_received/opened/clicked_email、total_placed_orders、gmv_net_campaign 等在 campaign 层的作用，并指出 klaviyo__persons 用于 email_open_rate、count_clicked_email、active_retention_rate_week/month、timezone 等留存与参与关联分析。
+- 小标准1.1.A.2【4分 | 精确性】基于 SQLite 数据核验锚点（允许误差：计数±0.5%，金额/比例±0.005，时间±1分钟）：n_campaigns=184；SENT_AT 范围 2023-01-02 09:20:00 至 2024-07-04 14:35:00；is_archived=false 153 / true 31；variation_id：single 92、variant_a 46、variant_b 46；Σcount_received_email=2,077,925、Σcount_opened_email=654,473、Σcount_clicked_email=90,978；total_count_unique_people 最小 9,573、最大 15,708、均值≈12,213.15；count_received_email / total_count_unique_people 最小≈0.89298、最大≈0.95704、均值≈0.92456。
+- 小标准1.1.A.3【1分 | 结论性】需给出口径声明：分析以 campaign 层的时间、主题、归档、变体、规模与行为计数为主体，persons 层仅用于参与度与留存关联说明，未建立逐客曝光链路。
+
+### 标准1.2：时间窗与主题衍生口径（6分，多路径）
+#### 路径1.2.A【6分 | 固定规则派生】
+- 小标准1.2.A.1【1分 | 完备性】构造 day_type=weekday/weekend（strftime('%w')），daypart=morning(06–11)/afternoon(12–17)/evening(18–23)/overnight(其余)，并按关键词将 SUBJECT 映射为 discount/new/story/other，同时保留 is_archived 与 variation_id。
+- 小标准1.2.A.2【4分 | 精确性】关键词字典需覆盖中英文：discount 含 off/sale/discount/save/deal/折扣/优惠/减；new 含 new/新品/上新/launch/arrival/drop；story 含 story/故事/behind/guide/journal/inspiration/灵感。映射后锚点（允许误差±0.5%）：discount=62、new=61、story=61；day_type×daypart 计数：weekday-afternoon=46、weekday-evening=44、weekday-morning=44、weekend-afternoon=16、weekend-evening=16、weekend-morning=18；overnight 若无样本需显式说明。
+- 小标准1.2.A.3【1分 | 结论性】阐述该派生口径支持“发送时机 × 主题”组合分析，并提示 overnight 样本缺失导致夜间结论需谨慎。
+
+#### 路径1.2.B【6分 | 数据驱动派生】
+- 小标准1.2.B.1【1分 | 完备性】基于实际发送小时（出现 5 个小时：09/10/14/16/20）执行加权 KMeans 或分位聚类，将其划分为 ≥3 段（示例：cluster_9≈9.50h、cluster_15≈15.05h、cluster_20=20h），保留 day_type 与 subject_group。
+- 小标准1.2.B.2【4分 | 精确性】需说明算法、权重（使用 count_received_email）与防止数据泄漏策略，并给出每段样本量（cluster_9=62、cluster_15=62、cluster_20=60）与加权打开率（cluster_15≈0.3263、cluster_9≈0.3134、cluster_20≈0.3042），确保所有样本被覆盖。
+- 小标准1.2.B.3【1分 | 结论性】分析数据驱动分箱对捕捉精细时段差异的优势，同时指出解释性与过拟合的潜在风险。
+
+---
+## 需求2：发送时机 × 主题绩效衡量（最高 18分）
+### 标准2.1：主题整体表现与指标口径（6分，多路径）
+#### 路径2.1.A【6分 | 关键词字典 + 加权汇总】
+- 小标准2.1.A.1【1分 | 完备性】明确采用加权指标：open_rate_w=Σopened/Σreceived、click_rate_w=Σclicked/Σreceived、ctor_w=Σclicked/Σopened，并补充 orders_per_1k=1000×Σtotal_placed_orders/Σreceived、gmv_per_1k=1000×Σgmv_net_campaign/Σreceived。
+- 小标准2.1.A.2【4分 | 精确性】使用路径1.2.A 的分组计算锚点（容差±0.005）：discount open≈0.3416、ctr≈0.0510、ctor≈0.1492、orders≈6.04/千封、gmv≈1000.07/千封；new open≈0.3255、ctr≈0.0459、ctor≈0.1411、orders≈4.57/千封、gmv≈920.30/千封；story open≈0.2760、ctr≈0.0340、ctor≈0.1230、orders≈2.80/千封、gmv≈464.33/千封。
+- 小标准2.1.A.3【1分 | 结论性】指出“折扣 > 上新 > 故事”在打开率与转化密度上的梯度，并联系订单/GMV 密度差异说明价值。
+
+#### 路径2.1.B【6分 | 主题发现模型】
+- 小标准2.1.B.1【1分 | 完备性】描述使用 LDA/BERT 等主题模型，将主题映射到折扣/上新/故事/其他，并与字典法保持口径同步。
+- 小标准2.1.B.2【4分 | 精确性】阐述训练语料、主题-标签映射与验证方法，并复现路径2.1.A 的加权指标计算流程，说明模型分组与字典分组的对齐策略。
+- 小标准2.1.B.3【1分 | 结论性】比较模型与字典分组的指标排序一致性，评估其维护成本与适用场景。
+
+### 标准2.2：时间 × 主题交叉效果（6分，多路径）
+#### 路径2.2.A【6分 | 交叉表与锚点验证】
+- 小标准2.2.A.1【1分 | 完备性】输出 subject_group × day_type × daypart 组合的加权 open/ctr/ctor，并提供样本量。
+- 小标准2.2.A.2【4分 | 精确性】关键组合锚点（容差±0.005）：discount weekday-afternoon open≈0.3517、weekend-afternoon≈0.3682、weekday-evening≈0.3343；new weekend-afternoon≈0.3525、weekday-afternoon≈0.3358、weekday-evening≈0.3178；story weekday-morning≈0.2892、weekday-evening≈0.2582，同时呈现对应 CTR/CTOR 方向（周末下午折扣 CTR≈0.0569，高于工作日晚间折扣 ≈0.0498）。
+- 小标准2.2.A.3【1分 | 结论性】总结“折扣/上新→下午尤其周末、故事→工作日上午”的规律，并标出表现落后的组合（如 story×weekday×evening open≈0.2582、ctr≈0.0302）。
+
+#### 路径2.2.B【6分 | 加权回归（WLS/GLM）】
+- 小标准2.2.B.1【1分 | 完备性】构建以 open_rate 或 click_rate 为因变量的 WLS/GLM，解释变量覆盖 day_type、daypart、subject_group、is_archived、variation_mode、log(total_count_unique_people)、高发送窗口哑变量，权重= count_received_email。
+- 小标准2.2.B.2【4分 | 精确性】报告关键系数方向与量级：daypart_evening 对 open≈−0.0101、对 click≈−0.0015；subject_group_new≈−0.0132、story≈−0.0600（相对折扣负向）；log(规模) 对 open≈+0.0867、对 click≈+0.0184；on_high_send≈+0.0188，对 click≈+0.0043；pre/post_high_send 约 −0.010～−0.011；weekend 系数小幅正向（open≈+0.0023）。
+- 小标准2.2.B.3【1分 | 结论性】说明回归结果与交叉表结论一致（下午/周末折扣占优、夜间劣势、规模正向），并指出多重共线性、残差异方差等局限。
+
+### 标准2.3：高发送窗口与规模分层（6分，多路径）
+#### 路径2.3.A【6分 | 高发送日窗口】
+- 小标准2.3.A.1【1分 | 完备性】以日收件量 P90=12,979 定义高发送当日，按 send_date 区分 on_high_send、pre_high_send（前1–3天）、post_high_send（后1–3天）、non_high_send，并说明样本量（19/21/16/128）。
+- 小标准2.3.A.2【4分 | 精确性】加权指标锚点（容差±0.005）：on_high_send open≈0.3575、ctr≈0.0533；pre_high_send open≈0.3074、ctr≈0.0416；post_high_send open≈0.3044、ctr≈0.0417；non_high_send open≈0.3098、ctr≈0.0427。
+- 小标准2.3.A.3【1分 | 结论性】指出“高发送当日略优、前后显著回落”的趋势，讨论运营含义（高峰当日流量集中，需与节奏控量配合）。
+
+#### 路径2.3.B【6分 | 规模四分位】
+- 小标准2.3.B.1【1分 | 完备性】以 NTILE(4) 将 total_count_unique_people 分为 Q1–Q4，并给出各档样本量（每档46）。
+- 小标准2.3.B.2【4分 | 精确性】锚点（容差±0.005）：Q1 open≈0.2927、ctr≈0.0388、均值规模≈10,526；Q2 open≈0.3048、ctr≈0.0414；Q3 open≈0.3193、ctr≈0.0448；Q4 open≈0.3362、ctr≈0.0485、均值规模≈13,962。
+- 小标准2.3.B.3【1分 | 结论性】分析规模越大绩效越好，提示名单质量与品牌成熟度的可能正向关系。
+
+---
+## 需求3：后续活跃留存关联（最高 12分）
+### 标准3.1：个人层参与度 × 留存关联（6分，多路径）
+#### 路径3.1.A【6分 | 相关系数】
+- 小标准3.1.A.1【1分 | 完备性】说明采用 email_open_rate、count_clicked_email 与 active_retention_rate_week/month 计算 Pearson 相关系数。
+- 小标准3.1.A.2【4分 | 精确性】锚点（容差±0.01）：corr(open, week)≈0.9616、corr(open, month)≈0.9126；corr(click_count, week)≈0.8026、corr(click_count, month)≈0.7731。
+- 小标准3.1.A.3【1分 | 结论性】指出参与度与留存高度正相关但非因果，建议结合实验验证。
+
+#### 路径3.1.B【6分 | 拆分分层趋势】
+- 小标准3.1.B.1【1分 | 完备性】按 email_open_rate 与 click_rate(=count_clicked_email/count_received_email) 各自 NTILE(4) 分层，统计周/月留存均值。
+- 小标准3.1.B.2【4分 | 精确性】monotonic 锚点（容差±0.01）：打开率 Q1→Q4 周留存≈0.3874→0.7176、月留存≈0.4108→0.7293；点击率 Q1→Q4 周留存≈0.3867→0.7186、月留存≈0.4094→0.7298。
+- 小标准3.1.B.3【1分 | 结论性】强调提升邮件参与度可能带动留存，但需通过 AB/归因确认。
+
+### 标准3.2：参与频次 × 留存的逆向关系（6分，多路径）
+#### 路径3.2.A【6分 | 收件频次分层】
+- 小标准3.2.A.1【1分 | 完备性】以 count_received_email NTILE(5) 计算每层周/月留存。
+- 小标准3.2.A.2【4分 | 精确性】锚点（容差±0.01）：Q1 avg_recv≈64.62、week≈0.7294、month≈0.7402；Q5 avg_recv≈151.67、week≈0.3778、month≈0.3998，保持单调下降。
+- 小标准3.2.A.3【1分 | 结论性】提出“触达过频导致留存下滑”的洞见，建议设频控阈值。
+
+#### 路径3.2.B【6分 | Campaign 层近似留存】
+- 小标准3.2.B.1【1分 | 完备性】将 persons 留存映射到 campaign（如按发送窗口关联平均留存），或使用 active_days、orders_per_1k、gmv_per_1k 构建近似指标。
+- 小标准3.2.B.2【4分 | 精确性】说明关联/加权步骤，确保与路径3.2.A 的趋势一致或解释差异。
+- 小标准3.2.B.3【1分 | 结论性】指出近似口径的局限，强调需精细曝光链路验证因果。
+
+---
+## 需求4：归档 / 变体 / 规模与高发送窗口（最高 12分）
+### 标准4.1：归档与变体拆分表现（6分，多路径）
+#### 路径4.1.A【6分 | 归档口径】
+- 小标准4.1.A.1【1分 | 完备性】分别计算 is_archived=false/true 的加权 open/ctr/ctor、orders_per_1k、gmv_per_1k。
+- 小标准4.1.A.2【4分 | 精确性】锚点（容差±0.005）：false open≈0.3120、ctr≈0.0428、ctor≈0.1371、orders≈4.29/千封、gmv≈777.57/千封；true open≈0.3297、ctr≈0.0487、ctor≈0.1478、orders≈5.56/千封、gmv≈909.92/千封。
+- 小标准4.1.A.3【1分 | 结论性】说明“归档样本表现更高”可能包含幸存者偏差与筛选效应，建议谨慎外推。
+
+#### 路径4.1.B【6分 | 变体口径】
+- 小标准4.1.B.1【1分 | 完备性】将 variation_id 聚为 single vs variant，计算同样的加权指标。
+- 小标准4.1.B.2【4分 | 精确性】锚点（容差±0.005）：single open≈0.3146、ctr≈0.0437、ctor≈0.1389；variant open≈0.3154、ctr≈0.0439、ctor≈0.1391。
+- 小标准4.1.B.3【1分 | 结论性】指出“变体 ≈ 单次”，建议将测试资源集中到主题/时机调优。
+
+### 标准4.2：主题内拆分与组合洞察（6分，多路径）
+#### 路径4.2.A【6分 | 折扣主题的归档对比】
+- 小标准4.2.A.1【1分 | 完备性】在 subject_group=discount 内按 is_archived 拆分加权 open/ctr。
+- 小标准4.2.A.2【4分 | 精确性】锚点（容差±0.005）：active(open≈0.3527、ctr≈0.0531)、archived(open≈0.3297、ctr≈0.0487)。
+- 小标准4.2.A.3【1分 | 结论性】说明未归档折扣表现更好，建议优先保留高表现折扣模板。
+
+#### 路径4.2.B【6分 | 高绩效组合识别】
+- 小标准4.2.B.1【1分 | 完备性】列出 subject × day_type × daypart × is_archived/variation 至少 4 组打开率最高与最低组合，并标注样本量/收件量。
+- 小标准4.2.B.2【4分 | 精确性】至少覆盖锚点（容差±0.005）：discount×weekend×afternoon open≈0.3682（n=5、Σreceived≈62,499）；new×weekend×afternoon open≈0.3525（n=6、Σreceived≈73,854）；discount×weekday×afternoon open≈0.3517（n=16、Σreceived≈192,537）；story×weekday×evening open≈0.2582（n=15、Σreceived≈163,184）。
+- 小标准4.2.B.3【1分 | 结论性】总结 Top 组合聚焦“折扣/上新 × 下午/周末”、Worst 组合集中在“故事 × 夜晚”，并提出投放建议（如夜间故事需改档或换主题）。
+
+---
+## 需求5：策略建议与风险识别（最高 12分）
+### 标准5.1：策略与试验框架（6分，多路径）
+#### 路径5.1.A【6分 | 组合策略清单】
+- 小标准5.1.A.1【1分 | 完备性】提出 ≥3 类策略并与数据发现绑定，覆盖折扣/上新、故事化、节前/节后、频控/名单健康。
+- 小标准5.1.A.2【4分 | 精确性】策略需引用锚点：折扣→周末下午 open≈0.3682、CTR≈0.0569；上新→周末下午 open≈0.3525；故事→工作日上午 open≈0.2892；节前窗口 open≈0.3074 需谨慎；频控参考收件 Q5 留存 week≈0.3778。明确试验门槛（如打开率提升≥1.5pp、CTR≥0.3pp）。
+- 小标准5.1.A.3【1分 | 结论性】按优先级输出实施步骤（如先锁定周末折扣 AB，再推进频控/留存承接），并规划验证路径。
+
+#### 路径5.1.B【6分 | 品牌/人群分层策略】
+- 小标准5.1.B.1【1分 | 完备性】结合留存与规模分层（如 Q4 高参与 vs Q1 低参与、名单规模 Q4 vs Q1）制定差异化策略。
+- 小标准5.1.B.2【4分 | 精确性】引用锚点：高开人群周留存≈0.7176 vs 低开≈0.3874；高频收件周留存降至≈0.3778；规模 Q4 打开≈0.3362。制定试用指标（如离位≤5次、违纪=0 可扩展）。
+- 小标准5.1.B.3【1分 | 结论性】给出执行路径（如高价值人群→故事上午+折扣下午互补，低活跃→节前折扣+频控），并强调量化监测。
+
+### 标准5.2：风险与局限识别（6分，deterministic）
+#### 路径5.2.A【6分 | 全面风险提示】
+- 小标准5.2.A.1【1分 | 完备性】列出 ≥3 类风险：折扣依赖、节前拥挤导致疲劳、变体收益有限、单品牌样本、文案分组误差、时区未本地化（persons timezone 仅 America/Los_Angeles 149、Asia/Shanghai 894、Asia/Singapore 149）。
+- 小标准5.2.A.2【4分 | 精确性】将风险与锚点关联：pre_high_send open≈0.3074 体现节前疲劳；single≈variant 显示变体收益有限；timezone 仅 3 种需本地化；高频收件留存降至≈0.3778 显示频控必要；提出缓解方案（错峰发送、主题模型优化、频控阈值、引入更多时区）。
+- 小标准5.2.A.3【1分 | 结论性】明确后续数据/实验方向：补齐曝光明细、强化 AB 验证、构建节日/时区日历。

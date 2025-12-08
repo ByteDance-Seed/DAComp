@@ -1,0 +1,1 @@
+To increase total revenue, the supermarket needs to avoid loss-making sales as much as possible. Using previous years' summer data, if procurement on 2023-07-01 follows the sales volume on 2023-06-30, which items (Item Codes) clearly need their procurement quantities reduced?

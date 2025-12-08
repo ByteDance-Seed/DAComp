@@ -1,0 +1,94 @@
+# [总分 | 34分] 2024年招聘效率提升与成本优化策略评分标准
+---
+## 需求1：数据口径统一与基线校验（最高8分）
+### 标准1.1：数据表选择与时间窗口界定（最高4分）
+#### 路径1.1.A【4分】（年度聚合直接法）
+- 小标准1.1.A.1【1分｜完备性】必须声明仅使用 `greenhouse__talent_pipeline_simplified` 与 `greenhouse__diversity_metrics` 中 `application_year = 2024` 的年度聚合数据，作为渠道效率、多元化与流程时效的唯一基准；说明若引用其它年份明细仅作机制参考。
+- 小标准1.1.A.2【2分｜精确性】给出可复核的SQL框架：`SELECT … FROM greenhouse__talent_pipeline_simplified WHERE application_year = 2024` 用于获取 `source_id/source_name/source_type/total_applications/total_hires/applications_with_interviews/avg_process_days/hire_rate/interview_rate/interview_to_hire_rate/efficiency_score`；`SELECT … FROM greenhouse__diversity_metrics WHERE application_year = 2024` 获取 `total_hires/female_hire_representation/non_white_hire_representation/overall_hire_rate`。需解释 `source_id` 用于渠道映射，`total_applications/total_hires` 支撑效率，`avg_process_days` 对齐时长，`female_hire_representation` 与 `non_white_hire_representation` 对齐多元化。
+- 小标准1.1.A.3【1分｜结论性】明确年度聚合口径可直接与CEO目标对比，并提醒其它年份面试/评分数据仅作流程洞察、不可混入年度量化。
+#### 路径1.1.B【4分】（年度聚合+近端机制混合法）
+- 小标准1.1.B.1【1分｜完备性】在保留 `application_year = 2024` 年度基线的同时，声明 2025-09-01 至 2025-10-31 区间的明细数据用于流程诊断：`greenhouse__application_enhanced`（面试轮次、`has_interviewed_w_hiring_manager`）、`greenhouse__interview_enhanced`（`start_at`、`duration_interview_minutes`）、`greenhouse__interview_scorecard_detail`（`rating`、`overall_recommendation`）。
+- 小标准1.1.B.2【2分｜精确性】提供窗口过滤伪代码：`WHERE start_at BETWEEN '2025-09-01' AND '2025-10-31'`（面试日志）、`WHERE applied_at BETWEEN '2025-09-01' AND '2025-10-31'`（申请明细），并说明不与年度聚合混算。
+- 小标准1.1.B.3【1分｜结论性】总结“年度基线+近端机制”双口径的合理性与风险边界：年度聚合用于目标对齐，近端明细仅支持流程与面试官配置诊断。
+
+### 标准1.2：年度多元化与满意度基线校验（最高4分）
+#### 路径1.2.A【4分】（聚合表核验法）
+- 小标准1.2.A.1【1分｜完备性】输出2024年度核心指标：`total_hires = 4432`、`overall_hire_rate ≈ 24.4%`、`female_hire_representation ≈ 42.0%`、`non_white_hire_representation ≈ 32.0%`，并声明满意度代理为 `greenhouse__interview_scorecard_detail` 的 `AVG(rating)`。
+- 小标准1.2.A.2【2分｜精确性】数值须落入容差：`total_hires = 4432`（容差0）、`female_hire_representation = 42.0% ±0.1pp`、`non_white_hire_representation = 32.0% ±0.1pp`、`overall_hire_rate = 24.4% ±0.1pp`、评分卡均值 `AVG(rating) = 2.698 ±0.01`。
+- 小标准1.2.A.3【1分｜结论性】结论须指出多元化基线满足 ≥40% / ≥30% 约束，而评分卡满意度低于4.0（现状≈2.70），需在策略中优先提升面试体验。
+
+---
+## 需求2：招聘渠道组合优化（最高10分）
+### 标准2.1：渠道当前效率与多元化贡献画像（最高4分）
+#### 路径2.1.A【4分】（渠道逐项指标法）
+- 小标准2.1.A.1【1分｜完备性】列出2024年八大渠道的关键指标：`total_applications`、`total_hires`、`hire_rate`、`interview_rate`、`interview_to_hire_rate`、`avg_process_days`、`efficiency_score`。
+- 小标准2.1.A.2【2分｜精确性】指标需与数据库计算一致（容差±0.5单位），例如：University Recruiting（2447｜693｜28.3%｜61.7%｜45.9%｜41.7天｜300.4）、Headhunter（2580｜647｜25.1%｜44.3%｜56.6%｜22.0天｜237.3）、Indeed（2695｜545｜20.2%｜52.7%｜38.4%｜22.3天｜242.9）、Employee Referral（2471｜404｜16.3%｜50.4%｜32.4%｜18.4天｜221.6）、AngelList（1787｜284｜15.9%｜69.8%｜22.8%｜42.5天｜275.2）、Company Website（983｜280｜28.5%｜42.8%｜66.5%｜43.5天｜244.5）、Glassdoor（940｜259｜27.6%｜41.8%｜65.9%｜36.1天｜238.1）、LinkedIn（843｜197｜23.4%｜47.8%｜48.9%｜18.8天｜241.7）。
+- 小标准2.1.A.3【1分｜结论性】识别高效率+低耗时渠道（Company Website、Glassdoor、Headhunter、LinkedIn）与需警惕的高耗时渠道（AngelList、University Recruiting），并点明Referrals转化低于平均、AngelList占用招聘周期。
+#### 路径2.1.B【4分】（渠道类型加权法）
+- 小标准2.1.B.1【1分｜完备性】按 `source_type`（job_board / agency / referral / university / direct / social_media）给出加权 `hire_rate`、`avg_process_days`、`interview_to_hire_rate`。
+- 小标准2.1.B.2【2分｜精确性】需复现类型锚点：job_board（加权录用率20.07%｜耗时31.35天｜面试转录35.6%）、agency（25.08%｜22.0天｜56.6%）、referral（16.35%｜18.4天｜32.4%）、university（28.32%｜41.7天｜45.9%）、direct（28.48%｜43.5天｜66.5%）、social_media（23.37%｜18.8天｜48.9%）；同时给出全量加权基线 `weighted_hire_rate = 22.44%`、`weighted_avg_process_days = 29.35天`（容差±0.05pp / ±0.05天）。
+- 小标准2.1.B.3【1分｜结论性】结合类型差异指出：agency与social_media具备最快响应，job_board族群时长偏长；大学渠道支撑多元化但显著拉长周期。
+
+### 标准2.2：渠道权重重分配与成本代理（最高3分）
+#### 路径2.2.A【3分】（面试分钟/录用代理法）
+- 小标准2.2.A.1【1分｜完备性】定义 `minutes_per_hire_i = avg_interview_minutes × (applications_with_interviews_i / total_hires_i) × panel_factor`，并引用本库参数：`avg_interview_minutes = 62.83`（来自 2025-09/10 面试明细平均值）、`panel_factor = 1.7`（面试官人数组合假设，跨年沿用）。
+- 小标准2.2.A.2【1分｜精确性】复现加权前后对比：基线 `weighted_minutes_per_hire = 251.19`，新权重情景 `weighted_minutes_per_hire = 207.63`，降幅 `17.34%`（容差±0.1%）。
+- 小标准2.2.A.3【1分｜结论性】给出新渠道分配（University Recruiting 24%、Employee Referral 10%、Headhunter 16%、Company Website 22%、Glassdoor 16%、LinkedIn 10%、Indeed 2%、AngelList 0%），说明：① University+Referral 权重保持 34% ≥ 基线 33.16%，满足多元化底线；② 面试人工时降幅>15%，符合CEO降本目标。
+#### 路径2.2.B【3分】（效率指数法）
+- 小标准2.2.B.1【1分｜完备性】定义时间效率指数 `eff_index_i = interview_to_hire_rate_i / avg_process_days_i`，并说明数值越大代表在更短周期内完成更多录用。
+- 小标准2.2.B.2【1分｜精确性】需列示指数排序：LinkedIn 2.6011 > Headhunter 2.5727 > Glassdoor 1.8255 > Employee Referral 1.7609 > Indeed 1.7220 > Company Website 1.5287 > University Recruiting 1.1007 > AngelList 0.5365，并指出新权重下加权指数从 1.7053 提升至 1.7748。
+- 小标准2.2.B.3【1分｜结论性】根据指数排序解释权重调整的合理性（向LinkedIn/Headhunter/Glassdoor倾斜，压缩AngelList），并推论效率提升将支撑≥15%的降本。
+
+### 标准2.3：敏感性分析与约束稳健性（最高3分）
+#### 路径2.3.A【3分】（参数扰动法）
+- 小标准2.3.A.1【1分｜完备性】至少提供两个情景：①“女性录用目标 +5pp” 对应权重 `{U=28%, R=12%, H=12%, CW=18%, G=14%, L=10%, Indeed=4%, AngelList=2%}`；②“效率权重 +10%” 对应 `{U=27%, R=8%, H=14%, CW=20%, G=18%, L=11%, Indeed=1%, AngelList=1%}`。
+- 小标准2.3.A.2【1分｜精确性】给出关键中间量计算：情景① `minutes_per_hire = 221.26`、`cost_per_hire = 1612.45`；情景② `minutes_per_hire = 208.37`、`cost_per_hire = 1636.19`；并说明均由 `Σ weight_i × minutes_per_hire_i`、`Σ weight_i × (time_cost_i + channel_cash_i)` 推得。
+- 小标准2.3.A.3【1分｜结论性】总结稳健区间：女性目标抬升导致时间降幅减至≈11.9%但仍满足成本降幅>18%；效率权重+10%保持降本>17%。指出敏感点在高价渠道（Headhunter、AngelList），需纳入季度监控。
+
+---
+## 需求3：面试流程与面试官配置优化（最高8分）
+### 标准3.1：面试轮次与转化关系诊断（最高4分）
+#### 路径3.1.A【4分】（轮次数分箱分析）
+- 小标准3.1.A.1【1分｜完备性】按 `count_interviews`（2025-09/10 申请明细）将样本分为 ≤2、=3、=4、≥5 轮，统计 `applications`、`hires`、`hire_rate`、`avg_interview_minutes`。
+- 小标准3.1.A.2【2分｜精确性】需匹配锚点（容差±0.5pp / ±5分钟）：≤2轮（样本6952｜录用1660｜录用率23.88%｜129.7分钟）、3轮（194｜58｜29.90%｜320.4分钟）、4轮（23｜3｜13.04%｜427.2分钟）、≥5轮（3｜0｜0%｜534.1分钟）。
+- 小标准3.1.A.3【1分｜结论性】提出轮次上限：大多数岗位控制在2–3轮，高级岗≤4轮；减少冗余或并行安排可节省≥120分钟/录用。
+#### 路径3.1.B【4分】（职位/部门聚合法）
+- 小标准3.1.B.1【1分｜完备性】从 `greenhouse__job_enhanced` 归集主要部门（Engineering / Sales / Product / HR / Data / Marketing / Finance），输出 `avg_interviews_per_application` 与 `interview_to_hire_rate`。
+- 小标准3.1.B.2【2分｜精确性】复现部门锚点（容差±0.05或±1pp）：Engineering（2.49｜41.62%）、Sales（2.03｜49.88%）、Product（2.29｜36.50%）、HR（2.34｜44.09%）、Data（2.24｜39.38%）、Marketing（2.28｜41.56%）、Finance（2.18｜53.52%）。
+- 小标准3.1.B.3【1分｜结论性】指出Engineering/Product轮次高、转化低，应优先做面试合并或技术面批量化；Sales/Finance可作为最佳实践对标。
+
+### 标准3.2：面试官配置与专业匹配度（最高2分）
+#### 路径3.2.A【2分】（匹配度对评分/推荐影响）
+- 小标准3.2.A.1【1分｜完备性】定义匹配策略：若 `interviewer_name` 出现在同场面试的 `hiring_managers` 列表中则视为“匹配”，否则为“未匹配”；说明以 2025-09/10 期间评分卡均值为依据。
+- 小标准3.2.A.2【1分｜精确性】结果需与数据库吻合：匹配样本4份，平均评分 2.650、正向推荐率 100%；未匹配样本7094份，平均评分 2.670、正向推荐率 51.99%。强调样本量小，需要在实施计划中补充匹配度数据收集。
+
+### 标准3.3：面试官满意度提升方案（最高2分）
+#### 路径3.3.A【2分】（结构化提升法）
+- 小标准3.3.A.1【1分｜完备性】以 `AVG(rating) ≈ 2.70` 为满意度现状，提出至少三项结构化举措（示例：统一Rubric、面试官培训、题库/反馈模板标准化、候选人体验SLA）。
+- 小标准3.3.A.2【1分｜结论性】设置SLA/KPI：如评分提交率≥95%、反馈≤48小时、标准化问题覆盖率≥90%，并阐明这些指标将支撑满意度迈向4.0。
+
+---
+## 需求4：流程时间管理与漏斗优化（最高4分）
+### 标准4.1：流程瓶颈识别与SLA设定（最高3分）
+#### 路径4.1.A【3分】（渠道漏斗+时效诊断）
+- 小标准4.1.A.1【1分｜完备性】基于 `greenhouse__talent_pipeline_simplified` 输出各渠道 `interview_rate`、`interview_to_hire_rate`、`avg_process_days`，定位慢速或低转化区段。
+- 小标准4.1.A.2【1分｜精确性】确认加权 `avg_process_days = 30.23`（容差±0.05天），并点名AngelList/Company Website/University Recruiting的瓶颈（≥41.7天）。
+- 小标准4.1.A.3【1分｜结论性】提出阶段SLA：简历筛选≤48h、面试安排≤72h、Offer审批≤3个工作日，并量化目标：在“渠道重配+流程改善”后，将加权 `avg_process_days` 压至≈24.32天（基于改进后的渠道权重与时效参数）。
+
+### 标准4.2：要约与接受率管理（最高1分）
+#### 路径4.2.A【1分】（经验+数据推断法）
+- 小标准4.2.A.1【1分｜结论性】结合数据指出：面试周期越长录用率越低（见≥4轮录用率降至13.04%），强调通过快速发放Offer、并行背调、预沟通薪酬区间可提升接受率与降本逻辑。
+
+---
+## 需求5：ROI测算、落地路径与风控（最高4分）
+### 标准5.1：成本模型与降本目标校验（最高3分）
+#### 路径5.1.A【3分】（时间成本+渠道成本联合模型）
+- 小标准5.1.A.1【1分｜完备性】构建成本模型：`Total Cost = Interview Time Cost + Channel Cash Cost + Coordination Cost`。参数：面试工时单价 `85 美元/小时`，协调成本 `avg_process_days × 15/60 × 55`（15分钟/天、协调人时薪55美元），渠道现金成本映射 `{AngelList=2000, Company Website=250, Employee Referral=300, Glassdoor=700, Headhunter=4000, Indeed=900, LinkedIn=600, University Recruiting=1800}`。
+- 小标准5.1.A.2【1分｜精确性】输出四种情景（单位：美元/录用）：①当前（`time 355.86 | channel 1627.26 | coordination 415.63 | total 2398.75`）；②仅渠道重配（`294.14 | 1347.00 | 454.30 | total 2095.44`）；③仅流程优化（`355.86 | 1627.26 | 321.37 | total 2304.49`）；④联合优化（`294.14 | 1347.00 | 334.40 | total 1975.54`）。数值允许±1美元浮动。
+- 小标准5.1.A.3【1分｜结论性】总结主因：渠道重配贡献最大降幅但会拉长周期，需叠加流程压缩后总成本降幅达17.6% > 15%，驱动项包括压缩面试轮次与高价渠道权重。
+
+### 标准5.2：实施节奏、监控指标与风险闭环（最高1分）
+#### 路径5.2.A【1分】（看板+告警设计）
+- 小标准5.2.A.1【1分｜结论性】定义月度/季度指标：女性录用%、少数族裔录用%、面试满意度、加权 `avg_process_days`、每录用面试分钟、渠道录用率、评分完成率、反馈时效；设置阈值（如女性<40%即时预警、面试满意度<3需触发培训），并说明AB测试与渠道冗余策略的风险收敛机制。
+
+---

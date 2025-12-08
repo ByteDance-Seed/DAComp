@@ -1,0 +1,69 @@
+# [Total Score | 19 points] The solution must satisfy one core requirement:
+- Requirement 1: Identify the Fashion category user profile that contributes high profit
+---
+## Requirement 1: The solution must revolve around the core objective of "high profit", through data analysis to locate and clearly describe the most commercially valuable user profile, and propose feasible suggestions. Evaluation will be conducted around the following three major standards.
+### Standard 1.1: Fashion category data positioning (Max 2 points for this requirement)
+#### Path 1.1.A [2 points | Core data processing workflow]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Correctly identify and filter all relevant data where `Product Category` is 'Fashion', and use `Customer ID` as the key field to effectively associate the three tables `customer_information`, `order_information`, and `product_browsing`. But **do not directly use Customer ID to join**, because Customer ID is not unique (duplicates exist). **You need to discover that each subtable has the same row count and order; directly merging columns can yield the associated table**. Direct joins will lead to incorrect subsequent calculations. If you confirm the three tables are aligned one-to-one at the row level, you may merge by columns; otherwise you must prove the JOIN key’s robustness (and explain the deduplication strategy).
+- Sub-standard 1.1.A.2 [1 point | Accuracy]: Data filtering and association must be accurate. The final number of Fashion category **order** records used for analysis should be **30,775**, and any deviation will result in no credit for this item.
+---
+### Standard 1.2: Demographic attribute analysis (Max 3 points for this requirement)
+#### Path 1.2.A [3 points | Demographic analysis method]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Cover at least the two core demographic dimensions of **gender** and **age**, and analyze their profit contribution. Other demographic dimensions can also be computed, such as Education Level and Marital Status.
+- Sub-standard 1.2.A.2 [1 point | Accuracy]: Computation results must be accurate. **Female users** account for approximately **55.01%** of profit contribution; with custom age bands, users aged **25–34** contribute the highest share (35.97%), totaling **$893367.3**. Ages 18–24: 35.44%; 35–54: 22.90%; 55–70: 5.7%. Education Level and Marital Status need to be computed separately.
+        | **gender** | **Sum: profit** | 
+| --- | --- | 
+| Female | 1366498.5 | 
+| Male | 1117456.7 | 
+| **Total** | **2483955.2** | 
+- Sub-standard 1.2.A.3 [1 point | Conclusiveness]: Based on the data, clearly conclude that "young-to-middle-aged women (18–34) are the core profit contribution group"; if another conclusion is reached, it must have clear, reliable data support.
+---
+### Standard 1.3: Geographic area analysis (Max 3 points for this requirement)
+#### Path 1.3.A [3 points | Geographic area analysis method]
+- Sub-standard 1.3.A.1 [1 point | Completeness]: Cover geographic area dimensions for profit contribution analysis, and identify the highest-value area, not limited to City, State / Province, Country, and Region.
+- Sub-standard 1.3.A.2 [1 point | Accuracy]: Computation results must be accurate. Using Region as an example, the **Central** region has the highest profit contribution, totaling approximately **523405.8**, followed by South and North (relative error in total profit amount should be ≤ 1%). Other regional dimensions need to be computed separately.
+        | **Region** | **Sum: profit** | 
+| --- | --- | 
+| Central | 523405.8 | 
+| South | 321941.2 | 
+| North | 259948.3 | 
+| Oceania | 203243 | 
+| North Asia | 197207.3 | 
+| West | 168479.6 | 
+| Southeast Asia | 164442.4 | 
+| EMEA | 157357.3 | 
+| Africa | 154082.6 | 
+| East | 146059.9 | 
+| Central Asia | 113785.9 | 
+| Caribbean | 57226.1 | 
+| Canada | 14401.6 | 
+| So3th | 2374.2 | 
+| **Total** | **2483955.2** | 
+- Sub-standard 1.3.A.3 [1 point | Conclusiveness]: Clearly identify Central as the highest-value regional market to earn credit.
+---
+### Standard 1.4: Customer group analysis (Max 3 points for this requirement)
+#### Path 1.4.A [3 points | Customer group analysis method]
+- Sub-standard 1.4.A.1 [1 point | Completeness]: Cover the **Customer Segment** dimension for profit contribution analysis.
+- Sub-standard 1.4.A.2 [1 point | Accuracy]: Computation results must be accurate. The **Consumer** (ordinary consumers) group contributes the highest profit, totaling approximately **1,271,091.90**, accounting for about **51.17%** of total profit (relative error in both total profit amount and share should be ≤ 1%).
+- Sub-standard 1.4.A.3 [1 point | Conclusiveness]: Clearly state that **Consumer** is the primary profit source group.
+---
+### Standard 1.5: User behavior analysis (Max 3 points for this requirement)
+#### Path 1.5.A [3 points | User behavior analysis method]
+- Sub-standard 1.5.A.1 [1 point | Completeness]: Identify and analyze the relationship between key shopping intent behaviors `like`, `share`, and `Add to Cart` and users’ profit contribution.
+- Sub-standard 1.5.A.2 [1 point | Accuracy]: Computation results must be accurate. Users who have recorded `like`, `share`, or `Add to Cart` behaviors have higher average profit per user than users without such behaviors (relative error in average profit amount should be ≤ 2%); in generative outputs, if the textual conclusion plus core figures are clearly expressed, this is considered satisfied.
+        | **like** | **Average: profit** | **share** | **Average: profit** | **Add to Cart** | **Average: profit** | 
+| --- | --- | --- | --- | --- | --- | 
+| 0 | 80.43633338 | 0 | 80.25320997 | 0 | 79.43507592 | 
+| 1 | 80.93931458 | 1 | 81.20455431 | 1 | 81.36647847 | 
+- Sub-standard 1.5.A.3 [1 point | Conclusiveness]: Clearly state that "users with high shopping-intent behaviors are higher-value users".
+---
+### Standard 1.6: Multi-dimensional cross-analysis and profile targeting (Max 3 points for this requirement)
+#### Path 1.6.A [3 points | Multi-dimensional cross-analysis method]
+- Sub-standard 1.6.A.1 [1 point | Completeness]: Combine at least **3 or more** dimensions (for example: Region, age group, gender, Customer Segment, etc.) for cross-analysis to locate more precise, more specific high-value user groups.
+- Sub-standard 1.6.A.2 [1 point | Accuracy]: Cross-analysis computations must be accurate. For example, identify the highest profit-contributing detailed user profile as **"Female Consumers aged 25–34 in the Central region"**, and accurately compute that this group’s total profit contribution is about 88249.4 (relative error in total profit amount should be ≤ 1%); the total profit and average profit of other summarized user profiles need to be computed separately.
+- Sub-standard 1.6.A.3 [1 point | Conclusiveness]: Based on the cross-analysis results, clearly and quantitatively define **at least 1** core high-value user profile.
+---
+### Standard 1.7: Core profile definition and strategic recommendations (Max 2 points for this requirement)
+#### Path 1.7.A [2 points | Core profile definition and strategic recommendation method]
+- Sub-standard 1.7.A.1 [1 point | Completeness]: Provide a comprehensive and vivid feature description of the distilled core user profile (e.g., "Female ordinary consumers aged 25–34 living in the Central region") to make it easy to understand.
+- Sub-standard 1.7.A.2 [1 point | Conclusiveness]: For this core profile, propose **at least 2** specific, commercially feasible operational recommendations that are closely tied to the profile’s characteristics (for example, emphasize styles preferred by this group in assortment selection; in marketing, use their favored channels for precise delivery targeting the Central region).

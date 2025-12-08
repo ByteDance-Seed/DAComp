@@ -1,0 +1,107 @@
+# [Total Score | 12 points]  The solution must satisfy the following two core requirements:
+- Requirement 1: Explore the overall relationship between the share of Industrial Water Consumption and the level of economic development (6 points)
+- Requirement 2: Analyze differences in the relationship between the share of Industrial Water Consumption and the level of economic development across different provinces and municipalities (6 points)
+
+---
+
+## Requirement 1: Explore the overall relationship between the share of Industrial Water Consumption and the level of economic development (6 points)
+### Standard 1.1: Compute the correlation between the share of Industrial Water Consumption and the level of economic development, and provide an overall conclusion (up to 6 points)
+#### Path 1.1.A [6 points | Full-data correlation analysis]
+- Subcriterion 1.1.A.1 [2 points | Completeness]: From the tables, filter all data where Region Name is "China" and use Per capita GDP (yuan/person) to represent the level of economic development. For each year, divide Industrial Water Consumption (100 million m³) by the corresponding Total Water Consumption (100 million m³) to obtain that year’s industrial water share. Finally, compute the correlation coefficient (e.g., Pearson correlation coefficient) between the industrial water share and Per capita GDP.
+- Subcriterion 1.1.A.2 [3 points | Accuracy]: You need to compute the correlation coefficient between Per capita GDP and the industrial water share as -0.1467; different numbers of decimal places are acceptable and will be counted as correct.
+  * If, during the computation, the model outputs China’s industrial water shares for each year, the table below is provided for reference. Rounding, truncation, or retaining different decimal places are acceptable. If there are obvious data errors, no points will be awarded for accuracy.
+
+| Year   | Industrial Water Consumption share |
+|--------|------------------------------------|
+| 2000   | 20.72%                             |
+| 2001   | 20.51%                             |
+| 2002   | 20.78%                             |
+| 2003   | 22.13%                             |
+| 2004   | 22.15%                             |
+| 2005   | 22.82%                             |
+| 2006   | 23.19%                             |
+| 2007   | 24.11%                             |
+| 2008   | 23.64%                             |
+| 2009   | 23.32%                             |
+| 2010   | 24.03%                             |
+| 2011   | 23.94%                             |
+| 2012   | 23.18%                             |
+| 2013   | 22.74%                             |
+| 2014   | 22.25%                             |
+| 2015   | 21.87%                             |
+| 2016   | 21.65%                             |
+| 2017   | 21.13%                             |
+| 2018   | 20.97%                             |
+
+- Subcriterion 1.1.A.3 [1 point | Conclusiveness]: Based on the computation results, explicitly state that, from the national data for 2000–2018, the relationship between the industrial water share and the level of economic development is a weak negative correlation. You must express a conclusion semantically similar to "weak negative correlation" to receive full credit. If you conclude strong negative correlation or positive correlation, 0 points for conclusiveness.
+
+#### Path 1.1.B [4 points | Partial-year correlation analysis]
+- Subcriterion 1.1.B.1 [1 point | Completeness]: Same overall approach as Path 1.1.A, but only select a subset of years for computation. For example, compute the correlation coefficient between Per capita GDP and the industrial water share using data from 2000–2010.
+- Subcriterion 1.1.B.2 [2 points | Accuracy]: According to the correlation coefficient formula, accurately compute the correlation between Per capita GDP and the industrial water share for the selected year range.
+- Subcriterion 1.1.B.3 [1 point | Conclusiveness]: Based on the correlation coefficient results, provide a conclusion about the relationship between the industrial water share and the level of economic development. The conclusion must align with the computed correlation coefficient. For example, if using the Pearson correlation coefficient, a coefficient less than 0 requires a negative-correlation conclusion; greater than 0 requires a positive-correlation conclusion.
+
+#### Path 1.1.C [4 points | Industrial water share and Per capita GDP data change comparative analysis]
+- Subcriterion 1.1.C.1 [1 point | Completeness]: Separately analyze, for 2000–2018, the changes in Per capita GDP (yuan/person) and the changes in the industrial water share. Compare whether the trends of these indicators are consistent, and draw a conclusion.
+- Subcriterion 1.1.C.2 [2 points | Accuracy]: Accurately compute the changes in Per capita GDP and the industrial water share; no calculation errors. The following are some reference results; rounding, truncation, or retaining different decimal places are acceptable and will be counted as correct.
+* From 2000 to 2018, China’s Per capita GDP increased by 28,595.19 yuan/person.
+* From 2000 to 2018, the industrial water share increased by 0.25%.
+- Subcriterion 1.1.C.3 [1 point | Conclusiveness]: Provide a conclusion that the economic development indicator and the industrial water share are not positively correlated, or a similar conclusion. Alternatively, you may describe in phases: from 2003–2007, Per capita GDP increased and the industrial water share also increased (positive correlation); from 2007–2010, the industrial water share was basically flat; from 2011–2018, the economy grew but the industrial water share decreased.
+
+---
+
+## Requirement 2: Analyze differences in the relationship between the share of Industrial Water Consumption and the level of economic development across different provinces and municipalities (6 points)
+### Standard 2.1: Compute, for each province, the correlation between economic development and the industrial water share, and summarize differences across provinces (up to 6 points)
+#### Path 2.1.A [6 points | Full-province correlation analysis]
+- Subcriterion 2.1.A.1 [2 points | Completeness]: For each province, compute the correlation coefficient between the industrial water share and Per capita GDP (yuan/person) over 2000–2018. Then categorize provinces by strong positive correlation, strong negative correlation, weak positive correlation, and weak negative correlation. Note: You do not need to strictly divide into four categories—you may divide into positive correlation, negative correlation, and weak correlation, or other reasonable categories to summarize.
+- Subcriterion 2.1.A.2 [3 points | Accuracy]: Below are the computation results for the correlation coefficients between Per capita GDP and the industrial water share for each province. The values you compute need to match the data in the table below; rounding, truncation, or retaining different decimal places are acceptable.
+
+| Region Name                     | Correlation Coefficient |
+| :------------------------------ | :---------------------- |
+| Ningxia Hui Autonomous Region   | 0.7532                  |
+| Xinjiang Uygur Autonomous Region| 0.7446                  |
+| Tibet Autonomous Region         | 0.6967                  |
+| Shandong Province               | 0.6698                  |
+| Jiangsu Province                | 0.6058                  |
+| Hunan Province                  | 0.4937                  |
+| Guangxi Zhuang Autonomous Region| 0.4449                  |
+| Yunnan Province                 | 0.2565                  |
+| Inner Mongolia Autonomous Region| 0.0967                  |
+| Henan Province                  | 0.0558                  |
+| Fujian Province                 | -0.0497                 |
+| Tianjin Municipality            | -0.1160                 |
+| Shaanxi Province                | -0.1292                 |
+| China                           | -0.1467                 |
+| Anhui Province                  | -0.2048                 |
+| Jiangxi Province                | -0.2567                 |
+| Zhejiang Province               | -0.4248                 |
+| Guizhou Province                | -0.4513                 |
+| Hubei Province                  | -0.4532                 |
+| Hainan Province                 | -0.5111                 |
+| Jilin Province                  | -0.6075                 |
+| Qinghai Province                | -0.6601                 |
+| Chongqing Municipality          | -0.7367                 |
+| Hebei Province                  | -0.7423                 |
+| Shanxi Province                 | -0.7758                 |
+| Liaoning Province               | -0.8088                 |
+| Gansu Province                  | -0.8332                 |
+| Beijing Municipality            | -0.8923                 |
+| Shanghai Municipality           | -0.9011                 |
+| Sichuan Province                | -0.9088                 |
+| Guangdong Province              | -0.9311                 |
+| Heilongjiang Province           | -0.9687                 |
+
+- Subcriterion 2.1.A.3 [1 point | Conclusiveness]: In the final conclusion, you need to explain that the relationship between economic development and the industrial water share differs across provinces, and categorize provinces according to different correlation types. You do not have to list all province names; you may provide typical provinces for each category.
+  * Strong positive-correlation provinces: Jiangsu Province, Ningxia Hui Autonomous Region, Shandong Province, Xinjiang Uygur Autonomous Region, Tibet Autonomous Region
+  * Strong negative-correlation provinces: Beijing Municipality, Gansu Province, Guangdong Province, Hainan Province, Heilongjiang Province, Hebei Province, Jilin Province, Liaoning Province, Qinghai Province, Shanghai Municipality, Shanxi Province, Sichuan Province, Chongqing Municipality
+  * Weak positive-correlation provinces: Guangxi Zhuang Autonomous Region, Henan Province, Hunan Province, Inner Mongolia Autonomous Region, Yunnan Province
+  * Weak negative-correlation provinces: Anhui Province, Fujian Province, Guizhou Province, Hubei Province, Jiangxi Province, Shaanxi Province, Tianjin Municipality, Zhejiang Province
+
+#### Path 2.1.B [4 points | Partial-province or partial-year correlation analysis and data change comparative analysis]
+- Subcriterion 2.1.B.1 [1 point | Completeness]: Select some typical provinces and compute the correlation coefficient between the industrial water share and Per capita GDP (yuan/person), then categorize provinces by strong positive correlation, strong negative correlation, weak positive correlation, and weak negative correlation. Alternatively, select some typical years such that, for each province, you only compute correlation over a partial time range rather than the full period.
+- Subcriterion 2.1.B.2 [2 points | Accuracy]: The correlation coefficients for the selected provinces or time ranges must be computed correctly.
+- Subcriterion 2.1.B.3 [1 point | Conclusiveness]: Based on the computed correlations, categorize these provinces by positive or negative correlation, and conclude that the relationship between the industrial water share and Per capita GDP differs greatly across provinces.
+
+#### Path 2.1.C [4 points | Industrial water share and Per capita GDP data change comparative analysis]
+- Subcriterion 2.1.C.1 [1 point | Completeness]: Choose at least one year’s data. Analyze the absolute or relative levels of Per capita GDP (yuan/person) and the industrial water share for each province. Based on combinations of the two indicators’ trend changes, group provinces and summarize the differences between industrial water use and economic development across provinces.
+- Subcriterion 2.1.C.2 [2 points | Accuracy]: Accurately compute the change data for Per capita GDP and the industrial water share for each province in the selected year(s). The listed data for typical provinces and the grouped summaries (e.g., high Per capita GDP–high share, high Per capita GDP–low share) must be accurate and reasonable.
+- Subcriterion 2.1.C.3 [1 point | Conclusiveness]: Summarize and group provinces according to the differences between the economic indicator and the industrial water share, concluding that there are diverse patterns across provinces.

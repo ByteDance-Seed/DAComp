@@ -1,0 +1,146 @@
+==============================
+# [Total Score | 28 Points] Rubric for Hiring Demand Forecasting and Resource Allocation
+==============================
+
+Objective: Based on the most recent available month's data from `lever__posting_enhanced` and `lever__requisition_enhanced`, complete a team-level monthly trend and growth rate analysis. Identify high-growth teams where "MoM > 15% AND current active postings > 10". Calculate the Hiring Pressure Index, predict if it will exceed 8 in two months, and estimate the number of additional hiring managers needed (capacity = 1 manager handles a maximum of 6 postings at a time). Output structured results and business recommendations, accounting for different scopes and data sparsity scenarios. The scoring follows a hierarchical structure: Requirement → Standard → Path → Sub-standard. Each sub-standard is evaluated on three dimensions: Completeness (1 point), Accuracy (4 points), and Conclusiveness (1 point). If multiple paths are provided for the same standard, meeting the criteria for any single path is sufficient to earn points. Different paths should be mutually exclusive strategies, not inclusive of one another.
+
+---
+
+## Requirement 1: Data Window and Monthly Trend Construction (Max 8 Points)
+
+### Standard 1.1: Defining the Time Window and Team Scope (Max 3 Points)
+
+#### Path 1.1.A [3 Points | Posting Scope: posting.created_at]
+- Sub-standard 1.1.A.1 [1 Point | Completeness] Clearly state that the month is derived using `month = substr(created_at,1,7)`. The window should be from 2025-05 to 2025-08, going back from the latest available month in `lever__posting_enhanced` (2025-08). The team field must be fixed to `categories_team`, and null or blank strings must be filtered out.
+- Sub-standard 1.1.A.2 [4 Points | Accuracy] Calculate the company-level monthly posting count and provide the MoM growth (tolerance ±1 count, ±1 percentage point): 2025-05=68, 2025-06=109 (MoM≈+60.29%), 2025-07=104 (MoM≈-4.59%), 2025-08=19 (MoM≈-81.73%, must note that this only covers up to the 8th of the month). The MoM calculation order must match the window above, using the formula `MoM = ((curr-prev)/prev)`.
+- Sub-standard 1.1.A.3 [1 Point | Conclusiveness] Reiterate the time window and team dimension under this scope, and explain the risk of bias in MoM interpretation due to the data gap in 2025-08 and sparse team-level data.
+
+#### Path 1.1.B [3 Points | Requisition Scope: requisition.created_at]
+- Sub-standard 1.1.B.1 [1 Point | Completeness] State that the month is derived using `month = substr(created_at,1,7)`, the team field uses `lever__requisition_enhanced.team`, and the window takes the most recent complete period of 2025-03 to 2025-08; if the last month is incomplete, it must be stated that the count is "based on the actual days covered."
+- Sub-standard 1.1.B.2 [4 Points | Accuracy] Output the monthly new requisition count from the requisition table (tolerance ±1): 2025-03=31, 2025-04=43, 2025-05=42, 2025-06=40, 2025-07=39, 2025-08=5, and explain the impact of the significantly lower count in 2025-08 on trend analysis.
+- Sub-standard 1.1.B.3 [1 Point | Conclusiveness] Explain the business rationale for choosing the requisition scope (closer to the demand side of hiring) and compare its differences with the posting scope.
+
+#### Path 1.1.C [3 Points | Joined Scope: Aligning posting and requisition]
+- Sub-standard 1.1.C.1 [1 Point | Completeness] State that the two tables are joined via `requisition_code`: month uses posting.created_at, and team uses requisition.team. Must specify a fallback strategy (reverting to Path 1.1.A or 1.1.B) if the join rate is too low.
+- Sub-standard 1.1.C.2 [4 Points | Accuracy] Point out the join coverage: `lever__posting_enhanced` has 300 total records, with 300 non-null `requisition_code` values, but only 5 successful joins. Provide examples of joined teams like `Gonzalez and Sons → Peters Inc`, and explain the limitations of sparse joins for trend analysis.
+- Sub-standard 1.1.C.3 [1 Point | Conclusiveness] When join coverage is insufficient, reasonably explain why a single-table scope is more robust, while retaining a note about the risk of biased results due to a small sample size.
+
+---
+
+### Standard 1.2: Team Monthly Trend and Growth Rate Calculation (Max 5 Points)
+
+#### Path 1.2.A [5 Points | Metric = Monthly number of postings]
+- Sub-standard 1.2.A.1 [1 Point | Completeness] Construct a "team × month" panel for posting counts (2025-05 to 2025-08). If a team has no records in a month, it must be backfilled with 0. Clearly state that MoM uses the most recent calculable period (2025-07 vs. 2025-06) and that 2025-08 is incomplete and for reference only.
+- Sub-standard 1.2.A.2 [4 Points | Accuracy] Provide the calculation process and verify sparsity: ① Aggregate `post_cnt` by `categories_team, month`; ② Generate a 4-month series and backfill with zeros; ③ Sort by team and month to calculate `prev_cnt = LAG(post_cnt)`; ④ `MoM = (post_cnt-prev_cnt)/prev_cnt`, and state how `prev_cnt=0` is handled (can be set to null or treated as a 100% jump); ⑤ Prove that only 3 teams have a calculable MoM (Brown Ltd, Johnson PLC, Rodriguez Inc) and their growth is 0, indicating that the vast majority of teams lack continuous samples.
+- Sub-standard 1.2.A.3 [1 Point | Conclusiveness] Summarize the overall team-level trend: most teams have ≤1 posting per month, leading to very few MoM samples and an inability to form a stable growth series.
+
+#### Path 1.2.B [5 Points | Metric = Sum of monthly open opportunities]
+- Sub-standard 1.2.B.1 [1 Point | Completeness] Use `sum(count_open_opportunities)` to represent job load. The panel construction and zero-backfilling rules are the same as in Path 1.2.A.
+- Sub-standard 1.2.B.2 [4 Points | Accuracy] Calculation process: ① Aggregate `open_opps` by `team, month`; ② Backfill months and set to zero; ③ Calculate `prev_open_opps` and MoM, stating whether `prev=0` and `curr>0` is treated as a 100% jump; ④ Verify that the company-level total of active opportunities (state∈{'published','pending'}) = 1670±5 and the number of active postings = 168±2, and explain that this scope measures workload intensity.
+- Sub-standard 1.2.B.3 [1 Point | Conclusiveness] Explain the advantage of "job load" over "number of postings" in capturing workload fluctuations, and mention the risk of magnified errors due to missing field values.
+
+#### Path 1.2.C [5 Points | Metric = New requisitions with 'open' status]
+- Sub-standard 1.2.C.1 [1 Point | Completeness] Select requisitions with `status='open'` and count the new additions by month based on created_at, maintaining consistency with the window and team dimension from Path 1.1.B.
+- Sub-standard 1.2.C.2 [4 Points | Accuracy] Describe the MoM calculation for `open` requisitions: the new additions for 2025-03 to 2025-08 are 6, 7, 7, 13, 10, 4 respectively (tolerance ±1). The MoM formula and handling of jumps must be clear. Compare this with the "number of postings" scope and explain why the number of new open requisitions also drops significantly in 2025-08.
+- Sub-standard 1.2.C.3 [1 Point | Conclusiveness] Summarize the applicable scenarios for requisition-based metrics (closer to headcount flow but heavily influenced by team name mapping).
+
+---
+
+## Requirement 2: High-Growth Team Identification (Max 6 Points)
+
+### Standard 2.1: Definition and Calculation of Current Active Postings (Max 3 Points)
+
+#### Path 2.1.A [3 Points | Active = Row Count]
+- Sub-standard 2.1.A.1 [1 Point | Completeness] Define "current active postings" as the count of postings with `state IN ('published','pending')`, aggregated by `categories_team` after filtering out empty teams.
+- Sub-standard 2.1.A.2 [4 Points | Accuracy] Statistical results: Number of active teams = 166±2, total active postings = 168±2, maximum active postings for a single team = 2 (Smith LLC, Brown Ltd), number of teams with `active postings > 10` = 0. Must specify how empty teams were filtered.
+- Sub-standard 2.1.A.3 [1 Point | Conclusiveness] Point out that teams are highly fragmented, with no team having more than 10 active postings, and warn that subsequent filtering may result in an empty set.
+
+#### Path 2.1.B [3 Points | Active = Number of Open Opportunities]
+- Sub-standard 2.1.B.1 [1 Point | Completeness] Switch to using `sum(count_open_opportunities)` to measure the scale of active roles, while maintaining the state filter and the logic for filtering out empty teams.
+- Sub-standard 2.1.B.2 [4 Points | Accuracy] Statistics: Number of active teams = 166±2, number of teams with `open_opportunities > 10` = 66±2. List top examples (Smith LLC≈23, Arnold Ltd≈20, Mccarthy, Weber and Duncan≈20, Cross Group≈19, Gray-Schaefer≈19, Martin-Salazar≈19).
+- Sub-standard 2.1.B.3 [1 Point | Conclusiveness] Explain that the "role capacity" scope can identify potentially high-load teams and compare the difference with the row count scope.
+
+### Standard 2.2: Combined Filtering by MoM and Active Threshold (Max 3 Points)
+
+#### Path 2.2.A [3 Points | Latest Month's MoM > 15% and Active Threshold]
+- Sub-standard 2.2.A.1 [1 Point | Completeness] Set the filter criteria: MoM > 0.15 for the latest calculable period (2025-07 vs. 2025-06) AND active postings > 10 (can use either scope from Path 2.1). State whether `prev=0` is considered a jump and if it should be included or excluded from the filter.
+- Sub-standard 2.2.A.2 [4 Points | Accuracy] Execute the filtering logic and provide evidence: ① Show that based on the MoM results from Path 1.2.A, only 3 teams have `prev_cnt>0`, and their MoM=0; ② Under the row count scope, number of teams with `active postings > 10` = 0; ③ Even when using the open opportunities scope, the number of teams with MoM > 15% and `prev_cnt>0` is 0. Must show corresponding SQL/pseudocode to confirm the combined condition results in an empty set.
+- Sub-standard 2.2.A.3 [1 Point | Conclusiveness] State the clear conclusion: No teams satisfy both MoM > 15% and active postings > 10, due to insufficient sustained active scale and a scarcity of MoM samples.
+
+#### Path 2.2.B [3 Points | Rolling Window or Jump Perspective]
+- Sub-standard 2.2.B.1 [1 Point | Completeness] Construct a rolling panel for 2025-05 to 2025-08, flagging any month with `MoM > 0.15` or a jump event (`prev=0 & curr>0`), and apply a combined filter with the active threshold.
+- Sub-standard 2.2.B.2 [4 Points | Accuracy] Provide the filter results: There are 227 "prev=0 → curr>0" jumps, but the corresponding teams still have `active postings ≤ 2` under the row count scope. Although 66 teams have `open_opp > 10` in the open opportunities scope, their MoM is still ≤0 in months where `prev > 0` within the rolling window. The combined result is an empty set. Must include the thought process or pseudocode explaining the filter logic.
+- Sub-standard 2.2.B.3 [1 Point | Conclusiveness] Explain the significance of rolling identification (capturing early peaks) and its shortcomings (most jumps are just "0→1" noise). Suggest aggregating by department or extending the window for future analysis.
+
+---
+
+## Requirement 3: Hiring Pressure Index and Two-Month Forecast (Max 8 Points)
+
+### Standard 3.1: Current Pressure Index (Max 3 Points)
+
+#### Path 3.1.A [3 Points | Standard Requisition Table Scope]
+- Sub-standard 3.1.A.1 [1 Point | Completeness] Define `pending_roles = Σ max(0, headcount_total - headcount_hired)`, counting only requisitions with `status='open'` and `headcount_infinite != 1`. Number of hiring managers = `count(distinct hiring_manager_user_id)`. If missing, fall back to `owner_user_id` and state that this was done.
+- Sub-standard 3.1.A.2 [4 Points | Accuracy] Company-level results: `pending_roles_total = 3±1`, `hiring_managers_total = 24±1`, overall pressure index ≈ 0.12±0.02. List team examples: Frye-Zavala=1/1→1.0, Maxwell-Pugh=1/1→1.0, Mcgee Ltd=1/1→1.0, and state that negative values and infinite headcount have been excluded.
+- Sub-standard 3.1.A.3 [1 Point | Conclusiveness] Point out that the current overall pressure is extremely low and no team is approaching the threshold of 8. Speculate that the reason is either that open headcount has been mostly filled or new hiring is on hold.
+
+#### Path 3.1.B [3 Points | Posting-Side Approximation: open_opportunities / posting_hiring_manager_name]
+- Sub-standard 3.1.B.1 [1 Point | Completeness] When the requisition table is difficult to align, use `sum(count_open_opportunities)` to approximate pending roles and `distinct posting_hiring_manager_name` under active postings for the number of hiring managers.
+- Sub-standard 3.1.B.2 [4 Points | Accuracy] Identify teams with exceptionally high pressure (tolerance ±1): Arnold Ltd≈20/1→20, Mccarthy, Weber and Duncan≈20/1→20, Cross Group≈19/1→19, Gray-Schaefer≈19/1→19, Martin-Salazar≈19/1→19, Brennan, Davis and Mcdaniel≈17/1→17, Anderson-Porter≈16/1→16, Glenn, Kelley and Alvarez≈16/1→16, etc. Must state that this scope might double-count but can be used for operational alerts.
+- Sub-standard 3.1.B.3 [1 Point | Conclusiveness] Compare the differences between the standard scope and the proxy scope, and advise that the proxy scope results should be cross-verified with the requisition table to avoid misjudgment.
+
+#### Path 3.1.C [3 Points | Hybrid/Priority Strategy]
+- Sub-standard 3.1.C.1 [1 Point | Completeness] State the priority: first calculate pressure from the requisition table; if a team cannot be mapped, fall back to the posting-side approximation, ensuring no double-counting.
+- Sub-standard 3.1.C.2 [4 Points | Accuracy] Describe the deduplication and merging process (join keys, name mapping). Output the results of the hybrid scope and state that the intersection is only 5 posting↔requisition records (e.g., `Gonzalez and Sons ↔ Peters Inc`), which limits the hybrid strategy.
+- Sub-standard 3.1.C.3 [1 Point | Conclusiveness] Provide an overall pressure assessment under the hybrid strategy and suggest that team naming conventions or a mapping dictionary needs to be improved.
+
+### Standard 3.2: Two-Month Pressure Index Forecast (Max 3 Points)
+
+#### Path 3.2.A [3 Points | Team's Latest MoM Compounded Growth]
+- Sub-standard 3.2.A.1 [1 Point | Completeness] Define the forecast formula `outstanding_2m = outstanding_now × (1+g)^2`, where `g` is the team's latest available MoM. For jumps where `prev=0` and `curr>0`, a cap can be set at 100%, and a floor (e.g., -50%) can be set to prevent extreme values. Pressure `pressure_2m = outstanding_2m / hiring_managers`.
+- Sub-standard 3.2.A.2 [4 Points | Accuracy] Explain the steps: ① Use the `outstanding` and `manager` results from Path 3.1; ② Align with the MoM from Path 1.2; ③ If a team has no valid MoM (e.g., Frye-Zavala, Maxwell-Pugh, Mcgee Ltd all have no prior month data), state the fallback `g=0`; ④ Under this scope, all team `pressure_2m` values remain ≈1.0, with no team exceeding 8.
+- Sub-standard 3.2.A.3 [1 Point | Conclusiveness] Point out that under the requisition scope, there is no urgent risk in the next two months, based on the assumption that missing MoM is treated as flat growth.
+
+#### Path 3.2.B [3 Points | Substitute with Organization-Level Growth Rate]
+- Sub-standard 3.2.B.1 [1 Point | Completeness] When team-level `g` is noisy, use the organization-level growth rate `g_org` as a uniform factor: take posting volume for 2025-07 vs. 2025-06, `g_org = (104-109)/109 ≈ -0.0459`.
+- Sub-standard 3.2.B.2 [4 Points | Accuracy] Calculate `outstanding_2m = outstanding_now × (1+g_org)^2`. For negative growth, `g_org` can be capped at ≥ -0.5. Under the open opportunities scope, `pressure_2m` for Arnold Ltd / Mccarthy, Weber and Duncan ≈ 18.21; for Cross Group / Gray-Schaefer / Martin-Salazar ≈ 17.30; for Brennan, Davis and Mcdaniel ≈ 15.48; for Anderson-Porter / Glenn, Kelley and Alvarez / Monroe and Sons / Munoz, Clarke and Sutton ≈ 14.57. All remain consistently above 8.
+- Sub-standard 3.2.B.3 [1 Point | Conclusiveness] Evaluate that organizational-level forecasting is suitable for quick alerts but ignores team differences. Recommend that teams still showing a pressure > 8 be placed on a watchlist.
+
+#### Path 3.2.C [3 Points | Scenario Simulation: Fixed Growth Factor]
+- Sub-standard 3.2.C.1 [1 Point | Completeness] Set a uniform scenario (e.g., +15% for two consecutive months) and explain its business context (conservative expansion or a target scenario).
+- Sub-standard 3.2.C.2 [4 Points | Accuracy] Calculate based on the scenario factor: Frye-Zavala's current pending=1 → after two months ≈1.32, pressure≈1.32; Arnold Ltd's open_opp=20 → outstanding_2m≈26.45, pressure≈26.45, needs to increase to 5 managers; Smith LLC's open_opp=23, managers=2 → pressure≈15.21. Must list at least 3 typical teams and compare with the current situation.
+- Sub-standard 3.2.C.3 [1 Point | Conclusiveness] Explain the value of scenario analysis for contingency planning and advise cautious interpretation when historical growth is negative but the scenario assumes positive growth.
+
+### Standard 3.3: Resource Gap Calculation (Max 2 Points)
+
+#### Path 3.3.A [2 Points | Capacity = 6 roles/manager]
+- Sub-standard 3.3.A.1 [1 Point | Completeness] Define `managers_needed_2m = ceil(outstanding_2m / 6)` and `additional_needed = max(0, managers_needed_2m - current_managers)`. If `current_managers=0`, state that a minimum of 1 person should be allocated before calculating the gap.
+- Sub-standard 3.3.A.2 [4 Points | Accuracy] Present the calculation results aligned with `outstanding_2m` from Path 3.2: In the `g_org` scenario, Arnold Ltd / Mccarthy, Weber and Duncan need 4 managers → 3 additional needed; Cross Group / Gray-Schaefer / Martin-Salazar need 2 additional; Brennan, Davis and Mcdaniel need 2 additional; Anderson-Porter / Glenn, Kelley and Alvarez / Monroe and Sons / Munoz, Clarke and Sutton need 2 additional. If no team's pressure > 8, state the reason for the zero gap.
+- Sub-standard 3.3.A.3 [1 Point | Conclusiveness] Translate the results into actionable recommendations: for teams with a gap of ≥2, recommend an immediate assessment for additional headcount or temporary support; for other teams, maintain rolling monitoring (window = next 2 months).
+
+---
+
+## Requirement 4: Structured Output and Business Recommendations (Max 6 Points)
+
+### Standard 4.1: Result Presentation and Anomaly Explanation (Max 3 Points)
+
+#### Path 4.1.A [3 Points | Complete Report Checklist]
+- Sub-standard 4.1.A.1 [1 Point | Completeness] Output a reviewable table/list of results covering at least: time window and scope explanation; company and team monthly trends and MoM; active posting distribution; high-growth team filter (including "empty set" explanation); current and forecasted pressure index; and resource gap or confirmation of no gap.
+- Sub-standard 4.1.A.2 [4 Points | Accuracy] All numerical values must be consistent with previous calculations (within tolerance), and different scopes must be labeled with their source (requisition table vs. posting table) to avoid confusion between windows or team dimensions.
+- Sub-standard 4.1.A.3 [1 Point | Conclusiveness] Structurally summarize key findings, e.g., "No high-growth teams found," "Potential high-pressure teams with index > 8 exist under the proxy scope," "Overall pressure under the requisition scope is ≈0.12."
+
+#### Path 4.1.B [3 Points | Empty Set or Anomaly Scenarios]
+- Sub-standard 4.1.B.1 [1 Point | Completeness] When filter results are empty or data is incomplete, provide an explanation for the reasons (e.g., active postings ≤ 2, scarce MoM samples, only 5 posting↔requisition joins).
+- Sub-standard 4.1.B.2 [4 Points | Accuracy] Provide supporting evidence consistent with statistics from Standards 1-3: `teams_active>10=0`, `teams_with_mom>15=0`, `joined teams=5`, etc.
+- Sub-standard 4.1.B.3 [1 Point | Conclusiveness] Propose follow-up actions (continuous monitoring, expanding the window, establishing a team mapping) to form a closed loop.
+
+### Standard 4.2: Business Recommendations and Alert Mechanism (Max 3 Points)
+
+#### Path 4.2.A [3 Points | Recommendations Based on Relative Features]
+- Sub-standard 4.2.A.1 [1 Point | Completeness] Propose at least two actionable recommendations based on the results from Requirements 1-3, covering at least two of the following three categories: "resource allocation/scaling strategy," "monitoring and alerts," and "data governance."
+- Sub-standard 4.2.A.2 [4 Points | Accuracy] Recommendations must be consistent with the data: e.g., no immediate need for additional resources under the requisition scope, but a temporary support plan should be set for proxy-scope teams with `pressure_now>8` (Arnold Ltd, etc.), and an alert threshold of MoM > 15% & open_opp > 10 should be established. When discussing data governance, point out the missing `requisition_code` mapping.
+- Sub-standard 4.2.A.3 [1 Point | Conclusiveness] Form a "current state → risk → action" closed loop, and specify monitoring metrics in the recommendations (e.g., `pressure_index > 6` triggers observation, `> 8` initiates resource allocation).
+
+#### Path 4.2.B [3 Points | Profiling and Process Recommendations Based on Absolute Features]
+- Sub-standard 4.2.B.1 [1 Point | Completeness] If only absolute features are obtained, still provide recruiting/operational profiles or process improvement suggestions (e.g., schedule weekly reviews for high-pressure teams where responsibility is concentrated on a single person).
+- Sub-standard 4.2.B.2 [4 Points | Accuracy] Recommendations should cite absolute features from Req 2/3 (max active postings=2, `pressure_total≈0.12`, top teams' pressure > 15 under proxy scope) to explain why a global resource increase can be postponed, but surplus hiring managers should be used to support high-pressure teams.
+- Sub-standard 4.2.B.3 [1 Point | Conclusiveness] Provide a follow-up plan (rerun the process after fixing team mappings, review monthly) and specify clear trigger conditions.

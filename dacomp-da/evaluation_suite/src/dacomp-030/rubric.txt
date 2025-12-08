@@ -1,0 +1,198 @@
+# [Total Score | 24 points]  The solution must meet two core requirements:
+- Requirement 1: Conduct a comprehensive analysis of key data such as Target Achievement Rate, customer complaint issues, and Sales (including other key data)
+- Requirement 2: Clearly specify which Outlet Types should have their contract signing volume increased or reduced and provide the rationale
+---
+## Requirement 1: Comprehensive analysis of Target Achievement Rate, customer complaint issues, Sales, and other key data (including other key data) (Maximum 16 points)
+
+### Standard 1.1: Target Achievement Rate analysis (Maximum 4 points)
+
+#### Path 1.1.A [3 points | Achievement Rate analysis (Descriptive analysis by Outlet Type)]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Define Achievement Rate = Actual Sales / Sales Target, and compute the Achievement Rate for different Outlet Types. You may use the mean method (Achievement Rate = average(Actual Sales ÷ Sales Target)) or the aggregate method (Achievement Rate = Σ(Actual Sales) ÷ Σ(Sales Target)).
+- Sub-standard 1.1.A.2 [1 point | Accuracy]: Correctly applying either method earns credit; a 1% data deviation is allowed.
+  1) Reference data for the mean method:
+  Specialty store 86.15%; Department Store 84.78%; Gas Station 84.67%; Food Store 84.65%; Shopping Center 84.18%; Convenience Store 83.63%; Retail Store 82.64%; Supermarket 82.23%; Restaurant 81.94%; Beverage Shop 80.71%
+
+  2) Reference data for the aggregate calculation method:
+| Outlet Type | Number of Outlets | Achievement Rate (%) |
+| ---- | --- | --------- |
+| Convenience Store  | 53  | 169.9     |
+| Department Store | 64  | 167.5     |
+| Specialty store  | 55  | 164.6     |
+| Food Store  | 63  | 163.2     |
+| Restaurant   | 62  | 161.6     |
+| Gas Station  | 60  | 160.3     |
+| Supermarket   | 59  | 158.6     |
+| Beverage Shop  | 52  | 156.5     |
+| Shopping Center | 58  | 152.9     |
+| Retail Store  | 57  | 152.1     |
+
+- Sub-standard 1.1.A.3 [1 point | Conclusiveness]: 
+  - Difference insights: Analyze and identify key differences in Achievement Rate, such as Specialty store having the highest rate at 86.15%, and Beverage Shop performing the worst at 80.71%, etc.
+
+#### Path 1.1.B [4 points | Statistical testing of Achievement Rate differences and predictive modeling (Optimal path: statistical modeling + predictive analysis)]
+- Sub-standard 1.1.B.1 [1 point | Completeness]: Build statistical significance tests for Achievement Rate differences across Outlet Types (ANOVA, t-test), establish an Achievement Rate prediction model, and identify key variables affecting the Achievement Rate (Sales History, Seasonality Flag, Promotional Impact, competitive landscape, etc.).
+- Sub-standard 1.1.B.2 [1 point | Accuracy]: Pseudocode constraints — perform ANOVA (F-statistic, p<0.05), build a multiple regression model with R²>0.7, run model diagnostics (residual analysis, collinearity test with VIF<5), and output predictions {Outlet Type, predicted Achievement Rate, confidence interval, key factor weights}.
+- Sub-standard 1.1.B.3 [2 points | Conclusiveness]: 
+  - Significance of differences: Based on statistical tests, identify significant Achievement Rate differences, e.g., Convenience Store vs. Supermarket difference is significant (p<0.001, difference 11.26%±2%), Specialty store vs. Retail Store difference is extremely significant (p<0.001, difference 17.72%±3%), and establish an Outlet Type Achievement Rate tiering system.
+  - Predictive model insights: Quantify key factors based on regression, e.g., each additional Promotion increases Achievement Rate by 8%±2%, every +100 cases in Sales History raises Achievement Rate by 5%±1%, Seasonality impacts Restaurant the most (summer-winter difference 15%±3%), and the model prediction accuracy reaches 85%±3%.
+  - Prediction and action plan: Forecast the Achievement Rate trends by Outlet Type for the next 3–6 months and develop differentiated improvement strategies (increase promotional support by 30% for low-achievement types, optimize assortment strategy, strengthen customer relationship management), with phased targets (10% improvement in 3 months, 20% in 6 months).
+
+#### Path 1.1.C [4 points | Reasonableness of target setting and support resource assessment (Optimal path: target calibration + resource allocation analysis)]
+- Sub-standard 1.1.C.1 [1 point | Completeness]: Build a framework to assess the reasonableness of target setting: analyze historical Achievement Rate baselines for Outlet Types, market environment changes, competitive dynamics, and resource input levels; evaluate the rationality of current targets; identify Outlet Types with overly high targets or insufficient support resources.
+- Sub-standard 1.1.C.2 [1 point | Accuracy]: Anchor validation (error ≤3%): Types with insufficient Achievement Rate (Supermarket 82.8%, Retail Store 82.2%, Beverage Shop 81.5%), indicators of insufficient support resources (per-capita support budget, promotion frequency, training duration), and target rationality scoring (based on historical mean ± standard deviation range).
+- Sub-standard 1.1.C.3 [2 points | Conclusiveness]:
+  - Target rationality diagnosis: Systematically evaluate the reasonableness of target setting by Outlet Type, e.g., Supermarket has a large sales base (640 cases) but an Achievement Rate of only 82.8%; check whether the target is too high. Beverage Shop has the lowest Achievement Rate (81.5%) and a small sales base (283 cases), possibly reflecting insufficient support resources.
+  - Support resource matching analysis: Assess alignment between targets and support resources, e.g., whether high-target Outlet Types receive corresponding promotional support, training resources, and management attention; identify Outlet Types with uneven resource allocation; establish a target-resource matching evaluation system.
+  - Target adjustment and resource re-allocation recommendations: Based on the rationality assessment, propose target adjustment plans, e.g., moderately lower Supermarket sales targets or increase promotional support by 25%; re-evaluate market positioning for Beverage Shop or increase resource input; build a dynamic target adjustment mechanism (quarterly assessments, annual resets).
+
+### Standard 1.2: Customer complaint analysis (Maximum 4 points)
+
+#### Path 1.2.A [3 points | Structured analysis of complaint rate]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Define Complaint Rate = number of complaints / number of orders, and accurately compute values for different Outlet Types.
+- Sub-standard 1.2.A.2 [1 point | Accuracy]: Anchor validation (error ≤1%): Complaint Rate references (Specialty store 27.27%±0.5%, Gas Station 41.67%±0.5%, Supermarket 44.07%±0.5%, Department Store 51.56%±0.5%, etc.).
+- Sub-standard 1.2.A.3 [1 point | Conclusiveness]:
+  - Structured difference insights: Identify structural characteristics of complaint issues, e.g., Department Store has the highest complaint rate (51.56%), Specialty store the lowest (27.27%).
+
+#### Path 1.2.B [4 points | Root cause analysis of complaints and prevention mechanism design (Optimal path: systemic root cause analysis + prevention system)]
+- Sub-standard 1.2.B.1 [1 point | Completeness]: Build a root cause analysis framework for complaint issues (5-Why analysis, fishbone diagram), distinguish systemic vs. sporadic problems, establish an early warning mechanism and closed-loop management process, and analyze the associations between complaint issues and Sales, Achievement Rate, and customer satisfaction.
+- Sub-standard 1.2.B.2 [1 point | Accuracy]: Pseudocode constraints — execute a root cause analysis algorithm (5-Why iteration depth ≥3 levels), construct a causal relationship tree, compute problem occurrence probability and impact matrix, build an early warning model (warning threshold: complaint rate MoM increase >15%), and output results {problem type, root cause level, systemic score, warning indicators, improvement priority}.
+- Sub-standard 1.2.B.3 [2 points | Conclusiveness]:
+  - Root cause identification and grading: Identify systemic issues via deep root cause analysis, e.g., 70% of delivery issues stem from third-party logistics SLA management gaps; 60% of taste issues originate from poor adherence to storage temperature standards; 80% of display issues derive from gaps in Outlet staff training systems. Establish an A/B/C three-tier grading (A: impacts Sales >10%; B: 5–10%; C: <5%).
+  - Association impact analysis: Quantify associations between complaints and business metrics, e.g., every +10% in complaint rate leads to an 8%±2% decline in Sales, a 12%±3% drop in Achievement Rate, and a 15%±2% decrease in customer satisfaction. Build a complaint-to-business impact prediction model and identify critical thresholds (business risk surges when complaint rate >45%).
+  - Prevention system design: Build an end-to-end complaint prevention management system, including early-warning monitoring (daily complaint rate monitoring, automatic anomaly alerts), rapid response (respond within 4 hours, resolve within 24 hours), and continuous improvement (monthly root cause analysis, quarterly process optimization). Set systemic improvement goals (overall complaint rate reduced to <35%, zero A-level issues, customer satisfaction >85%).
+
+#### Path 1.2.C [4 points | Appeal reason refinement and targeted rectification analysis (Optimal path: deep mining of appeal_record_table + targeted rectification)]
+- Sub-standard 1.2.C.1 [1 point | Completeness]: Build a refined analysis framework for appeal reasons: Using the "Appeal Reason" field in the appeal_record_table, analyze the distribution of primary appeal reasons by Outlet Type, establish an appeal reason–Outlet Type association matrix, and identify core appeal pain points for different Outlet Types.
+- Sub-standard 1.2.C.2 [1 point | Accuracy]: Anchor validation (error ≤5%): Department Store primary appeal reasons (delivery issues account for 60%±5%, product quality 20%±3%) — 33 appeals (most); Shopping Center primary appeal reasons (promotion execution issues 45%±5%, inventory management 25%±3%) — 29 appeals; Specialty store has the fewest appeals (15) but service issues account for 40%±5%.
+- Sub-standard 1.2.C.3 [2 points | Conclusiveness]:
+  - Outlet-type appeal insights: Systematically summarize the primary appeal reason characteristics for each Outlet Type, e.g., Department Store has the most appeals (33) primarily due to delivery service issues and needs targeted rectification; Shopping Center appeals (29) focus on promotion execution and inventory management and require operations process optimization; Specialty store has few appeals (15) but needs attention to service quality improvement.
+  - Targeted rectification strategy design: Develop targeted rectification plans for core appeal issues by Outlet Type, e.g., establish a dedicated delivery service task force for Department Store; standardize promotion execution processes for Shopping Center; improve inventory management systems for Supermarket. Build a closed-loop appeal–rectification–effect evaluation management.
+  - Appeal–improvement mapping table: Create standardized mappings between appeal reasons and improvement measures, e.g., delivery issues → logistics SLA optimization + delivery timeliness monitoring; promotion execution issues → standardized execution manual + on-site supervision; inventory management issues → inventory warning systems + replenishment process optimization, ensuring targeted and effective problem resolution.
+
+#### Path 1.2.D [2 points | Complaint summation analysis]
+- Sub-standard 1.2.D.1 [1 point | Completeness]: Compute total complaints by Outlet Type.
+- Sub-standard 1.2.D.2 [1 point | Accuracy]: 
+   Department Store: 33 times
+   Food Store: 32 times
+   Restaurant: 31 times
+   Shopping Center: 29 times
+   Beverage Shop: 26 times
+   Supermarket: 26 times
+   Convenience Store: 26 times
+   Retail Store: 25 times
+   Gas Station: 25 times
+   Specialty store: 15 times
+
+### Standard 1.3: Sales analysis (Maximum 4 points)
+
+#### Path 1.3.A [3 points | Sales structure and trend analysis]
+- Sub-standard 1.3.A.1 [1 point | Completeness]: Build a Sales analysis framework: compute average Sales and average MoM or average YoY Growth Rate by Outlet Type.
+- Sub-standard 1.3.A.2 [1 point | Accuracy]: Anchor validation (error ≤2%): Reference average MoM Growth Rate for Sales:
+  Department Store: 19.7%
+  Food Store: 8.56%
+  Restaurant: 16.13%
+  Gas Station: 19.57%
+  Supermarket: 24.32%
+  Shopping Center: 11.02%
+  Retail Store: 11.75%
+  Specialty store: 13.96%
+  Convenience Store: 18.51%
+  Beverage Shop: 13.72%
+- Sub-standard 1.3.A.3 [1 point | Conclusiveness]:
+  - Structural difference insights: e.g., Supermarket has the highest YoY growth, Food Store has the lowest YoY growth.
+
+#### Path 1.3.B [4 points | Sales driver analysis and predictive modeling (Optimal path: multiple regression + time series forecasting)]
+- Sub-standard 1.3.B.1 [1 point | Completeness]: Build a model to analyze Sales drivers, identify key variables affecting Sales by Outlet Type (Promotional Impact, Seasonality Flag, competitive landscape, economic environment, changing consumer preferences, etc.), develop a Sales forecasting model, and analyze the sustainability and risk factors of Sales growth.
+- Sub-standard 1.3.B.2 [1 point | Accuracy]: Pseudocode constraints — build a multiple regression model (R²>0.75), perform variable significance tests (p<0.05), diagnose multicollinearity (VIF<5), build a time series forecasting model (MAPE<10%), and output predictions {Outlet Type, predicted Sales, confidence interval, driver weights, risk assessment}.
+- Sub-standard 1.3.B.3 [2 points | Conclusiveness]:
+  - Quantified driver analysis: Based on multiple regression, quantify key drivers, e.g., promotions most significantly boost Convenience Store Sales (25%±3%); Seasonality impacts Restaurant the most (summer-winter difference 30%±5%); competition impacts Supermarket most severely (-15%±2%); economic environment has a significant impact on high-end Department Store; build a factor–channel impact matrix.
+  - Predictive model insights: Using time series and regression, forecast Sales trends for the next 6–12 months, e.g., Convenience Store will continue fast growth (monthly average +4%±1% for the next 6 months), Specialty store maintains steady growth (+2%±0.5% monthly), Supermarket’s decline is expected to bottom out and rebound in Q3; model prediction accuracy reaches 88%±3%.
+  - Differentiated strategy development: Based on forecasts and driver analysis, design precise marketing strategies: increase promotion frequency and new product launches for Convenience Store; strengthen seasonal marketing for Restaurant; implement channel transformation and digital upgrades for Supermarket. Set quantifiable Sales growth targets (overall Sales growth 8%, high-potential channels >15% growth, declining channels return to positive growth).
+
+#### Path 1.3.C [2 points | Sales structure and trend analysis]
+- Sub-standard 1.3.C.1 [1 point | Completeness]: Build a Sales analysis framework: compute average Sales and average MoM or average YoY Growth Rate by Outlet Type.
+- Sub-standard 1.3.C.2 [1 point | Accuracy]: Anchor validation (error ≤2%): Reference average MoM Growth Rate for Sales
+   ('Department Store', 44232)
+   ('Supermarket', 37756)
+   ('Specialty store', 36538)
+   ('Shopping Center', 35778)
+   ('Gas Station', 19718)
+   ('Restaurant', 18589)
+   ('Food Store', 17544)
+   ('Convenience Store', 15546)
+   ('Retail Store', 14826)
+   ('Beverage Shop', 14711)
+
+### Standard 1.4: Other key business data analysis (Inventory/Sell-through/Shelf Display/Price/Promotion, etc.) (Maximum 4 points)
+
+#### Path 1.4.A [3 points | Inventory and sell-through efficiency analysis (Inventory management efficiency by Outlet Type)]
+- Sub-standard 1.4.A.1 [1 point | Completeness]: Build an inventory efficiency assessment framework: analyze turnover rate, sell-through rate, out-of-stock rate, and slow-moving rate by Outlet Type; establish an inventory health scoring system; assess inventory structure optimization potential and seasonal inventory management patterns.
+- Sub-standard 1.4.A.2 [1 point | Accuracy]: Pseudocode constraints — compute inventory efficiency metrics (Turnover = Sales / Average Inventory), perform inventory ABC analysis (Class A sell-through rate >85%, Class B 60–85%, Class C <60%), build an inventory health scoring model (weights: turnover 40% + sell-through 35% + out-of-stock 25%), and output {Outlet Type, turnover, sell-through, health score, optimization potential}.
+- Sub-standard 1.4.A.3 [1 point | Conclusiveness]:
+  - Sell-through efficiency comparison: Quantify inventory management efficiency differences across Outlet Types, e.g., Convenience Store turnover 15 times/year, sell-through 92%, inventory health score highest (0.89); Supermarket turnover only 8 times/year, sell-through 75%, with clear room for improvement.
+  - Differentiated management strategies: Develop Outlet-type-specific inventory management improvement plans, e.g., Convenience Store adopts a "small-batch, high-frequency" replenishment model; Supermarket establishes a "demand forecasting + safety stock" model; set quantifiable improvement goals (overall turnover +25%, sell-through >88%).
+
+#### Path 1.4.B [4 points | Promotion and pricing strategy effectiveness analysis (Optimal path: price elasticity + promotion ROI modeling)]
+- Sub-standard 1.4.B.1 [1 point | Completeness]: Establish a promotion and pricing analysis framework: analyze promotion frequency, discount depth, price elasticity, and promotion ROI by Outlet Type; build a price sensitivity model; analyze the differentiated effects of promotion strategies across Outlet Types.
+- Sub-standard 1.4.B.2 [1 point | Accuracy]: Pseudocode constraints — compute price elasticity (elasticity = rate of change in Sales / rate of change in price), perform A/B testing for promotion effects, build a promotion ROI model (ROI = (incremental Sales × gross margin − promotion cost) / promotion cost), and output {Outlet Type, price elasticity, promotion frequency, average ROI, optimal promotion strategy}.
+- Sub-standard 1.4.B.3 [2 points | Conclusiveness]:
+  - Differentiated promotion effectiveness: Quantify strategy effectiveness across channels, e.g., price promotions work best in Supermarket (Sales +35%±5%, ROI=4.2) but have limited effects in Convenience Store (+8%±2%, ROI=1.8); display promotions are most effective in Specialty store (+45%±8%, ROI=5.1). Analyze root causes (consumer price sensitivity, purchase decision patterns, competitive environment).
+  - Price sensitivity insights: Identify channel characteristics via elasticity analysis, e.g., Supermarket consumers show the highest price sensitivity (elasticity −2.8), Convenience Store consumers prioritize convenience (elasticity −0.6), Specialty store has higher brand loyalty (elasticity −1.2), informing differentiated pricing strategies.
+  - Personalized promotion strategy optimization: Design channel-specific promotion mixes, e.g., Supermarket focuses on price promotions + holiday promotions; Convenience Store focuses on convenience services + membership points; Specialty store emphasizes new product experiences + display optimization. Set promotion goals (overall promotion ROI >3.5, high-potential channels ROI >5.0, overall promotion conversion rate improvement >35%).
+
+---
+## Requirement 2: Clearly specify which Outlet Types should have their contract signing volume increased or reduced and provide the rationale (Maximum 8 points)
+
+### Standard 2.1: Quantitative scoring and ranking (basis for increase/reduction) (Maximum 4 points)
+
+#### Path 2.1.A [3 points | Multi-indicator weighted scoring system]
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Based on a composite of Achievement Rate, Sales, and complaints, provide the Outlet Types to increase or reduce.
+- Sub-standard 2.1.A.2 [2 points | Conclusiveness]:
+  - Explicitly answer Requirement 2: Increase signing volume — naming any two among Specialty store, Gas Station, Department Store earns credit; do not name Food Store, Retail Store, Beverage Shop, otherwise deduct 1 point. Reduce signing volume — naming any two among Food Store, Retail Store, Beverage Shop earns credit; do not name Specialty store, Gas Station, Department Store, otherwise deduct 1 point.
+
+#### Path 2.1.B [4 points | Business value-oriented layered decision framework (Optimal path: BCG matrix + strategic planning)]
+- Sub-standard 2.1.B.1 [1 point | Completeness]: Build a business value assessment framework combining qualitative factors such as market potential, channel strategic position, customer lifetime value, and brand influence; construct a strategic layering system for Outlet Types (core channels, important channels, supporting channels, peripheral channels); design differentiated management strategies and resource allocation principles.
+- Sub-standard 2.1.B.2 [1 point | Accuracy]: Pseudocode constraints — build a business value evaluation matrix (market potential × strategic position), perform AHP to determine weights, compute composite business value scores, establish a value–performance two-dimensional classification, and output {Outlet Type, business value score, performance score, strategic positioning, development strategy}.
+- Sub-standard 2.1.B.3 [2 points | Conclusiveness]:
+  - Explicitly answer Requirement 2: Increase signing volume — Specialty store (Star channel — strong expansion), Convenience Store (Question Mark channel — key cultivation); Reduce signing volume — Retail Store, etc. (Dog channel — gradual exit); Maintain current level — Department Store (Cash cow channel — steady development).
+  - Strategic layered decisions: Based on the value–performance matrix, categorize Outlet Types into four strategic quadrants: ① Star channel (Specialty store) — high value & high performance, strong expansion; ② Cash cow channel (Department Store) — high performance, needs value enhancement, steady development; ③ Question Mark channel (Convenience Store) — high value, performance to be improved, key cultivation; ④ Dog channel (Retail Store, etc.) — low value & low performance, gradual exit.
+  - Resource allocation strategy: Design differentiated resource input schemes, e.g., Star channel receives 50% of new investment; Cash cow channel maintains current input and optimizes efficiency; Question Mark channel increases support by 30% for focused breakthroughs; Dog channel gradually reduces resource input. Establish a dynamic adjustment mechanism (quarterly review, annual reclassification).
+  - Execution roadmap: Develop a 3-year layered development plan: Year 1 focus on Star and Question Mark channels; Year 2 optimize Cash cow channel efficiency; Year 3 complete structural adjustments for Dog channels. Set layered development targets (Star channel signing volume +60%; Question Mark channel performance +50%; Dog channel share <15%).
+
+#### Path 2.1.C [4 points | Threshold-based grading and three-tier decision analysis (Optimal path: single-indicator thresholds + three-tier decisions)]
+- Sub-standard 2.1.C.1 [1 point | Completeness]: Build a single-indicator threshold grading framework: set Achievement Rate threshold (>0.84 as Excellent), Sales threshold (>600 cases per Outlet as Efficient, <300 cases as Inefficient), complaint rate threshold (<30% as High Quality). Establish single-indicator performance tiers and identify each Outlet Type’s performance level across dimensions.
+- Sub-standard 2.1.C.2 [1 point | Accuracy]: Anchor validation (error ≤2%): Excellent Achievement Rate types (Specialty store 0.851, Department Store 0.845, Shopping Center 0.845); Efficient Sales types (Department Store 691.12 cases, Specialty store 664.33 cases, Shopping Center 616.86 cases); High-quality complaint type (Specialty store 27.27%); Inefficient elimination standards (Sales <300 cases: Restaurant 299.82 cases, Beverage Shop 282.9 cases).
+- Sub-standard 2.1.C.3 [2 points | Conclusiveness]:
+  - Explicitly answer Requirement 2: Increase signing volume — Specialty store (high-value Outlet, key expansion); Reduce signing volume — Retail Store, Beverage Shop (low ROI, need to downsize); Maintain current level — Department Store, Shopping Center, Supermarket (require optimization but maintain current scale).
+  - Three-tier decision: Based on thresholds, categorize Outlet Types into three tiers: ① Priority to increase signing (✓): Specialty store (664 cases + 85.1% Achievement Rate + 15 appeals) — high-value Outlet, key expansion; ② Maintain current but optimize (⚖️): Department Store (691 cases highest, but 33 appeals most) — address complaints; Shopping Center (617 cases + 84.5% but 29 appeals) — monitor appeal reasons; Supermarket (640 cases but 82.8% Achievement Rate insufficient) — adjust targets or increase support; ③ Consider reducing signing (✗): Retail Store (260 cases lowest + 82.2% low Achievement Rate) — low ROI; Beverage Shop (283 cases + 81.5% lowest Achievement Rate) — downsize.
+  - Targeted optimization strategies: Develop differentiated improvement plans, e.g., Department Store conducts a complaint rectification program (diagnose service/product delivery issues); Supermarket reviews target rationality (overly high or insufficient support resources?); Shopping Center focuses on promotion execution and inventory management issues; gradually redirect resources from Retail Store and Beverage Shop to higher-quality Outlets.
+  - Appeal reason refinement analysis: Using the "Appeal Reason" field in the appeal_record_table for deep root cause analysis, design targeted solutions for primary reasons by Outlet Type (e.g., Department Store delivery issues, Shopping Center promotion execution issues), and build an appeal–Outlet Type–improvement measure mapping.
+
+#### Path 2.1.D [4 points | Partnership optimization and resource allocation strategy (Optimal path: dynamic contracting + refined management)]
+- Sub-standard 2.1.D.1 [1 point | Completeness]: Build a partnership optimization framework: design improvement plans for existing partners (training, promotions, service process improvements), establish a dynamic contracting adjustment mechanism (prudent contracting, deferral strategies), and build a resource misallocation prevention system and refined management strategies.
+- Sub-standard 2.1.D.2 [1 point | Accuracy]: Anchor validation (error ≤10%): Increase expansion for high-performing types (Specialty store Achievement Rate 95.1% + Complaint Rate 0.27); defer new contracting for low-performing types (Department Store, Food Store, Restaurant, Beverage Shop complaint rate >0.5); maintain status quo for mid-performing types (Convenience Store, Gas Station, Supermarket, etc.).
+- Sub-standard 2.1.D.3 [2 points | Conclusiveness]:
+  - Explicitly answer Requirement 2: Increase signing volume — Specialty store (immediately expand); Reduce signing volume — Department Store, Food Store, Restaurant, Beverage Shop (high-complaint types; defer or reduce new contracting); Maintain current level — Convenience Store, Gas Station, Supermarket (core mid-tier types).
+  - Outlet-type partnership optimization strategies: Develop differentiated partnership management strategies, e.g., immediately expand Specialty store and invest more resources; conduct in-depth root cause analyses and improvement plans for high-complaint types like Department Store; seek improvements for mid-tier types through refined management.
+  - Prudent contracting and resource allocation: Establish a dynamic contracting adjustment mechanism, e.g., defer or reduce new contracts with high-complaint types until issues are effectively addressed to avoid resource misallocation; prioritize saved resources for efficient types like Specialty store to maximize resource allocation efficiency.
+  - Refined management and personalized support: Design personalized support strategies by performance tier, e.g., extra training (low-performing types), optimized promotions (mid-performing types), improved customer service processes (high-complaint types). Build a continuous improvement partnership management system.
+
+### Standard 2.2: Robustness and business validation (Maximum 4 points)
+
+#### Path 2.2.A [4 points | Multi-scenario sensitivity analysis (robustness assessment under different business assumptions)]
+- Sub-standard 2.2.A.1 [1 point | Completeness]: Design multiple business scenarios: ① Optimistic (Achievement Rate +10%, complaint rate −20%); ② Pessimistic (Achievement Rate −10%, complaint rate +20%); ③ Baseline (current data); ④ Weight sensitivity (weights w1, w2, w3 each adjusted ±20%). Construct a decision tree analysis framework to evaluate ranking stability across scenarios.
+- Sub-standard 2.2.A.2 [1 point | Accuracy]: Pseudocode constraints — perform Monte Carlo simulation (n=1000), generate random perturbations for scenario parameters, compute rankings under each scenario, calculate ranking stability metrics (coefficient of variation <0.3), build a risk assessment matrix, and output sensitivity results {Outlet Type, average rank, rank standard deviation, robustness score, risk level}.
+- Sub-standard 2.2.A.3 [2 points | Conclusiveness]:
+  - Explicitly answer Requirement 2: Increase signing volume — Specialty store (Grade A robust channel, safe to expand), Convenience Store (Grade B, good stability); Reduce signing volume — Department Store (Grade C, higher risk under pessimistic scenario); Maintain current level — other types adjusted dynamically based on robustness ratings.
+  - Differentiated robustness analysis: Using 4 scenarios × 1000 simulations, identify robustness differences: Specialty store ranks 1–2 across all scenarios (Grade A robustness); Convenience Store ranks 2–4 with small fluctuations (Grade B); Department Store can drop to rank 6 under pessimistic scenarios (Grade C). Establish robustness tiers and a risk warning mechanism.
+  - Dynamic adjustment strategy: Based on sensitivity analysis, develop dynamic management strategies: Grade A robust channels can expand confidently; Grade B channels require monitoring indicators (Achievement Rate <160% triggers warning); Grade C channels need contingency plans (complaint rate >50% pauses expansion). Set a quarterly re-evaluation mechanism to ensure strategy timeliness.
+  - Scenario response plans: Develop differentiated response strategies by scenario, e.g., under optimistic scenarios accelerate expansion of high-potential channels (Gas Station, Food Store upgraded to key development); under pessimistic scenarios shrink risk channels (Department Store downgraded to cautious development); build scenario identification indicators to enable automatic strategy switching.
+
+#### Path 2.2.B [4 points | Business implementation feasibility and input-output analysis]
+- Sub-standard 2.2.B.1 [1 point | Completeness]: Build an implementation feasibility assessment framework: analyze resource needs (people, funds, time), market constraints (competitive landscape, supplier capability, regional restrictions), and organizational capability (team experience, management processes, technology support); create an implementation difficulty scoring system; evaluate the operability of the contracting adjustment plan.
+- Sub-standard 2.2.B.2 [1 point | Accuracy]: Pseudocode constraints — build an input-output calculation model (NPV = ∑(cash inflows − cash outflows)/(1+r)^t), compute ROI and payback period for each strategy, perform risk-adjusted return analysis (RAROC = adjusted return / economic capital), build a feasibility scoring matrix, and output {adjustment strategy, input cost, expected return, NPV, ROI, risk rating, feasibility score}.
+- Sub-standard 2.2.B.3 [2 points | Conclusiveness]:
+  - Explicitly answer Requirement 2: Increase signing volume — Specialty store (low risk, high return, ROI=4.9, recommend +50%), Convenience Store (medium risk, medium return, ROI=3.2, recommend +30%); Reduce signing volume — Retail Store (high risk, recommend −20%); Maintain current level — adjust other types based on ROI performance.
+  - Full input-output analysis: Quantify the complete input-output model of contracting adjustments, e.g., increasing Specialty store contracts by 50% requires annual management cost input of CNY 3 million, marketing support CNY 2 million, 3-year cumulative input CNY 15 million, expected 15% Sales growth creating CNY 60 million revenue, NPV = CNY 28.5 million, ROI = 4.9, payback period 18 months. Establish a cross-channel input-output comparison matrix.
+  - Risk-return characteristics analysis: Identify risk-return characteristics of each adjustment strategy, e.g., Specialty store = low risk, high return (Risk Level B, ROI=4.9); Convenience Store = medium risk, medium return (Risk Level C, ROI=3.2); Retail Store exit = high risk but loss avoidance (Risk Level D). Build a risk–return two-dimensional matrix to guide decision priorities.
+  - Phased implementation roadmap: Develop a 3-year phased plan — Year 1 pilot (Specialty store +20% to validate the model); Year 2 scale-up (Specialty store +50% + Convenience Store +30%); Year 3 structural optimization (Retail Store −20% + overall structural adjustments). Set success criteria per phase (ROI >80% of target; complaint rate within control) and exit mechanisms (pause expansion if underperforming for two consecutive quarters).

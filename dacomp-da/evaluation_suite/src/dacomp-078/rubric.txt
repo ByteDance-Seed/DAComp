@@ -1,0 +1,154 @@
+# [Total Score | 36 points] Rubric for Multi-Dimensional Customer Value Assessment and 3–6 Month Trend Prediction
+---
+## Requirement 1: Data Preparation, Time Windows, and Label Construction (Max 9 points for this requirement)
+### Criterion 1.1: Data Asset Review and Availability Confirmation (Max 3 points)
+#### Path 1.1.A [3 points | Table Structure Inventory + Primary Key Mapping]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Must list and describe the purpose of fields and join methods for `pendo__account` (account profile/activity aggregation, primary key `account_id`), `pendo__visitor` (visitor profile and mapping to `account_id`), `pendo__visitor_daily_metrics` (daily intensity/frequency, primary key `(visitor_id,date_day)`), `pendo__feature` (feature dictionary, `feature_id`), and `pendo__visitor_feature` (visitor × feature usage, primary key `(visitor_id,feature_id)`). Must explicitly state that subsequent features are cascaded from `visitor_id` to `account_id` via the `pendo__visitor` table.
+- Sub-criterion 1.1.A.2 [1 point | Accuracy]: Provide reproducible SQL output: `pendo__account=1000`, `pendo__visitor=38,544`, `pendo__visitor_daily_metrics=29,057`, `pendo__feature=2,000`, `pendo__visitor_feature=24,982`; `date_day` min value `2024-01-04`, max value `2024-09-28`; `pendo__visitor_feature`'s `first_click_at` min `2021-01-01 02:57:15.258 +0800`, `last_click_at` max `2024-12-30 23:55:24.868 +0800`.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: Based on statistical findings, point out that: `pendo__visitor_daily_metrics` and `pendo__visitor_feature` can support features for past/future windows; however, the future window `2024-07-01~2024-09-28` only covers `33` visitors and `2` accounts. Persisting with account-level training will lead to severe sparsity, necessitating a switch to visitor-level analysis or an extension of the future window.
+
+#### Path 1.1.B [3 points | Active Coverage and Sample Size Diagnosis]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Explain the logic for counting future active entities: first, deduplicate visitors by `date_day` in `pendo__visitor_daily_metrics`; then, aggregate by `strftime('%Y-%m',date_day)`; finally, join with `pendo__visitor` to map to accounts.
+- Sub-criterion 1.1.B.2 [1 point | Accuracy]: Provide verification results: monthly active account counts (`2024-01`=11, `2024-02`=11, `2024-03`=9, `2024-04~2024-06`=5, `2024-07`=2, `2024-08`=1, `2024-09`=1); rolling window examples (distinct visitors/accounts): `2024-01~02→2024-03` visitors 533/accounts 9, `2024-02~03→2024-04` visitors 394/accounts 5, `2024-03~04→2024-05` visitors 240/accounts 5, `2024-04~05→2024-06` visitors 92/accounts 5, `2024-05~06→2024-07` visitors 33/accounts 2, `2024-06~07→2024-08` visitors 23/accounts 1.
+- Sub-criterion 1.1.B.3 [1 point | Conclusion]: State clearly: account coverage drops sharply in the future window (`2024-07` and later) → subsequent modeling must adopt a visitor-level granularity with rolling samples (totaling `3,046` records), otherwise training/evaluation will be unstable.
+
+### Criterion 1.2: Time Window Partitioning and Leakage Prevention (Max 3 points)
+#### Path 1.2.A [3 points | Fixed Window Scheme]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Define the core evaluation windows: past `2024-04-01~2024-06-30`, future `2024-07-01~2024-09-28`. Must report `394` active visitors and `5` accounts in the past window; `33` active visitors and `2` accounts in the future window.
+- Sub-criterion 1.2.A.2 [1 point | Accuracy]: Verification scripts must only rely on daily-level fields within the past window, such as `sum_minutes/sum_events/count_features_clicked`. Strictly prohibit cross-window fields (e.g., `last_event_on`, lifetime totals) from being used in feature construction.
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: Provide a quantifiable judgment: Due to only 2 accounts in the future window, a fixed-window account-level model carries excessively high risk. It's necessary to switch to a visitor-level model or extend the future window (e.g., by adding data from `2024-10`) before deployment.
+
+#### Path 1.2.B [3 points | Rolling Window Scheme]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: List at least six rolling windows: `W1:2024-01-01~02-29→03`, `W2:2024-02-01~03-31→04`, `W3:2024-03-01~04-30→05`, `W4:2024-04-01~05-31→06`, `W5:2024-05-01~06-30→07`, `W6:2024-06-01~07-31→08`.
+- Sub-criterion 1.2.B.2 [1 point | Accuracy]: Output rolling window statistics: `W1` visitor count 875/future active 533, `W2`=898/394, `W3`=547/240, `W4`=394/92, `W5`=240/33, `W6`=92/23; also provide total future minutes (e.g., `W1`=24,286 minutes).
+- Sub-criterion 1.2.B.3 [1 point | Conclusion]: Propose an implementation strategy: combine the six windows for a total of `3,046` samples to be used for time-series cross-validation; explain that `W5` and `W6` require visitor-level labels or upsampling to mitigate sparsity in later periods.
+
+### Criterion 1.3: High-Value Label Construction (Max 3 points)
+#### Path 1.3.A [3 points | Combination of Top-K and Multiple Indicators]
+- Sub-criterion 1.3.A.1 [1 point | Completeness]: Define high-value = the top 10% of `future_minutes` within the future window, grouped by window (as CS resources focus on the top decile); also define a whitelist based on the 90th percentile of multiple indicators (future minutes, future events, future feature clicks, future active days).
+- Sub-criterion 1.3.A.2 [1 point | Accuracy]: Provide precise thresholds—Top 10% minute thresholds: `W1≥51`, `W2≥42`, `W3≥63`, `W4≥48`, `W5≥67`, `W6≥107` (corresponding to 89/90/55/40/24/11 positive samples respectively; must use `>= threshold` to handle and explain ties); 90th percentile multi-indicator thresholds: `W1`(minutes 51/events 118/clicks 7/active days 17), `W2`(41/95/4/18), `W3`(62/132/10/11), `W4`(47/80/10/5), `W5`(38/62/3/5), `W6`(107/173/19/6).
+- Sub-criterion 1.3.A.3 [1 point | Conclusion]: Output and explain the label distribution: the first four windows have about 10% positive samples and minute thresholds > 40. Although `W5` and `W6` maintain 10% sampling, overall usage duration drops sharply (average future minutes only 29.18). The subsequent model needs to incorporate momentum/breadth features and monitor whether the high-value threshold continues to decline.
+
+---
+## Requirement 2: Multi-Dimensional Feature Engineering and High-Value Identification Model (Max 12 points for this requirement)
+### Criterion 2.1: Feature System Design (Max 4 points)
+#### Path 2.1.A [4 points | Five-Dimension Behavioral Framework]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Must construct at least five categories of features and provide examples: Intensity (`past_minutes`, `past_events`), Breadth (`past_feature_clicks`, average number of features per visitor in Jan-Feb window ≈ 1.06), Stability/Stickiness (`past_active_days`, `minutes_per_active_day`), Momentum (`minutes_delta`, `last_month_minutes`), Relationship Health (`latest_nps_rating`, `count_associated_visitors`).
+- Sub-criterion 2.1.A.2 [1 point | Accuracy]: Verify metrics: `W1` averages `past_minutes=69.0`, `past_events=145.85`, `past_active_days=12.02`, `feature_click_rate=1.206`; `W6` averages `past_minutes=177.36`, `past_events=288.15`, `past_active_days=17.24`, `feature_click_rate=1.368`. Must state that the proportion of missing `latest_nps_rating` is 32.24%, and it should be imputed with 0 by default or use a separate missing indicator.
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: State business insights: momentum (`minutes_delta`) is positive in early windows, but turns negative from `W4` to `W6` (`W5` mean is -14.25), indicating overall decline; the Spearman correlation of NPS with future minutes (`W6`=0.464) shows a moderate impact, which should be reserved for stratified analysis.
+- Sub-criterion 2.1.A.4 [1 point | Accuracy]: Provide a verification script (or equivalent code): for any window, filter by `date_day`, aggregate by visitor, then calculate `minutes_per_active_day=past_minutes/past_active_days` and `minutes_delta=last_month_minutes-first_month_minutes`, ensuring alignment with the means in the table above.
+
+#### Path 2.1.B [4 points | Embedding/Clustering Features]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Explain the steps to build a feature usage matrix: use `(visitor_id,feature_id,sum_clicks)` from `pendo__visitor_feature` where `last_click_at` falls within the past window as matrix elements. If necessary, use `pendo__feature.is_core_event` to create a column whitelist.
+- Sub-criterion 2.1.B.2 [1 point | Accuracy]: Submit the implementation process (matrix normalization → SVD/UMAP or KMeans for dimensionality reduction/clustering → generate embedding vectors/cluster labels), and ensure only data from the past window is used (e.g., `956` visitors had feature clicks within Jan-Feb).
+- Sub-criterion 2.1.B.3 [1 point | Conclusion]: Explain the output of embedding/clustering, e.g., high-click clusters are concentrated in `app_platform='web'` and their subsequent mean future minutes > 60, revealing preferred scenarios.
+- Sub-criterion 2.1.B.4 [1 point | Accuracy]: Provide validation logic: calculate the core feature usage rate and mean future minutes for each cluster. If the difference in mean future minutes > 20, it is considered an effective feature.
+
+#### Path 2.1.C [4 points | Strict Past-Window Whitelist]
+- Sub-criterion 2.1.C.1 [1 point | Completeness]: List the fields included in the model, limited to `past_*`, momentum, NPS, and embedding features. Must explicitly exclude cross-window fields like `last_event_on` and lifetime totals.
+- Sub-criterion 2.1.C.2 [1 point | Accuracy]: Provide a checking script: in the modeling dataset, verify that all time-related columns are ≤ the end date of the past window, or implement automatic checks through field naming conventions (`past_` prefix).
+- Sub-criterion 2.1.C.3 [1 point | Conclusion]: Explain the significance of a strict whitelist: it helps avoid inflated AUC scores in the `W1→W6` rolling validation (observed average AUC is 0.9458, with no abnormally high values).
+- Sub-criterion 2.1.C.4 [1 point | Accuracy]: Present sample check results: randomly select 10 visitor records and re-calculate their past window minutes/events to confirm consistency with the feature table.
+
+### Criterion 2.2: Value Scoring / Model Construction (Max 5 points)
+#### Path 2.2.A [5 points | Supervised Classification Model]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: State the use of `GradientBoostingClassifier(random_state=42)`, with `W1~W5` as the training set and `W6` as the test set. Input features are from the 2.1.C whitelist, and the label is Top 10% high-value based on minutes.
+- Sub-criterion 2.2.A.2 [1 point | Accuracy]: Describe the training process—zero-filling for features, handling class imbalance via the model's built-in capabilities, and rolling cross-validation (folds: `W1→W2`...`W5→W6`).
+- Sub-criterion 2.2.A.3 [1 point | Accuracy]: Report validation metrics: five-fold results (Accuracy/Precision/Recall/F1/AUC) are `0.9009/0.5054/0.6444/0.5678/0.8873`, `0.9122/0.5593/0.7455/0.6383/0.9500`, `0.9594/0.8158/0.7500/0.7816/0.9839`, `0.95/0.7/0.625/0.6615/0.9819`, `0.8370/0.4167/0.9091/0.5714/0.9259` respectively.
+- Sub-criterion 2.2.A.4 [1 point | Conclusion]: Compared to a Logistic baseline using only duration + frequency (Precision=0.3235, Recall=1.0, AUC=0.9248), the new model improves Precision by ≥9.3 p.p. On the test set, adjusting the threshold to `0.91` yields Precision=1.0, Recall=0.1818, Accuracy=0.9022, which has met the target of Precision ≥ 0.85.
+- Sub-criterion 2.2.A.5 [1 point | Accuracy]: Show feature importance (on the training set): `past_minutes` 0.439, `minutes_delta` 0.159, `past_active_days` 0.137, `minutes_per_active_day` 0.118, `feature_click_rate` 0.069, `past_events` 0.052, `past_feature_clicks` 0.017, `latest_nps_rating` 0.009, and explain that intensity and momentum are the key drivers.
+
+#### Path 2.2.B [5 points | Correlation-Weighted Scoring]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Define the score as `Score = Σ z_i × ρ_i`, where `z_i` is the Z-score on the training set, and `ρ_i` is the Spearman correlation (`past_minutes` 0.283, `past_events` 0.230, `past_active_days` 0.351, `past_feature_clicks` 0.127, `minutes_delta` 0.353, `latest_nps_rating` -0.045).
+- Sub-criterion 2.2.B.2 [1 point | Accuracy]: Explain the calculation steps (standardization → weighted sum → threshold selection). The observed 75th percentile threshold of the `Score` for positive samples in the training set is `1.465`.
+- Sub-criterion 2.2.B.3 [1 point | Conclusion]: On `W6`, with a threshold of 1.465, Precision=0.5, Recall=0.3636, AUC=0.9394. Compared to the old model's Precision=0.3235, this represents an improvement in both interpretability and performance.
+- Sub-criterion 2.2.B.4 [1 point | Accuracy]: Provide a validation method: plot the Spearman correlation between `Score` and future minutes (observed 0.56) and check for binning monotonicity (as the score increases, the mean of future minutes monotonically increases).
+- Sub-criterion 2.2.B.5 [1 point | Conclusion]: Point out that weights can be adapted to drift by re-calculating Spearman correlations monthly, serving as a lightweight alternative solution.
+
+#### Path 2.2.C [5 points | Rule-Based Score + Supervised Calibration]
+- Sub-criterion 2.2.C.1 [1 point | Completeness]: Construct a rule-based score `0.35*past_minutes+0.2*past_events+0.2*past_active_days+0.15*past_feature_clicks+0.1*minutes_delta`; then input the rule score + original features into a `Logistic(class_weight='balanced')` model.
+- Sub-criterion 2.2.C.2 [1 point | Accuracy]: On `W6`, with a threshold of 0.92, Precision=0.4615, Recall=0.5455, AUC=0.9181. Must provide the rule score distribution and calibration coefficients for the training set.
+- Sub-criterion 2.2.C.3 [1 point | Accuracy]: The validation process includes ranking by the rule score, comparing it with the supervised model's probability output, and evaluating Precision/Recall; confirm that the Spearman correlation between the two rankings is ≥0.55.
+- Sub-criterion 2.2.C.4 [1 point | Conclusion]: Summarize the advantages of the two-stage approach: the rule-based score is easy to implement in SOPs, while the supervised model is used for probability calibration. Recommend using the supervised probability for production while keeping the rule score as a manual fallback.
+- Sub-criterion 2.2.C.5 [1 point | Accuracy]: Provide time-split validation: train on `W1~W4`, validate on `W5`, test on `W6`, ensuring the rule score only uses fields from the past window.
+
+### Criterion 2.3: Identification Performance Validation and Target Achievement (Max 3 points)
+#### Path 2.3.A [3 points | Classification Evaluation]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Report test set (`W6`) metrics: Accuracy=0.8369, Precision=0.4167, Recall=0.9091, F1=0.5714, AUC=0.9259, confusion matrix `[[55,26],[1,10]]` (at threshold 0.5), and specify the train-validation split.
+- Sub-criterion 2.3.A.2 [1 point | Accuracy]: Clarify the result of threshold adjustment: threshold 0.91 → confusion matrix `[[81,0],[9,2]]`, Precision=1.0 ≥ 0.85; compare this with the old model's Precision=0.3235.
+- Sub-criterion 2.3.A.3 [1 point | Conclusion]: Conclude that the new model's improvement comes from the momentum/stickiness dimensions, and provide a threshold strategy (recommend 0.91 for high precision in production, 0.5 for broad coverage).
+
+#### Path 2.3.B [3 points | Top-K Identification Rate]
+- Sub-criterion 2.3.B.1 [1 point | Completeness]: Define the top 10% of future minutes as the ground truth and calculate the model score's Top-K hit rate.
+- Sub-criterion 2.3.B.2 [1 point | Accuracy]: On `W6`, the Gradient Boosting model's Precision@K is: `K=1/2` are both 1.0, `K=3`=0.667, `K=10`=0.6; must provide the ranking and label the window ID.
+- Sub-criterion 2.3.B.3 [1 point | Conclusion]: Point out that in resource-limited scenarios, the Top-K approach can focus on the top 2 customers with a 100% hit rate. If the goal is to cover the top 10, Precision is ≈0.6, requiring manual review by CS or a higher threshold.
+
+---
+## Requirement 3: Predicting Value Trend for the Next 3–6 Months (Max 9 points for this requirement)
+### Criterion 3.1: Trend Label Definition and Sample Construction (Max 3 points)
+#### Path 3.1.A [3 points | Ratio Threshold Method]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Use a 3-month window: past `2024-01-01~03-31` vs. future `2024-04-01~06-30` (T1), and a rolling window `2024-02-01~04-30` → `2024-05-01~07-31` (T2); define growth as ratio ≥ 1.2, decline as ≤ 0.9, and stable otherwise.
+- Sub-criterion 3.1.A.2 [1 point | Accuracy]: Provide label distribution: `T1` growth 163 / stable 37 / decline 799, `T2` growth 37 / stable 10 / decline 865; must explain that 0 values are handled by adding 1e-6 to prevent division by zero.
+- Sub-criterion 3.1.A.3 [1 point | Conclusion]: Point out that the extreme imbalance (decline >80%) will lead to a low macro F1 score, and subsequent modeling needs to incorporate sampling or focus on decline risk.
+
+#### Path 3.1.B [3 points | Continuous Target + Binning]
+- Sub-criterion 3.1.B.1 [1 point | Completeness]: Construct a regression target `future_minutes`, then map it to trend categories based on growth thresholds.
+- Sub-criterion 3.1.B.2 [1 point | Accuracy]: `Ridge(alpha=1.0)` on the `T3` test set (future `2024-06-01~08-31`): `R²=0.024`, `MAE=66.52`. Must note that `MAPE` is excessively large (approx. `1.9e17`) due to zero values and explain that an offset is needed.
+- Sub-criterion 3.1.B.3 [1 point | Conclusion]: State clearly that directly mapping regression predictions performs poorly and is only suitable for generating a continuous metric before selecting a momentum threshold; recommend using add-one smoothing or log transformation.
+
+#### Path 3.1.C [3 points | Visitor-Level Trend -> Account-Level Aggregation]
+- Sub-criterion 3.1.C.1 [1 point | Completeness]: Explain the process: first, assign `trend_3m` labels at the visitor level, then aggregate at the account level (e.g., mean probability, proportion of decline).
+- Sub-criterion 3.1.C.2 [1 point | Accuracy]: Provide an aggregation example for `T3`: `ACC00000007` has 118 visitors, decline proportion ≈100%, average decline probability 0.597; `ACC00000006` 137 visitors/0.578; `ACC00000009` 106 visitors/0.567.
+- Sub-criterion 3.1.C.3 [1 point | Conclusion]: Explain that account aggregation can identify accounts with concentrated risk, enabling CS to formulate batch recovery strategies.
+
+### Criterion 3.2: Trend Prediction Modeling and Evaluation (Max 4 points)
+#### Path 3.2.A [4 points | Supervised Classification Model]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Use `Logistic(class_weight='balanced')` to predict “decline=1”, train on `T1+T2`, test on `T3`, with inputs `past_minutes/events/feature_clicks/active_days/latest_nps_rating`.
+- Sub-criterion 3.2.A.2 [1 point | Accuracy]: Test set results: Accuracy=0.6618, Precision=0.9722, Recall=0.6667, F1=0.7910, confusion matrix `[[14,8],[175,350]]` (total visitors 547, declining 525).
+- Sub-criterion 3.2.A.3 [1 point | Accuracy]: Point out that the requirement of Accuracy ≥ 0.70 is not applicable in cases of extreme imbalance and switch to Precision/F1 for validation; if not met, a plan for sampling or feature expansion must be described.
+- Sub-criterion 3.2.A.4 [1 point | Conclusion]: Explain the application: high Precision ensures the credibility of the decline list, which can be used for early warnings and ranked in combination with account-level aggregation.
+
+#### Path 3.2.B [4 points | Regression + Threshold-based Classification]
+- Sub-criterion 3.2.B.1 [1 point | Completeness]: Continue with the regression from 3.1.B, setting thresholds for growth/stable/decline (1.2/0.9).
+- Sub-criterion 3.2.B.2 [1 point | Accuracy]: On `T3`, converting regression output to classes yields Accuracy≈0.42, macro F1≈0.28; must provide the basis for threshold selection (e.g., based on training set quantiles).
+- Sub-criterion 3.2.B.3 [1 point | Conclusion]: Explain that although the regression has a low R², it can help estimate the absolute amount of future minutes, making it suitable as a continuous input for a trend model.
+- Sub-criterion 3.2.B.4 [1 point | Accuracy]: Emphasize that regression features must only come from the past window and provide a verification script (filtering `date_day<=past_end`).
+
+#### Path 3.2.C [4 points | Time-Series/Smoothing Model]
+- Sub-criterion 3.2.C.1 [1 point | Completeness]: Propose a simplified time-series method: build a linear trend from the past two months (`minutes_delta`), or use a 30-day moving average.
+- Sub-criterion 3.2.C.2 [1 point | Accuracy]: Validate the `R²` of direct extrapolation using `last_month_minutes`: `W1`=-0.586, `W2`=-0.314, `W3`=0.233, `W4`=-0.449, `W5`=-1.521, `W6`=-7.80.
+- Sub-criterion 3.2.C.3 [1 point | Conclusion]: Point out that except for `W3`, most windows have negative predictive power. Time-series is only applicable during periods of stable activity (`W3`).
+- Sub-criterion 3.2.C.4 [1 point | Accuracy]: Suggest a verification method: for each visitor, output the linear fit coefficients from the past two months, check the Spearman correlation with future minutes (`W6` approx. 0.19), and screen for anomalies.
+
+### Criterion 3.3: Trend Output and Operational Application (Max 2 points)
+#### Path 3.3.A [2 points | Account-Level Aggregation and Tiering]
+- Sub-criterion 3.3.A.1 [1 point | Completeness]: Based on the probability output from 3.2.A, create an account trend table. Fields must include `account_id`, visitor count, mean decline probability, and proportion of declining visitors.
+- Sub-criterion 3.3.A.2 [1 point | Conclusion]: Provide operational recommendations: for accounts with a decline probability > 0.55, such as `ACC00000007/06/09/03/04`, recommend initiating in-depth follow-ups or feature re-activation within 30 days.
+
+#### Path 3.3.B [2 points | Risk List and Actions]
+- Sub-criterion 3.3.B.1 [1 point | Completeness]: Output a list of visitors with `prob>=0.8` (observed 10 people, e.g., `VIS0000000199` with probability 0.904), including key driving features (e.g., past minutes < 10 but with a sharp drop ≥ 80%).
+- Sub-criterion 3.3.B.2 [1 point | Conclusion]: Define clear actions: the goal is to improve the retention of these accounts over the next 3 months. Measures include renewal reminders, feature education, and investigation of abnormal usage; must state expectations (e.g., reducing decline probability to <0.4).
+
+---
+## Requirement 4: Model Robustness, Interpretability, and Deployment Governance (Max 6 points for this requirement)
+### Criterion 4.1: Preventing Information Leakage and Threshold Governance (Max 3 points)
+#### Path 4.1.A [3 points | Time Splitting and Leakage Audit]
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: Explain the time-splitting strategy: train on `W1~W5`, test on `W6` for the value model; train on `T1~T2`, test on `T3` for the trend model; features must strictly come from the past window.
+- Sub-criterion 4.1.A.2 [1 point | Accuracy]: Provide an audit report: check for the `past_` prefix in feature field names; verify that the five-fold cross-validation Accuracy is always ≤0.96 and AUC is always ≤0.984, with no abnormally high values. If a value >0.99 is found, investigate for leakage.
+- Sub-criterion 4.1.A.3 [1 point | Conclusion]: Define an anomaly handling process: if accuracy increases abnormally, re-calculate features with the correct window or remove potentially leaking fields and retrain.
+
+#### Path 4.1.B [3 points | Probability Calibration and Threshold Strategy]
+- Sub-criterion 4.1.B.1 [1 point | Completeness]: Use Isotonic calibration with `CalibratedClassifierCV`; record the Brier scores of the original and calibrated models.
+- Sub-criterion 4.1.B.2 [1 point | Accuracy]: On `W6`, observed Brier(base)=0.1035, Brier(isotonic)=0.0812; the point on the Precision-Recall curve with the first Precision ≥ 0.85 corresponds to a threshold of 0.91.
+- Sub-criterion 4.1.B.3 [1 point | Conclusion]: Establish a monitoring plan: review Precision@threshold, Brier score, and data drift (KS/PSI test on window samples) monthly. If the threshold's performance degrades, retrain or revert to 0.5.
+
+### Criterion 4.2: Interpretability and Operationalization (Max 3 points)
+#### Path 4.2.A [3 points | Feature Drivers and Operational Loop]
+- Sub-criterion 4.2.A.1 [1 point | Completeness]: Output the Top 8 feature importances and their values (from 2.2.A.5), covering the dimensions of intensity, momentum, stability, and relationship.
+- Sub-criterion 4.2.A.2 [1 point | Accuracy]: Explain key drivers: `past_minutes` and `minutes_delta` together account for >0.59 of total importance; although `latest_nps_rating` has a low weight, its Spearman correlation with future value reaches 0.464 in `W6`, making it suitable as an operational alert.
+- Sub-criterion 4.2.A.3 [1 point | Conclusion]: Establish a closed loop: high-value -> expansion plans; potential but low momentum -> feature nurturing; low NPS -> CS intervention.
+
+#### Path 4.2.B [3 points | Tiering Strategy and Monitoring Checklist]
+- Sub-criterion 4.2.B.1 [1 point | Completeness]: Define tiers: `P>=0.91` high-value (high-precision list), `0.6≤P<0.91` nurturing tier, `P<0.6` regular tier; visitors with a trend decline probability ≥ 0.8 are added to a risk pool.
+- Sub-criterion 4.2.B.2 [1 point | Accuracy]: Align tiers with metrics: `Precision@1/2`=1.0 supports focused efforts; Spearman(prediction, future_minutes)=0.579 validates the ranking's effectiveness; the risk tier refers to the list of accounts with a mean decline probability > 0.55.
+- Sub-criterion 4.2.B.3 [1 point | Conclusion]: Construct a monitoring loop: track Precision@10, Brier score, Spearman correlation, and trend decline hit rate monthly. If these metrics deteriorate by >10 p.p. for two consecutive periods, features or thresholds must be re-evaluated.

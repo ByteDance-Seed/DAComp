@@ -1,0 +1,108 @@
+# [Total score | 17 points] The solution must meet the following three core requirements:
+- Requirement 1: Scope and definitions
+- Requirement 2: Key metrics and "required reduction amount" calculation (multiple reasonable forecasting methods are allowed; the method must be clearly explained)
+- Requirement 3: Use analysis to derive the set of SKUs that are "clearly in need of reduction"
+
+
+## Requirement 1: Scope and definitions (maximum 3 points for this requirement)
+
+### Criterion 1.1: Key business setup implemented (maximum 2 points)
+#### Path 1.1.A (definition declaration + calculation alignment) [2 points]
+- Sub-criterion 1.1.A.1 [1 point | Completeness] Explicitly state and implement in calculations:
+  - a) Summer = June-August (or focus only on July);
+  - b) The forecast does not enforce a rigid "previous years July 1 single-day" constraint;
+  - c) Procurement quantity on 2023-07-01 = sales on 2023-06-30; using June average data scores 0.
+All three points must be satisfied at the same time to score; otherwise 0 points.
+- Sub-criterion 1.1.A.2 [1 point | Conclusive] Restate the above definitions in the final explanation, self-consistently and without contradictions.
+
+### Criterion 1.2: Field mapping and data cleaning (maximum 1 point)
+#### Path 1.2.A (data governance as a process) [1 point]
+- Sub-criterion 1.2.A.1 [1 point | Completeness] Provide field-to-meaning mapping (Item Code, Date, Sales volume (kg), Unit price (yuan/kg), Wholesale price (yuan/kg)/purchase price), and describe the strategy for removing returns/voids/outliers.
+
+
+## Requirement 2: Key metrics and "required reduction amount" calculation (maximum 6 points for this requirement)
+
+### Criterion 2.1: Demand forecasting methods and execution (multiple reasonable forecasting methods allowed) (maximum 3 points)
+#### Path 2.1.A (direct mean method) [3 points]
+- Sub-criterion 2.1.A.1 [1 point | Completeness] For each Item Code (SKU), compute previous years' summer average Sales volume (kg); clarify the definition of "days with sales vs all days".
+- Sub-criterion 2.1.A.2 [2 points | Accuracy] The actual calculation logic in code matches the declared definitions; the code is auditable (see Code validation method).
+
+> Partial reference values are as follows. If indicators with the same definition appear, they must not differ by more than 0.5% from the reference answers; if they do not appear, no validation is required.
+
+| Item Code        | Item Name               | S0630_kg | Previous years' summer (Jun-Aug) average Sales volume (kg)_days with sales | Previous years' summer (Jun-Aug) average Sales volume (kg)_all days | Summer (Jun-Aug) total Sales volume (kg) | Summer (Jun-Aug) number of days with sales |
+|------------------|-------------------------|----------|-----------------------------------------------------------------------------|---------------------------------------------------------------------|------------------------------------------|-------------------------------------------|
+| 102900011030059  | Yunnan Leaf Lettuce (portion)           | 36.000   | 54.166667                                                                   | 7.065217                                                            | 1950.000                                 | 36                                        |
+| 102900011016701  | Wuhu green pepper (1)                   | 15.896   | 32.129000                                                                   | 21.186514                                                           | 5847.478                                 | 182                                       |
+| 102900011030097  | Yunnan Romaine Lettuce (portion)        | 25.000   | 40.828571                                                                   | 5.177536                                                            | 1429.000                                 | 35                                        |
+| 102900005116899  | Peeled Lotus Root (1)                   | 6.440    | 19.673802                                                                   | 16.893808                                                           | 4662.691                                 | 237                                       |
+| 102900005116714  | Broccoli                                | 16.900   | 30.009159                                                                   | 26.747293                                                           | 7382.253                                 | 246                                       |
+| 102900011032848  | Ginger-Garlic-Millet Pepper Combo Pack (small portion) | 9.000    | 4.044444                                                                    | 0.659420                                                            | 182.000                                  | 45                                        |
+| 102900011031100  | Bird's-eye Chili (portion)              | 23.000   | 18.361111                                                                   | 4.789855                                                            | 1322.000                                 | 72                                        |
+| 102900011001691  | Water caltrop                           | 3.396    | 1.271701                                                                    | 0.308710                                                            | 85.204                                   | 67                                        |
+| 102900005115946  | Malabar Spinach                         | 5.185    | 3.586829                                                                    | 2.508181                                                            | 692.258                                  | 193                                       |
+| 102900051000944  | Honghu Lotus Root Shoots                | 4.339    | 2.809420                                                                    | 1.791514                                                            | 494.458                                  | 176                                       |
+
+#### Path 2.1.B (robust statistics: median/quantile trimming/weighted mean, etc.) [3 points]
+- Sub-criterion 2.1.B.1 [1 point | Completeness] Describe the robust strategy (for example P10-P90 trimmed mean, quantile regression, sales-weighted mean) and the rationale.
+- Sub-criterion 2.1.B.2 [1 point | Accuracy] Implement the robust strategy as described and use it for forecasting (Code validation method).
+- Sub-criterion 2.1.B.3 [1 point | Conclusive] Explain how the robust strategy constrains extreme values and promotion days.
+
+#### Path 2.1.C (time series/decomposition/smoothing: seasonal naive, EWMA, ARIMA/STL, etc.) [3 points]
+- Sub-criterion 2.1.C.1 [1 point | Completeness] Clearly describe the chosen model (for example seasonal naive using the same week and weekday of the prior year, EWMA, ARIMA/seasonal decomposition), the training window (summer 2021-2022 or longer), and a split strategy that avoids leakage.
+- Sub-criterion 2.1.C.2 [1 point | Accuracy] Implement the method to forecast, and provide at least one reasonable validation (simple backtest, rolling validation, or residual checks); verify via the Code validation method.
+- Sub-criterion 2.1.C.3 [1 point | Conclusive] State "final forecast = model output"; parameter or hyperparameter settings are recorded.
+
+### Criterion 2.2: Required reduction amount calculation (verified by code) (maximum 3 points)
+#### Path 2.2.A (general difference method) [3 points]
+- Sub-criterion 2.2.A.1 [1 point | Completeness] For each Item Code (SKU), compute: required adjustment amount (kg) = forecast (selected method) - S0630_kg; filter the **need-to-reduce** set.
+- Sub-criterion 2.2.A.2 [2 points | Accuracy]
+  - Units/time window consistent with the definitions used in the analysis. Refer to the Code validation method.
+  - If robust or time-series methods are adopted: verify per the Code validation method that the implementation fully matches the self-described method, has no leakage, and the process is correct. (Award 1-2 points depending on implementation quality)
+#### Path 2.2.B (excess ratio method) [3 points]
+- Sub-criterion 2.2.B.1 [1 point | Completeness] For each Item Code (SKU), compute: excess ratio = forecast (selected method) / S0630_kg - 1 (whether "-1" is included does not matter); filter the **need-to-reduce** set.
+- Sub-criterion 2.2.B.2 [2 points | Accuracy]
+  - Units/time window consistent with the definitions used in the analysis. Refer to the Code validation method.
+  - If robust or time-series methods are adopted: verify per the Code validation method that the implementation fully matches the self-described method, has no leakage, and the process is correct. (Award 1-2 points depending on implementation quality)
+
+> Note: This requirement does not rigidly mandate using the mean, but you must clearly describe the method and execute exactly as described; otherwise no points.
+
+
+## Requirement 3: Use analysis to derive the set of SKUs that are "clearly in need of reduction" (maximum 8 points for this requirement)
+
+### Criterion 3.1: Risk metric construction, calculation + set identification and conclusions (with loss-making as the focus) (maximum 8 points)
+#### Path 3.1.A (dual-metric system: loss-making rate + reduction magnitude) [8 points]
+- Sub-criterion 3.1.A.1 [1 point | Completeness] Clearly define loss-making rate (daily judgement, sales-weighted aggregation over summer) and its units.
+- Sub-criterion 3.1.A.2 [1 point | Completeness] Clearly define reduction magnitude (absolute required adjustment amount or ratio) and its units.
+- Sub-criterion 3.1.A.3 [2 points | Accuracy] Calculate both metrics correctly (Code validation method or alignment to reference anchors with interpretive value). One point for each metric.
+- Sub-criterion 3.1.A.4 [1 point | Completeness] Provide a clear rule for the loss-making rate (for example, loss-making rate >= tau) and the source of the threshold (business red line, quantile, sigma-multiple).
+- Sub-criterion 3.1.A.5 [1 point | Completeness] Provide a clear rule for the required reduction magnitude (for example, required adjustment amount <= -delta), and the source of the threshold (business red line, quantile, sigma-multiple).
+- Sub-criterion 3.1.A.6 [2 points | Conclusive] Output the detailed set of items clearly needing reduction and explain the business meaning of "high loss-making probability x clear over-supply (or short shelf-life risk)."
+
+#### Path 3.1.B (composite risk score: additive or multiplicative models dominated by loss-making) [8 points]
+- Sub-criterion 3.1.B.1 [2 points | Completeness] Provide a clear formula (for example, Risk = (-required adjustment amount or ratio) x (1 + alpha * loss-making rate) or weighted rank sum), and declare parameters/weights (alpha or w).
+- Sub-criterion 3.1.B.2 [2 points | Accuracy] Compute the risk score per the stated formula; parameters are documented and reproducible (Code validation method).
+- Sub-criterion 3.1.B.3 [2 points | Completeness] Based on the risk score or rank score in 3.1, describe the threshold determination method (P80, Cliff, Elbow, KS, Youden J), and run a brief sensitivity check (alpha in [1,3], cutoff +/-1 percentile).
+- Sub-criterion 3.1.B.4 [2 points | Conclusive] Output the set clearly needing reduction and explain the prioritization of "maximum risk exposure (probability x scale)."
+
+#### Path 3.1.C (statistical threshold measures: demand upper bound U or quantile upper bound + loss-making rate) [8 points]
+- Sub-criterion 3.1.C.1 [1 point | Completeness] Define and compute U = mu + z*sigma or upper-bound measures such as Q90/Q95, and define loss-making rate.
+- Sub-criterion 3.1.C.2 [1 point | Completeness] Define and compute loss-making rate.
+- Sub-criterion 3.1.C.3 [2 points | Accuracy] Correctly compute mu/sigma/U (or quantiles) and loss-making rate (Code validation method).
+- Sub-criterion 3.1.C.4 [2 points | Completeness] Two-stage: S0630 > U (or > Q95, etc.) is judged as "over-procured"; within this set, filter by loss-making rate >= tau2; sources of parameters z/tau2 and the minimum sample-day threshold are explicitly stated. One point for each stage.
+- Sub-criterion 3.1.C.5 [2 points | Conclusive] Output the set clearly needing reduction and explain the risk-control significance and execution advice of "quantity anomaly x price risk."
+
+#### Path 3.1.D (historical sales analysis: infer SKUs needing reduction through historical sales) [4 points]
+- Sub-criterion 3.1.D.1 [1 point | Completeness]: Compute 2023-06-30 product Sales volume or June average daily Sales volume; compute previous years' 7/1 product Sales volume or July average daily Sales volume. Using 2022 June data is also acceptable.
+- Sub-criterion 3.1.D.2 [1 point | Completeness]: Compare the differences between the two sets of Sales volume data.
+- Sub-criterion 3.1.D.3 [1 point | Accuracy]: Verify code and calculation logic to confirm data accuracy.
+- Sub-criterion 3.1.D.4 [1 point | Conclusive]: Provide multiple SKUs needing reduction, and ensure conclusions correspond to the data.
+
+
+## Additional notes
+### How to use the reference answer
+If metrics with the same meaning appear, or metrics that must be included, their answers must be close to the reference answers; if metric meanings differ, the reference does not apply and the calculations must be verified with the Code validation method.
+
+### Code validation method
+Applicable when it is difficult to list all reference answers; by default, if the code is correct, the answer is correct. Process:
+1. By reading comments and quickly browsing the relevant code, check whether the overall code logic conforms to the analytical approach.
+2. Validate line by line to check whether each line of code truly implements what the corresponding comment describes.

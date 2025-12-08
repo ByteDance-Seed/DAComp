@@ -1,0 +1,168 @@
+# [Total Score | 34 Points] The solution must satisfy the following four core requirements:
+
+  - Requirement 1: Metric Mapping and Rep-level Workload/Efficiency Score Calculation
+  - Requirement 2: Workload Imbalance Diagnosis and Supply/Demand Identification
+  - Requirement 3: Constrained Customer Reallocation Algorithm Design and Execution
+  - Requirement 4: Plan Effectiveness Quantification and Implementation Governance
+
+---
+
+## Requirement 1: Metric Mapping and Rep-level Workload/Efficiency Score Calculation (Up to 9 Points)
+
+### Standard 1.1: Workload Score Calculation (Up to 5 Points)
+
+#### Path 1.1.A【5 Points | SQL Aggregation Implementation】
+
+- Sub-standard 1.1.A.1【1 Point | Completeness】: Aggregate by `owner_id`/`account_owner_name` on the `salesforce__customer_360_view` table, mapping the fields as follows: Number of Customers = `COUNT(*)`, Total Annual Revenue = `SUM(annual_revenue)` (in USD), Total Contacts = `SUM(total_contacts)`, and Distinct States/Cities (non-null) = `COUNT(DISTINCT billing_state/billing_city)`.
+- Sub-standard 1.1.A.2【3 Points | Precision】: Calculate the rep-level workload using the formula:
+  `workload = 0.3×Number of Customers + 0.4×(SUM(annual_revenue)/10,000,000) + 0.2×min(5, SUM(total_contacts)/Number of Customers) + 0.1×[2×COUNT_DISTINCT(state) + 0.5×COUNT_DISTINCT(city)]`
+  Verify the average value = 8.741±0.005 and standard deviation = 2.9618±0.005 (sample size = 1000). Also provide `lower=7.4298±0.005` and `upper=10.0521±0.005`. The result must be reproducible with SQL, e.g., `0.3*COUNT(*) + ...`.
+- Sub-standard 1.1.A.3【1 Point | Conclusion】: Provide a complete results table and point out that the customer count and annual revenue components have a combined weight of 0.3+0.4=0.7, being the main drivers for high-workload reps (e.g., Latoya Armstrong with 20 accounts / 267.02M). The contact and geography components provide additional increments.
+
+#### Path 1.1.B【5 Points | Python/Pandas Implementation】
+
+- Sub-standard 1.1.B.1【1 Point | Completeness】: Use pandas to read the same table, aggregating with `groupby('owner_id')` to get `customer_count`, `total_revenue`, `total_contacts`, and distinct columns for `billing_state/city`; explain that missing values are filled with 0. Must show core code snippets (e.g., `agg({'annual_revenue':'sum', ...})`).
+- Sub-standard 1.1.B.2【3 Points | Precision】: Reproduce the formula from 1.1.A, with contact coverage rate `coverage = min(5, total_contacts/customer_count)`. Verify that the mean and standard deviation are consistent with the SQL results (tolerance ±0.005) and output a rep-level DataFrame.
+- Sub-standard 1.1.B.3【1 Point | Conclusion】: Using the pandas results, analyze typical high-workload reps (e.g., Latoya Armstrong/Paul Frey) and explain the contribution of "many customers + high revenue + multi-state management" to the total score.
+
+#### Path 1.1.C【5 Points | Component-wise Breakdown and Verification】
+
+- Sub-standard 1.1.C.1【1 Point | Completeness】: List the definitions for the four components: Customer component = 0.3×count (unitless), Revenue component = 0.4×revenue(USD)/10,000,000, Contact component = 0.2×min(5, avg contacts), Geography component = 0.1×(2×distinct states + 0.5×distinct cities), with no additional cleaning.
+- Sub-standard 1.1.C.2【3 Points | Precision】: Manually verify the calculation for at least 5 reps, with an error ≤0.1. For example:
+  - Latoya Armstrong: Customer=6.00, Revenue=10.68, Contact=0.58, Geography=3.25, Total=20.51;
+  - Paul Frey: 5.10+10.65+0.45+2.95=19.15;
+  - Jeffrey Brown: 4.50+10.68+0.43+2.35=17.95;
+  - Keith Hill: 3.90+10.15+0.54+3.05=17.64;
+  - Cindy Jordan: 4.50+8.99+0.55+3.30=17.34.
+- Sub-standard 1.1.C.3【1 Point | Conclusion】: Summarize the marginal impact: Revenue and Customer components have a combined 70% weight and are the main drivers of the score; Geography/Contact components are used to differentiate reps with cross-region or high-coverage responsibilities.
+
+### Standard 1.2: Efficiency Score Calculation (Up to 4 Points)
+
+#### Path 1.2.A【4 Points | Based on Opportunity-level Details】
+
+- Sub-standard 1.2.A.1【1 Point | Completeness】: From `salesforce__opportunity_enhanced`, calculate: Win Rate = `SUM(is_won)/SUM(is_closed)`; Average Deal Size = average amount of won deals; Sales Cycle = average of `days_to_close` where value is > 0 (default to 120); Conversion Rate (last 365 days) = `closed(≤365)/created(≤365)`.
+- Sub-standard 1.2.A.2【2 Points | Precision】: Apply the formula:
+  `efficiency = 0.4×win_rate + 0.3×(avg_amount/100,000) + 0.2×(120/avg_days_to_close) + 0.1×conversion_rate`. Benchmark validation: team average efficiency = 7.4416±0.01, standard deviation = 4.3538±0.01 (sample=1000); please explain percentage conversion and missing value handling.
+- Sub-standard 1.2.A.3【1 Point | Conclusion】: Output a rep-level efficiency table and note that high-efficiency reps (e.g., Megan Evans, Walter White) score significantly higher due to 100% win rates and 5M average deal sizes, while long sales cycles lower the scores for some reps.
+
+#### Path 1.2.B【4 Points | Based on Aggregated Dashboard Metrics】
+
+- Sub-standard 1.2.B.1【1 Point | Completeness】: Read `win_rate_pct`, `avg_deal_size_usd`, `avg_sales_cycle_days`, and `close_rate_pct` from `salesforce__sales_performance_dashboard`. State that percentages are divided by 100 and `avg_sales_cycle_days=0` is treated as 120.
+- Sub-standard 1.2.B.2【2 Points | Precision】: Calculate efficiency with the same formula. Team average = 1.5094±0.01, std dev = 2.3118±0.01, average win rate = 0.4266, average deal size = $349,709.71, average cycle = 207.19 days, average conversion rate = 0.2042. The calculated mean must be within ±0.05 of the mean value from 1.2.A.
+- Sub-standard 1.2.B.3【1 Point | Conclusion】: Provide a ranked list of rep efficiency, explaining that high-efficiency reps have both high win rates and shorter cycles, while low-efficiency reps are dragged down by long cycles and low conversion rates.
+
+---
+
+## Requirement 2: Workload Imbalance Diagnosis and Supply/Demand Identification (Up to 8 Points)
+
+### Standard 2.1: Workload Imbalance Determination (Up to 4 Points)
+
+#### Path 2.1.A【4 Points | Mean-Standard Deviation Threshold Method】
+
+- Sub-standard 2.1.A.1【1 Point | Completeness】: Using the results from 1.1, calculate the overall mean=8.7410 and standard deviation std=2.9618.
+- Sub-standard 2.1.A.2【2 Points | Precision】: Verify that `std > mean×0.3` (2.9618 > 2.6223). Provide the upper and lower bounds: `lower=7.4298±0.005`, `upper=10.0521±0.005`. Count the number and percentage of reps outside these bounds.
+- Sub-standard 2.1.A.3【1 Point | Conclusion】: State that the imbalance is confirmed. High workload is concentrated among reps with "large-value, multi-state customers + many contacts," while low workload corresponds to "single-state / low-revenue" combinations.
+
+#### Path 2.1.B【4 Points | Robust Statistics Method】
+
+- Sub-standard 2.1.B.1【1 Point | Completeness】: Calculate median=8.4902, MAD=2.876 (=1.4826×median(|x-median|)), and the robust threshold = median±2×MAD, which is [2.7382, 14.2422].
+- Sub-standard 2.1.B.2【2 Points | Precision】: Output the list of reps outside the robust threshold and compare it with the mean-based method. The numerical values must match those from 1.1 (tolerance ±0.1).
+- Sub-standard 2.1.B.3【1 Point | Conclusion】: Compare the two methods, noting that extreme high-workload reps greatly affect the standard deviation, and from the MAD perspective, there are still low-tail reps (<2.74) who need significant allocation.
+
+### Standard 2.2: Supply/Demand Set Definition and Gap Estimation (Up to 4 Points)
+
+#### Path 2.2.A【4 Points | Absolute Difference Calculation】
+
+- Sub-standard 2.2.A.1【1 Point | Completeness】: Define donors as reps with `workload>upper` and recipients as reps with `workload<lower`. Provide the count for each group.
+- Sub-standard 2.2.A.2【2 Points | Precision】: Calculate:
+  - donors=307±1; recipients=346±1;
+  - `donor_surplus = Σ(workload - upper) = 673.3533±0.5`;
+  - `recipient_deficit = Σ(lower - workload) = 604.0753±0.5`.
+  Must provide SQL/code for reproducibility.
+- Sub-standard 2.2.A.3【1 Point | Conclusion】: Explain that the surplus is slightly larger than the deficit, estimating a need to reallocate ~600 workload points. Prioritize transferring from reps with very high scores (in the 20-point range) to reps in low-workload states.
+
+#### Path 2.2.B【4 Points | Unit Workload Approximation】
+
+- Sub-standard 2.2.B.1【1 Point | Completeness】: Estimate the workload per account:
+  `unit = 0.3 + 0.4×(mean_revenue_per_account/10,000,000) + 0.2×min(5, mean_contacts_per_account)`. The geography component may be added as needed.
+  Statistical values: `mean_revenue_per_account=$8,183,888.72`, `mean_contacts_per_account=2.50` → `unit≈1.1274`.
+- Sub-standard 2.2.B.2【2 Points | Precision】: Use the unit workload to approximate the `donor_surplus`/`recipient_deficit`, which translates to a need to transfer approx. 598~605 accounts (rounded up). Must show the calculation logic.
+- Sub-standard 2.2.B.3【1 Point | Conclusion】: Explain the source of discrepancy between the approximation and the absolute difference (e.g., not accounting for geographic increments, changes in distinct counts), noting it's suitable for quick estimation but final adjustments must be verified on a per-account basis.
+
+---
+
+## Requirement 3: Constrained Customer Reallocation Algorithm Design and Execution (Up to 11 Points)
+
+### Standard 3.1: Constraint Declaration and Validation (Up to 3 Points)
+
+#### Path 3.1.A【3 Points | Rules Engine Implementation】
+
+- Sub-standard 3.1.A.1【1 Point | Completeness】: Clearly define hard constraints: ① Same-state priority (if no candidates, expanding to neighboring states must be noted); ② Industry expertise ≥60% (after adding a new account, the share of top 3 industries must be ≥0.60); ③ Size matching = only accept accounts from the rep's existing top 2 size segments; ④ Workload must fall within [lower, upper].
+- Sub-standard 3.1.A.2【1 Point | Precision】: For each transfer, instantly update customer count, total revenue, contacts, distinct state/city counts, and industry/size counts. Ensure that after adding an account, `top3_share = ΣTop3_industry_accounts / total_accounts ≥ 0.60`. Document the validation script or function.
+- Sub-standard 3.1.A.3【1 Point | Conclusion】: Explain how these constraints support customer retention (same state + industry match), operational feasibility, and cost control (size alignment, avoiding overload).
+
+#### Path 3.1.B【3 Points | Soft Constraint Scoring Method】
+
+- Sub-standard 3.1.B.1【1 Point | Completeness】: Define a matching score, e.g., `score = 0.5*same_state + 0.3*industry_top3 + 0.2*size_top2`. Explain that soft constraints are used to broaden the candidate pool.
+- Sub-standard 3.1.B.2【1 Point | Precision】: Set a threshold (e.g., ≥0.7) for an account to enter the candidate pool. After transfer, re-calculate the industry share to ensure it remains ≥60% and show the control logic.
+- Sub-standard 3.1.B.3【1 Point | Conclusion】: Discuss the value and risks of using soft constraints, especially in states with sparse samples (requires extra monitoring of retention).
+
+### Standard 3.2: Reallocation Algorithm Path (Up to 5 Points)
+
+#### Path 3.2.A【5 Points | Heuristic Greedy Iteration】
+
+- Sub-standard 3.2.A.1【1 Point | Completeness】: Describe the iterative framework: Select a donor by descending `workload`, sort their accounts by impact, and iterate through recipients that match the constraints, continuing until all donors are ≤ upper and recipients are ≥ lower.
+- Sub-standard 3.2.A.2【3 Points | Precision】: Define impact using:
+  `impact = annual_revenue/1e6 + 0.25*min(total_contacts,10) + risk_bonus` (where risk_bonus: Minimal=0.3, Low=0.5, Medium=1.0, High=1.5). Recipient selection priority: `(is_below_lower_bound, is_same_state, current_workload)`. For each transfer, output `sender_before/after` and `receiver_before/after` workloads. Ensure no infinite loops (use an iteration limit or stop when no moves are made).
+- Sub-standard 3.2.A.3【1 Point | Conclusion】: Explain that this greedy strategy can quickly generate an executable plan and is easy to trace back manually (each transfer record includes before/after workloads).
+
+#### Path 3.2.B【5 Points | Integer Linear Programming / Minimum Cost Flow】
+
+- Sub-standard 3.2.B.1【1 Point | Completeness】: Define a decision variable `x_{account,rep}∈{0,1}`. The objective can be to minimize `Σ(workload_after_rep − mean)^2` or maximize efficiency improvement.
+- Sub-standard 3.2.B.2【3 Points | Precision】: List the constraints: ① Each account has a unique owner; ② `Σ load_contrib + current_workload ≤ upper`; ③ `Σ x * is_top3 ≥ 0.6 * Σx`; ④ Prohibit/penalize transfers if the size segment is not in the rep's Top 2; ⑤ Same-state priority can be implemented with a large penalty coefficient. Must specify the solution method (MILP or Min-Cost Flow graph).
+- Sub-standard 3.2.B.3【1 Point | Conclusion】: Discuss the advantages of a global/near-optimal solution, as well as data requirements, computational complexity, and fallback plans.
+
+### Standard 3.3: Migration Execution and Compliant Output (Up to 3 Points)
+
+#### Path 3.3.A【3 Points | Sample Transfer List Verification】
+
+- Sub-standard 3.3.A.1【1 Point | Completeness】: Output at least 10 customer transfer records with the following fields: `account_id`, `account_name`, `from_rep`, `to_rep`, `state`, `industry`, `size_segment`, `annual_revenue`, `Δsender_workload`, `Δreceiver_workload`, and `matching_score_or_reason`.
+- Sub-standard 3.3.A.2【1 Point | Precision】: Verify samples (based on a reference run):
+  - 001uAORdCADjk8c Peterson and Sons: Latoya Armstrong→Adam Duncan (KS, Non-profit, Unknown, 50M), sender 20.51→17.95, receiver 2.70→5.05;
+  - 001Fs17f0O22vWu Ayers, Parker and Wood: Paul Frey→Natalie Hoover (CA, Financial Services, Mid-Market, 50M), 19.15→16.78, 2.70→5.09;
+  - … (10 total records, numerical error ≤0.05). Must prove that the recipient did not exceed the upper bound and that industry share compliance is met.
+- Sub-standard 3.3.A.3【1 Point | Conclusion】: Evaluate the business reasonableness of the samples (high match score, high retention probability) and identify potential risks (large account transfers may require joint visits).
+
+---
+
+## Requirement 4: Plan Effectiveness Quantification and Implementation Governance (Up to 6 Points)
+
+### Standard 4.1: Quantifying Migration Effectiveness (Up to 4 Points)
+
+#### Path 4.1.A【4 Points | Before-After Comparison】
+
+- Sub-standard 4.1.A.1【1 Point | Completeness】: Compare before vs. after: workload standard deviation, ±15% coverage rate, revenue-weighted efficiency index, and revenue-weighted retention uplift.
+- Sub-standard 4.1.A.2【2 Points | Precision】:
+  - Before std dev = 2.9618; after must be ≤1.30;
+  - Before ±15% coverage rate = 34.7%; after must be ≥95%;
+  - Efficiency index (Σ rep_efficiency × revenue_share): before = 7.4761, after must be ≥7.90;
+  - Retention uplift: baseline uplift=3.717pp (fit_points=0/1/2/3 distribution=331/4641/5028), after must improve by ≥+0.6pp (≥4.317pp). Must provide calculation scripts.
+- Sub-standard 4.1.A.3【1 Point | Conclusion】: Provide a comprehensive explanation for the workload balance improvement, efficiency gains (due to higher revenue weight on high-efficiency reps), and retention benefits (from same-state + industry matching).
+
+#### Path 4.1.B【4 Points | Parameter Sensitivity Analysis】
+
+- Sub-standard 4.1.B.1【1 Point | Completeness】: Test at least two parameter sets (e.g., ±10% threshold, industry weight of 0.2/0.4, same-state as a soft constraint).
+- Sub-standard 4.1.B.2【2 Points | Precision】: For each scenario, quantify the standard deviation, coverage rate, efficiency index, and retention uplift. Present the results in a table with data sources.
+- Sub-standard 4.1.B.3【1 Point | Conclusion】: Recommend the optimal parameter combination and point out risks (e.g., relaxing the same-state constraint could decrease retention).
+
+### Standard 4.2: Governance and Implementation (Up to 2 Points)
+
+#### Path 4.2.A【2 Points | Execution Roadmap】
+
+- Sub-standard 4.2.A.1【1 Point | Completeness】: Develop a three-phase plan (Preparation → Execution → Optimization) with a clear timeline, responsible parties, and key actions (customer communication, CRM updates, metric monitoring). KPIs must include at least workload variance, coverage rate, efficiency index, and retention uplift.
+- Sub-standard 4.2.A.2【1 Point | Conclusion】: Identify potential risks (efficiency fluctuations, customer resistance, data latency) and mitigation measures (joint visits, training, rollback mechanisms).
+
+#### Path 4.2.B【2 Points | Risk Governance and Rollback】
+
+- Sub-standard 4.2.B.1【1 Point | Completeness】: Describe a handover SOP (parallel period, joint visits, contact handoff), rollback trigger conditions, and a rapid response process.
+- Sub-standard 4.2.B.2【1 Point | Conclusion】: Define the metrics for evaluating transfer effectiveness (e.g., 60/90 day retention, activity frequency, opportunity progression) and the criteria for triggering a rollback or secondary adjustment.

@@ -1,0 +1,137 @@
+# [Total Score | 36 points] Scoring Rubric for Analysis of Structural Differences in Intercom Paying Customer Conversation × Product Usage
+---
+## Requirement 1: Data Sample Definition and Customer Segmentation Mapping (Max 9 points)
+### Standard 1.1: Unified Time Window and Timezone Settings
+#### Path 1.1.A (Rolling Anchor Method) [6 points]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: States and actually uses `MAX(conversation_created_at)=2024-06-15 12:00:00` (UTC) as the anchor to construct a window `[2023-12-15 00:00:00, 2024-06-15 23:59:59]`. All metric calculations, event matching, and retention calculations are performed in UTC.
+- Sub-standard 1.1.A.2 [4 points | Accuracy]: SQL/code validates the window filter: `COUNT(*)=6703`, `MIN(conversation_created_at)=2024-01-08 06:41:00`, `MAX(conversation_last_updated_at)=2024-06-15 17:03:00`; verifies that `time_to_first_response_minutes`, 72-hour conversion, and retention aggregations based on the same window have no cross-window records. Zero error is allowed.
+- Sub-standard 1.1.A.3 [1 point | Conclusion]: Outputs the data coverage for the window: 6,703 conversations, initially mapped to 2,323 companies. States that after P1/P99 cleaning, 6,578 conversations and 2,311 paying companies are retained. Using a unified UTC ensures alignment for the 72-hour rolling window and ISO week/month retention.
+#### Path 1.1.B (Fixed Calendar Month Method) [6 points]
+- Sub-standard 1.1.B.1 [1 point | Completeness]: Declares the use of a calendar month window in UTC `[2024-01-01 00:00:00, 2024-06-30 23:59:59]` and maintains filtering logic consistent with the rolling anchor method.
+- Sub-standard 1.1.B.2 [4 points | Accuracy]: Outputs monthly conversation volume: 2024-01=992, 02=1218, 03=1302, 04=1260, 05=1302, 06=629, for a total of 6,703. The difference compared to the rolling window is 0, and all metrics use this window. Zero error is allowed.
+- Sub-standard 1.1.B.3 [1 point | Conclusion]: Explains that calendar months are convenient for financial/OKR reconciliation, while a rolling window is better for real-time monitoring. If using calendar months, describes that the final period lacks July data and rolling metrics may have a slight delay (≤15 days).
+
+### Standard 1.2: Paying Customer Identification and Segmentation/Size Slicing
+#### Path 1.2.A (Tag-First + Numerical Fallback) [6 points]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Defines paying customers as `monthly_spend>0`. Parses from `all_company_tags`: `segment ∈ {new_contract, renewal, churn_watch, expansion}`, `seat_bucket ∈ {under_60, 60_129, 130_259, 260_419, 420_plus}` (takes the last part of `seat_bucket:seats:*`), and `arr_bucket ∈ {<30k, 30k_65k, 65k_110k, 110k_200k, 200k_plus}`.
+- Sub-standard 1.2.A.2 [4 points | Accuracy]: Implements a fallback for missing tags: for seats, use `user_count` tertiles at 114 / 285 (±1); for ARR, use `monthly_spend×12` tertiles at 49,512 / 119,175.84 (±50). Verifies that after fallback, `segment` coverage is `628/627/627/627`, `seat_bucket` coverage is `under_60=378, 60_129=536, 130_259=671, 260_419=464, 420_plus=460`, and `arr_bucket` coverage is `<30k=579, 30k_65k=525, 65k_110k=436, 110k_200k=630, 200k_plus=339`. Zero error is allowed.
+- Sub-standard 1.2.A.3 [1 point | Conclusion]: Explains that the tag-first approach ensures business semantics, and the fallback allows incomplete tags to be included in combinations. Notes the duplicate records for the company “North Systems Ltd” (1737/2045 USD); conversation matching should select the one with higher monthly spend, and the metrics dashboard should retain both companies.
+
+#### Path 1.2.B (Purely Numerical Binning Method) [6 points]
+- Sub-standard 1.2.B.1 [1 point | Completeness]: If tags are largely missing, one can directly use tertile thresholds `[≤114, 114-285, >285]` and `[≤49,512, 49,512-119,176, >119,176]` on `user_count` and `monthly_spend×12` to construct at least three tiers.
+- Sub-standard 1.2.B.2 [4 points | Accuracy]: Outputs the number of companies in each bin, with each bin accounting for ≥2% of the total. Explains the thresholds and their business meaning (e.g., >119k is considered high ARR) and provides the SQL/code used.
+- Sub-standard 1.2.B.3 [1 point | Conclusion]: Compares the differences with the tag-based method (complete coverage but weaker semantics) and recommends recording a mapping dictionary to allow for future rollback to the tag-based definitions.
+
+### Standard 1.3: Conversation→Company Mapping and Data Coverage
+#### Path 1.3.A (Exact Company Name Matching) [6 points]
+- Sub-standard 1.3.A.1 [1 point | Completeness]: Uses `lower(trim(all_contact_company_names))` to perform an exact match with `company_enhanced.company_name`, retaining only paying companies. Explicitly notes the single duplicate name “North Systems Ltd” and attributes the conversation to the one with the higher monthly spend, `70979a86221744ac9f806aa9`.
+- Sub-standard 1.3.A.2 [4 points | Accuracy]: Verifies that all 6,703 conversations are matched to paying companies, resulting in 2,323 unique companies (≥98% coverage). After cleaning, the 6,578 conversations used for metrics involve 2,311 companies. Zero error is allowed.
+- Sub-standard 1.3.A.3 [1 point | Conclusion]: Discusses the risks of name-based mapping (aliases/acquisitions) and suggests introducing company IDs or cross-validating with `company_metrics`. Outlines a fallback process for handling new external aliases.
+
+#### Path 1.3.B (Contact-Driven Mapping) [6 points]
+- Sub-standard 1.3.B.1 [1 point | Completeness]: Parses `contact:<id>` from `all_conversation_contacts`, then maps through `contact_enhanced.all_contact_company_names` → `company_name` to match with paying companies.
+- Sub-standard 1.3.B.2 [4 points | Accuracy]: Verifies that the contact-based path also traces back to 6,703 conversations and matches 2,323 companies (±0), while preventing a single conversation from being double-counted for multiple companies.
+- Sub-standard 1.3.B.3 [1 point | Conclusion]: Summarizes the advantages (handles aliases) and risks (contacts with multiple employers) of the contact-driven path. Recommends retaining deduplication logic and logs for future incremental reuse.
+
+---
+## Requirement 2: Core Metric Construction and Definition (Max 9 points)
+### Standard 2.1: Message Response Delay and First Response Bot Ratio
+#### Path 2.1.A (Direct Field Retrieval Method) [6 points]
+- Sub-standard 2.1.A.1 [1 point | Completeness]: States that the response delay field is `time_to_first_response_minutes`. A bot first response is counted if either `conversation_author_type='bot'` or `conversation_initiated_type='bot_follow_up'` is true.
+- Sub-standard 2.1.A.2 [4 points | Accuracy]: On the 6,578 cleaned conversations, checks global statistics: Mean=26.00, P50=25, P1=11, P99=42. Example slices: `new_contract|260_419|110k_200k` mean is 25.57, `churn_watch|420_plus|200k_plus` is 25.87, `renewal|60_129|30k_65k` is 25.94. Overall bot ratio is 0.332±0.002, with sliced values ranging from 0.282–0.359. Tolerance is ±0.1 minutes / ±0.005.
+- Sub-standard 2.1.A.3 [1 point | Conclusion]: Points out that the sliced response delay differences are <1 minute, which is within the target range. The bot first response rate is about 30%, serving as a baseline for interpreting structural differences.
+
+#### Path 2.1.B (Proxy Identification Method) [6 points]
+- Sub-standard 2.1.B.1 [1 point | Completeness]: If `conversation_author_type` is missing, a proxy can be created by jointly evaluating the author of the first response message and whether `first_admin_response_at` is missing.
+- Sub-standard 2.1.B.2 [4 points | Accuracy]: Compares the proxy results with direct field retrieval, showing an error ≤3pp, and provides at least two examples of sliced bot ratios.
+- Sub-standard 2.1.B.3 [1 point | Conclusion]: Assesses that the proxy might overestimate short-term activation and underestimate human impact in cases of multi-turn bot interventions.
+
+### Standard 2.2: Conversation→72-Hour Feature Usage Conversion Rate
+#### Path 2.2.A (last_activity_ts Event Proxy) [6 points]
+- Sub-standard 2.2.A.1 [1 point | Completeness]: At the company level, determines if there is a contact `last_activity_ts` within 72 hours of a conversation's `close_time`. The denominator is the count of paying companies with at least one closed conversation in the window (2,311 companies).
+- Sub-standard 2.2.A.2 [4 points | Accuracy]: Ensures each company is counted only as 0/1. Outputs anchors:
+  - `new_contract×260_419×110k_200k`: 170 companies, 159 closed, 8 converted, conversion rate 0.0503;
+  - `churn_watch×420_plus×200k_plus`: 251 companies, 229 closed, 5 converted, conversion rate 0.0218;
+  - `renewal×60_129×30k_65k`: 220 companies, 206 closed, 8 converted, conversion rate 0.0388.
+  Allowed error is ±0.0005.
+- Sub-standard 2.2.A.3 [1 point | Conclusion]: Summarizes the structural difference: new_contract high-value has the highest activation (≈5%), while churn_watch large customers have the lowest (≈2.2%), providing an anchor for operational priorities.
+
+#### Path 2.2.B (company_metrics Proxy) [6 points]
+- Sub-standard 2.2.B.1 [1 point | Completeness]: If contact-level events are unavailable, use `company_metrics.total_conversations_closed` as the denominator and construct an activation proxy using metrics like `conv_rate_messenger`.
+- Sub-standard 2.2.B.2 [4 points | Accuracy]: Lists the conversion formula and validation logic, providing numerical or graphical examples.
+- Sub-standard 2.2.B.3 [1 point | Conclusion]: Compares the difference with the `last_activity_ts` definition and explains its suitable scenarios (e.g., quick monitoring).
+
+### Standard 2.3: Weekly/Monthly Retention Rate Definition
+#### Path 2.3.A (company_metrics Indicators) [6 points]
+- Sub-standard 2.3.A.1 [1 point | Completeness]: Uses `registration_retention_7d/30d` as weekly/monthly retention, aggregated by company.
+- Sub-standard 2.3.A.2 [4 points | Accuracy]: Verifies core anchors (allowed error ±0.01):
+  - `renewal`: Weekly 0.7097, Monthly 0.6430;
+  - `new_contract`: Weekly 0.6597, Monthly 0.5547;
+  - `churn_watch`: Weekly 0.6006, Monthly 0.4553;
+  - Seat bucket `420_plus`: Weekly 0.5990, Monthly 0.4508; `under_60`: Weekly 0.7589, Monthly 0.7128.
+- Sub-standard 2.3.A.3 [1 point | Conclusion]: Points out that the larger the company size, the lower the retention. The weekly retention for high-value churn_watch customers is significantly lower than the overall average (-0.06).
+
+#### Path 2.3.B (Event Set Overlap) [6 points]
+- Sub-standard 2.3.B.1 [1 point | Completeness]: If building a custom event set, needs to explain the definition of 'active', the intersection algorithm for adjacent periods, and how to handle truncation at the right end of the window.
+- Sub-standard 2.3.B.2 [4 points | Accuracy]: Provides the formula/pseudocode, ensuring company deduplication.
+- Sub-standard 2.3.B.3 [1 point | Conclusion]: Compares the advantages of the event-based method for feature-level decomposition.
+
+---
+## Requirement 3: Structural Panel Output and Difference Identification (Max 9 points)
+### Standard 3.1: Segment × Seat × ARR Composite Panel
+#### Path 3.1.A (Three-Dimensional Panel Export) [6 points]
+- Sub-standard 3.1.A.1 [1 point | Completeness]: Exports a 16-row panel containing `segment/seat_bucket/arr_bucket/companies_total/companies_with_closed_conv/conv_cnt/avg_resp/p50_resp/avg_duration/bot_first_resp_share/conv_to_feature_rate_closed_base/weekly_retention/monthly_retention`.
+- Sub-standard 3.1.A.2 [4 points | Accuracy]: Key slices must match the anchors (allowed error ±5% or ±0.005):
+  - `new_contract|260_419|110k_200k`: companies_total=170, closed=159, conv_cnt=456, avg_resp=25.57, avg_duration=201.32, bot_share=0.3465, 72h_conversion=0.0503, weekly_retention=0.6601, monthly_retention=0.5552;
+  - `churn_watch|420_plus|200k_plus`: companies_total=251, closed=229, conv_cnt=598, avg_resp=25.87, avg_duration=195.66, bot_share=0.3562, 72h_conversion=0.0218, weekly_retention=0.5990, monthly_retention=0.4508;
+  - `renewal|60_129|30k_65k`: companies_total=220, closed=206, conv_cnt=583, avg_resp=25.94, avg_duration=193.19, bot_share=0.3242, 72h_conversion=0.0388, weekly_retention=0.7106, monthly_retention=0.6442.
+- Sub-standard 3.1.A.3 [1 point | Conclusion]: Summarizes structural differences: new_contract high-value leads in activation, churn_watch high-value has low retention, and response metrics show limited variance.
+
+#### Path 3.1.B (Two-Dimensional Panel) [6 points]
+- Sub-standard 3.1.B.1 [1 point | Completeness]: If exporting only Segment×Seat or Segment×ARR, must include similar metric fields and state that the missing dimension is provided in an appendix or detailed table.
+- Sub-standard 3.1.B.2 [4 points | Accuracy]: Ensures that two-dimensional summaries are consistent with key three-dimensional metrics (e.g., average conversion by Segment, retention by Seat).
+- Sub-standard 3.1.B.3 [1 point | Conclusion]: States that 2D panels are suitable for high-level review, but a deep dive into differences still requires the 3D panel.
+
+### Standard 3.2: Supplementary Structural Variables
+#### Path 3.2.A (Routing and Initiation Structure) [6 points]
+- Sub-standard 3.2.A.1 [1 point | Completeness]: Calculates the proportion of `conversation_assignee_type` (team/admin) and `conversation_initiated_type` (bot_follow_up/contact_inbound) within the three-dimensional slices.
+- Sub-standard 3.2.A.2 [4 points | Accuracy]: Key findings (allowed error ±0.01):
+  - `new_contract` & `churn_watch` slices have `team_route_share=1.0`, while `renewal`/`expansion` slices have `team_route_share=0`;
+  - `new_contract|260_419|110k_200k` contact_inbound≈0.6535, `churn_watch|420_plus|200k_plus`≈0.6438, `renewal|60_129|30k_65k`≈0.6758;
+  - Global team routing is 0.5076, bot initiated is 0.3322.
+- Sub-standard 3.2.A.3 [1 point | Conclusion]: Points out that routing differences lead to different service assignments. High-value slices are fully team-routed, but a high bot ratio is accompanied by a decline in retention, providing a basis for the trade-off between 72h activation and long-term retention.
+
+#### Path 3.2.B (Text or Topic Mapping) [6 points]
+- Sub-standard 3.2.B.1 [1 point | Completeness]: If extending to `conversation_subject`/tag clustering, must define a reproducible method for topic extraction.
+- Sub-standard 3.2.B.2 [4 points | Accuracy]: Provides a comparison table of topics and metrics.
+- Sub-standard 3.2.B.3 [1 point | Conclusion]: Identifies high/low conversion topics, providing clues for strategy.
+
+---
+## Requirement 4: Quantifying Variable Relationships, Operational Recommendations, and Limitations (Max 9 points)
+### Standard 4.1: Correlation between Touchpoint and Outcome Variables
+#### Path 4.1.A (Pearson Correlation) [6 points]
+- Sub-standard 4.1.A.1 [1 point | Completeness]: Provides at least two sets of correlation coefficients for `(bot_first_resp_share vs conv_to_feature_rate)`, `(avg_resp vs conv_to_feature_rate)`, and `(bot_first_resp_share vs retention)` at either the 16 segment×seat×arr slices or company level.
+- Sub-standard 4.1.A.2 [4 points | Accuracy]: Results at the segment-combo level (allowed error ±0.02): `r(bot, conversion)=+0.365`, `r(response, conversion)=+0.026`, `r(bot, weekly_retention)=-0.566`, `r(bot, monthly_retention)=-0.554`. Supplements with company-level results: `r(bot, conversion_flag)=-0.003`, `r(response, conversion_flag)=+0.023`.
+- Sub-standard 4.1.A.3 [1 point | Conclusion]: Clarifies that bots have a small positive effect on 72h activation but a significant negative correlation with long-term retention. Response delay has limited marginal impact within the 11–42 minute range.
+
+#### Path 4.1.B (High/Low Group Comparison) [6 points]
+- Sub-standard 4.1.B.1 [1 point | Completeness]: Groups companies by tertiles of `bot_share` or `avg_resp` at the company level and compares 72h conversion and retention.
+- Sub-standard 4.1.B.2 [4 points | Accuracy]: Lists representative groups (error ±0.5pp):
+  - `churn_watch & arr:200k_plus`: low/mid/high bot conversion=0.97%/2.94%/2.91%, weekly retention=0.606/0.597/0.594, group samples 103/102/103;
+  - `new_contract & arr:110k_200k`: low/mid/high bot conversion=1.87%/6.54%/3.70%, weekly retention=0.661/0.651/0.668, group samples 107/107/108;
+  - Response groups for `churn_watch & arr:110k_200k`: fast/mid/slow conversion=0%/0%/5.62%, corresponding avg responses 20.87/25.52/30.96 minutes.
+- Sub-standard 4.1.B.3 [1 point | Conclusion]: Points out that high-value churn_watch customers are sensitive to bot ratio (conversion and retention are opposed). New_contract high-value requires a balance between automation and human touch. Slower responses might stem from more in-depth support, thus increasing activation, but costs must be considered.
+
+### Standard 4.2: Strategy Recommendations and Pilot Design
+#### Path 4.2.A (Differentiated Strategy by Segment) [6 points]
+- Sub-standard 4.2.A.1 [1 point | Completeness]: For new_contract high-value (260_419×110k_200k), renewal mid-size (60_129×30k_65k), and churn_watch high-value (420_plus×200k_plus), provides touchpoint strategies, 72h activation playbooks, and CSM intervention plans, referencing panel metrics.
+- Sub-standard 4.2.A.2 [4 points | Accuracy]: Strategies must be consistent with the data:
+  - New_contract high-value: current conversion 5.03%, team routing 100%, bot first response 34.6%. Goal is to expand the mid group's 6.54% level to ≥7% overall, emphasizing 72h feature follow-up.
+  - Churn_watch high-value: conversion 2.18%, weekly retention 0.599, bot first response 35.6%. Recommend reducing bot ratio to ≤32% (compared to mid group's 2.94% conversion at 28.7% bot ratio), strengthening human first touch and sustainment plans. Goal: conversion ≥3%.
+  - Renewal mid-size: conversion 3.88%, weekly/monthly retention 0.711/0.644, admin routing 100%. Recommend extending advanced feature co-creation packages to maintain retention and explore ≥4.5% conversion.
+- Sub-standard 4.2.A.3 [1 point | Conclusion]: Lists pilot KPIs (72h conversion, weekly/monthly retention, CSAT ≥ business requirement) and a rolling monitoring cadence (weekly for activation, monthly for retention).
+
+#### Path 4.2.B (Limitations and Data Improvement) [6 points]
+- Sub-standard 4.2.B.1 [1 point | Completeness]: Discloses key limitations of the definitions: bot first touch is a proxy based on `conversation_author_type`, feature activation relies on `last_activity_ts`, conversation-to-company is name-mapped, and the sample size is 6,578 after P1/P99 cleaning.
+- Sub-standard 4.2.B.2 [4 points | Accuracy]: Proposes data infrastructure improvements: persist message-level `responder_type`, add a core feature events table, establish a `company_id` foreign key, build an event-level retention model. Explains their impact on metric stability and attribution.
+- Sub-standard 4.2.B.3 [1 point | Conclusion]: Explains that after improvements, the data can support reusable rolling reports, bot experiments, and causal analysis.

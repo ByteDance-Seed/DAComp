@@ -1,0 +1,1 @@
+I want to understand the effectiveness of our cross-functional collaboration. Please analyze whether stakeholders with a high number of `direct_network_connections` actually lead to better project outcomes, paying special attention to the performance of the projects they are involved in regarding `complexity_risk_score` and `success_probability`.

@@ -1,0 +1,7 @@
+We want to establish a data-driven performance evaluation system for hiring managers. Please use the `lever__hiring_manager_scorecard` table to calculate a composite efficiency score for each hiring manager based on the following dimensions:
+- Candidate hire rate (30% weight)
+- Whether `avg_total_days_to_hire` is less than 45 days (25% weight)
+- Whether `avg_candidate_experience_score` is greater than 3.5 (25% weight)
+- Whether `feedback_completion_rate_managed` is over 85% (20% weight)
+
+Based on the final score, classify hiring managers into three tiers: Excellent (score ≥ 80), Good (60 ≤ score < 80), and Needs Improvement (score < 60). Only hiring managers who own at least 5 requisitions (`total_requisitions_owned` ≥ 5) should be included in the evaluation.

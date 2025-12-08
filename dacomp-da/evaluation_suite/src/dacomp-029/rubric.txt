@@ -1,0 +1,209 @@
+# [Total Score | 19 points] The solution must satisfy the following three core requirements:
+- Requirement 1: Based on the table data, analyze the key factors that affect vehicle value retention rate
+- Requirement 2: Identify models or configurations with high buyback value
+- Requirement 3: Provide specific vehicle buyback recommendations
+---
+## Requirement 1: Analyze key factors affecting vehicle value retention rate (Max 8 points for this requirement)
+### Criterion 1.1: Value retention calculation and single-factor grouped trend analysis
+#### Path 1.1.A [5 points | Single-factor grouped trend analysis]
+- Sub-criterion 1.1.A.1 [1 point | Accuracy]: Correct calculation methodology
+  - Core metrics to compute:
+    Value Retention Rate = Current Selling Price / New Car Price (incl. tax)
+    Depreciation Rate = 1 - Value Retention Rate
+    Methodology note: compute per individual sample, then take grouped averages; do not substitute with a "ratio of averages"
+  - Data scope: cleaned effective sample size = 675 vehicles (uniform scope; samples with missing values must be removed)
+  - Numeric validation: for any accuracy-related checks in this item, the qualifying interval = baseline × (1±5%); outside this interval → 0 points (no partial credit)
+  - If the model provides annual depreciation rate, it is also acceptable
+
+- Sub-criterion 1.1.A.2 [1 point | Completeness]: Grouping dimensions are comprehensive
+  - It is recommended to cover 8 independent factors; covering most (≥5) can be considered acceptable:
+    Fuel Type, Vehicle Age, Mileage segment, Vehicle Class, Electric range segment, Color, Brand, Series
+  - Field mapping/bucketing methodology:
+    - Fuel Type: use the Fuel Type field
+    - Vehicle Age: derived from Registration Date, using the table’s statistical/reporting date as the baseline; bins: (0,1], (1,2], (2,3], (3,4], (4,5], >5 (unit: years)
+    - Mileage segment: derived from Mileage (odometer-displayed) (bins: ≤1, (1,2], (2,3], (3,5], ≥5; unit: ten thousand km)
+    - Vehicle Class: use the Vehicle Class field
+    - Electric range segment: derived from WLTC Electric Range (km) for pure electric; bins: [0,200), [200,300), [300,400), [400,600] (unit: km)
+    - Color: use the Color field
+    - Brand: extracted from Title (Chinese brand names typically appear as the initial Chinese word; English/pinyin take the first word; unify dictionary, e.g., "ORA/Great Wall ORA" unified to "Great Wall ORA")
+    - Series: parsed from Title (the series name immediately following the brand; unify dictionary)
+
+- Sub-criterion 1.1.A.3 [2 points | Accuracy]: Group means must fall into the following validation intervals
+  Qualification rule:
+  - The group mean value retention rate provided by the model must fall within the "qualifying interval" listed below (= baseline × (1±5%)). If the main grouped results fall within the interval, it can be judged as qualified; minor deviations in individual groups can still be considered acceptable.
+  - If the model computes mean Depreciation Rate, correct results also meet the requirement; Depreciation Rate = 1 - Value Retention Rate (refer to Sub-criterion 1.1.A.1 definition)
+
+  A) Fuel Type (Value retention baseline → Qualifying interval)
+  - Range Extender: 69.24% → [66.0%, 72.9%]
+  - Pure Electric: 69.20% → [65.7%, 72.6%]
+  - Plug-in Hybrid: 68.27% → [64.9%, 71.7%]
+
+  B) Vehicle Age (Value retention baseline → Qualifying interval)
+  - 1–2 years: 83.90% → [79.7%, 88.1%]
+  - 2–3 years: 70.75% → [67.2%, 74.3%]
+  - 3–4 years: 68.83% → [65.4%, 72.3%]
+  - 4–5 years: 58.16% → [55.3%, 61.1%]
+  - >5 years: 34.50% → [32.8%, 36.2%]
+
+  C) Mileage segment (ten thousand km) (Value retention baseline → Qualifying interval)
+  - ≤1: 72.25% → [68.6%, 75.9%]
+  - 1–2: 69.94% → [66.4%, 73.4%]
+  - 2–3: 69.27% → [65.8%, 72.7%]
+  - 3–5: 66.12% → [62.8%, 69.4%]
+  - ≥5: 28.43% → [27.0%, 29.9%]
+
+  D) Vehicle Class (Value retention baseline → Qualifying interval)
+  - Mid-size SUV: 66.2% → [62.9%, 69.5%]
+  - Mid-size Car: 79.5% → [75.5%, 83.5%]
+  - Mid-to-Large SUV: 60.1% → [57.1%, 63.1%]
+  - Mid-to-Large Car: 74.4% → [70.7%, 78.1%]
+  - Large MPV: 74.7% → [71.0%, 78.5%]
+  - Large SUV: 70.2% → [66.7%, 73.7%]
+  - Small SUV: 56.9% → [54.1%, 59.7%]
+  - Small Car: 65.2% → [61.9%, 68.4%]
+  - Mini Car: 69.5% → [66.0%, 73.0%]
+  - Compact SUV: 58.1% → [55.2%, 61.0%]
+  - Compact Car: 53.4% → [50.7%, 56.1%]
+
+  E) Electric range segment (km) (Value retention baseline → Qualifying interval)
+  - 400–600: 73.4% → [69.7%, 77.1%]
+  - 300–400: 63.7% → [60.5%, 66.9%]
+  - 200–300: 68.3% → [64.9%, 71.7%]
+  - <200: 67.8% → [64.4%, 71.2%]
+
+  F) Color (Value retention baseline → Qualifying interval)
+  - Blue: 73.9% → [70.2%, 77.6%]
+  - Black: 73.0% → [69.4%, 76.7%]
+  - Silver-grey: 69.9% → [66.4%, 73.4%]
+  - White: 59.2% → [56.2%, 62.2%]
+
+  G) Brand (Value retention baseline → Qualifying interval)
+  - Hongguang: 76.5% → [72.7%, 80.3%]
+  - PUNK: 74.7% → [71.0%, 78.4%]
+  - Chery: 70.9% → [67.4%, 74.4%]
+  - JAC Sehol: 69.8% → [66.3%, 73.3%]
+  - Li Auto: 69.5% → [66.0%, 73.0%]
+  - Great Wall ORA: 69.2% → [65.7%, 72.6%]
+  - NIO/BYD/Nezha/Changan BenBen (approx.): 68.0% → [64.6%, 71.4%]
+  Note: Brand/series must undergo dictionary standardization and synonym merging to avoid duplicate scopes like "ORA/Great Wall ORA"
+
+  H) Series (Value retention baseline → Qualifying interval)
+  - Hongguang MINI: 76.5% → [72.7%, 80.3%]
+  - PUNK Meimei: 74.7% → [71.0%, 78.4%]
+  - Baojun E200: 72.1% → [69.0%, 75.2%]
+  - PUNK Duoduo: 72.0% → [68.4%, 75.6%]
+  - Chery Little Ant: 71.3% → [67.7%, 74.9%]
+  - Chery eQ1: 70.9% → [67.4%, 74.4%]
+  - Great Wall ORA Good Cat: 69.2% → [65.7%, 72.6%]
+  - JAC Sehol E10X: 69.6% → [66.1%, 73.1%]
+  - JAC Sehol E20X: 69.8% → [66.3%, 73.3%]
+  - BYD Seagull: 69.4% → [66.0%, 72.9%]
+  - BYD e1: 68.6% → [65.2%, 72.0%]
+  - BYD e3: 69.2% → [65.7%, 72.6%]
+  - Nezha V: 68.6% → [65.2%, 72.0%]
+  - Changan BenBen E-Star: 68.2% → [64.8%, 71.6%]
+
+- Sub-criterion 1.1.A.4 [1 point | Conclusiveness]: Must provide directional conclusions
+  Based on the grouped results above, explicitly identify the top 3 factors with the greatest impact on value retention (Mileage, Vehicle Age, Brand), and explain how each factor collectively affects value retention.
+  Reference style (non-exclusive):
+  Mileage: 1–3 ten thousand km is the "golden zone"; >5 ten thousand km shows a significant drop in value retention
+  Vehicle Age: 1–2 years is the "golden zone"; ≥5 years significantly drags down value retention
+  Brand: New entrants and domestic brands show overall steady value retention performance in new energy mini/small/compact segments
+  Color: Blue/Black/Silver-grey outperform White
+  Class: Mid-size pure electric SUVs are best; mini pure electric stabilizes around 0.68
+  Range: 400–600 km group retains value better; 300–400 km is weaker
+  Fuel: Range extender/pure electric slightly outperform plug-in hybrid
+  Provide directional conclusions for the main influencing factors (e.g., Mileage, Vehicle Age, Brand). If the overall trend is correct, it qualifies; even if the wording is somewhat simplified or not strictly ordered, it can still be considered acceptable.
+
+### Criterion 1.2: Multi-factor correlation and significance analysis
+#### Path 1.2.A [3 points | Multi-factor regression/correlation analysis]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Modeling and variable explanations
+  - It is recommended to build a multivariate model for explanation; if you provide multi-factor correlation analysis ideas or partial modeling demonstrations, it can be considered acceptable:
+    Model: Value Retention Rate = β0 + β1·Vehicle Age (years) + β2·Mileage (ten thousand km) + β3·Brand (dummy variables) + β4·Range segment (dummy) + β5·Fuel Type (dummy) + error term
+    Categorical variables are one-hot encoded; set a clear reference group and explain it; use feature standardization for coefficient comparison (Z-score), and additionally provide standardized coefficients
+
+  ```Pseudo-code: modeling pipeline
+  1) Clean missing: delete samples with missing value retention or key features
+  2) Target variable y = Value Retention Rate
+  3) Features:
+     - Numeric: Vehicle Age (years), Mileage (ten thousand km) → standardize (Z-score)
+     - Categorical: Brand, Range segment, Fuel Type → one-hot encode (set reference group)
+  4) Fit multiple linear regression (or GLM)
+  5) Output: coefficients, standard errors, p-values, R², standardized coefficients
+  ```
+
+- Sub-criterion 1.2.A.2 [1 point | Accuracy]: Directionality and quality thresholds
+  - Coefficient directions must align with single-factor trends: Vehicle Age and Mileage coefficients are negative; new energy/high range/advantage brands coefficients are positive
+  - Focus on directionality and significance; if the model trend aligns with the single-factor results, it qualifies. Significance/fit can be used as references rather than hard requirements.
+
+  ```Pseudo-code: validation steps
+  For each independent variable Xi:
+    1) Check whether the coefficient sign meets expectations
+    2) Check p-value < 0.05
+  Also check the overall model:
+    3) R² ≥ 0.60 (or explain that variable pairs have Spearman |ρ| ≥ 0.5)
+  If any of the above are not met → this item is unqualified
+  ```
+
+- Sub-criterion 1.2.A.3 [1 point | Conclusiveness]: Ranking of important factors and verifiability
+  - Must provide a Top 3 ranking of contributing factors; ranking basis is the absolute value of standardized coefficients or |ρ|, and mark significance (p-values)
+  - Explain the key factors with larger impacts and provide ranking or reasons where possible. If the ranking is incomplete or significance is not marked but the directions are reasonable, it can still be considered acceptable.
+  - Consistency check (single-factor vs multi-factor)
+    - The "Top 3 largest influencing factors" given in single-factor analysis (1.1.A.4) and multi-factor analysis (1.2.A.3) should be consistent in direction and ordering;
+    - If there are differences in ordering or direction, a reasonable explanation must be provided (e.g., variable collinearity, insufficient grouped sample sizes, interaction effects, etc.);
+    - No explanation or obvious contradictions → 0 points for this item
+
+---
+## Requirement 2: Identify models or configurations with high buyback value (Max 6 points for this requirement)
+### Criterion 2.1: Model/configuration filtering
+#### Path 2.1.A [4 points | Full computation path]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: For each distinct model/configuration, compute value retention (individual → grouped mean), and list the Top 5 (sorted from high to low); if using Depreciation Rate as the metric, you must explicitly state that lower depreciation rate means better value retention, with the formula Depreciation Rate = 1 - Value Retention Rate (refer to Sub-criterion 1.1.A.1 definition)
+- Sub-criterion 2.1.A.2 [3 points | Accuracy]: The grouped means for the following representative models must match the validation baselines (qualifying interval = baseline × (1±5%)):
+  - Chery QQ Ice Cream: 79.58% → [75.6%, 83.6%]
+  - Wuling Hongguang MINIEV: 76.67% → [72.8%, 80.5%]
+  - Great Wall ORA White Cat: 76.62% → [72.8%, 80.5%]
+  - Hongguang MINI: 76.01% → [72.2%, 79.8%]
+  - PUNK Meimei: 74.27% → [70.5%, 78.0%]
+  If most model results are reasonable, it can be judged as qualified; deviations in individual models do not affect the overall score. You must state "calculation methodology = compute individual value retention first, then take the group mean"
+
+#### Path 2.1.B [3 points | Case path]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Select at least 3 typical high value-retention models (covering mini pure electric / mid-to-high-end new energy / range extender), and compute value retention per vehicle.
+- Sub-criterion 2.1.B.2 [2 points | Accuracy]: You must demonstrate the complete computation chain (per-vehicle individual → group mean → value retention result), and state in the conclusion that "this path is a demonstration and does not cover all models".
+
+### Criterion 2.2: Summary of filtering results
+#### Path 2.2.A [2 points | Induction of common features]
+- Sub-criterion 2.2.A.1 [2 points | Conclusiveness]:
+  - Must provide a summary based on the calculations from Criterion 2.1.
+  - Must provide common features of high buyback value models/configurations, and ensure consistency with the trends in Requirement 1:
+    Mini pure electric (e.g., QQ Ice Cream, Hongguang MINIEV) overall 70–80%;
+    Mid-to-high-end new energy (Li Auto/NIO/Tesla, etc.) overall 70–85%;
+    Range extender mean about 69.46%;
+    Lower vehicle age, lower mileage, favored brands/series, and Blue/Black/Silver-grey colors retain value better
+  - If the summary is not based on the calculations in Criterion 2.1, or conflicts with Requirement 1’s trends, or lacks the above common-feature induction, this item scores 0.
+  - Conclusions must remain consistent with Requirement 1’s trends; if parts of Requirement 1 are missing, but Requirements 2/3 have reasonable direction, they can still be scored independently.
+
+---
+## Requirement 3: Provide specific vehicle buyback recommendations (Max 5 points for this requirement)
+### Criterion 3.1: Buyback condition recommendations
+#### Path 3.1.A [3 points | Conditions and data basis]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Propose at least 5 specific buyback conditions, and must include: Mileage, Vehicle Age, Brand
+- Sub-criterion 3.1.A.2 [2 points | Conclusiveness]: Conditions and thresholds should be proposed based on data; if the overall direction is correct, even if some conditions are not fully quantified, it can be considered acceptable (consistent with Requirements 1/2):
+  Mileage: ≤3 ten thousand km (basis: ≥5 ten thousand km group only 28.43%, significantly lower)
+  Vehicle Age: ≤3 years (basis: 1–2 years 83.90%, higher than 3–4 years 68.83% / 4–5 years 58.16%)
+  Brand/Series: prioritize Hongguang/PUNK/Chery and their high value-retention series (qualifying intervals see Requirement 1)
+  Fuel/Range: prioritize Range Extender/Pure Electric, with electric range 400–600 km (73.4%)
+  Color: prioritize Blue/Black/Silver-grey (≥69.9%); be cautious with White (59.2%)
+
+### Criterion 3.2: Risk and operating recommendations
+#### Path 3.2.A [2 points | Risk avoidance and operating strategies]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Coverage requirements
+  - Must provide both "risk avoidance" and "operating strategy" recommendations; it is best to cover both categories with ≥5 items in total. If the main aspects are covered, it can be considered acceptable.
+  - Content must be actionable (include target and conditions); do not merely describe phenomena (e.g., "new energy updates quickly").
+- Sub-criterion 3.2.A.2 [1 point | Conclusiveness]: Preference/directive wording and consistency
+  - Each recommendation must include clear preference/directive wording (cautious/avoid/prioritize/shorten/high volume/high margin, etc.) and be consistent with the directional conclusions and qualifying intervals in Requirements 1/2.
+  - Clear preference/directive wording is required, and consistency with trends must be maintained; if individual statements are not rigorous but the overall direction is reasonable, it can still be considered acceptable.
+  - Qualified examples (non-exclusive):
+    • Risk avoidance: Vehicle Age >4 years, Mileage >5 ten thousand km, multiple transfers, niche/discontinued models — cautious/avoid;
+    • Operating strategy: brand specialization (Hongguang/Chery/Li Auto, etc. favored brands/series), shorten turnover cycle, mini cars focus on volume / mid-to-high-end new energy focus on margin.
+  - Unqualified examples:
+    • Only listing items without preference/directive words like "cautious/avoid/prioritize"; or making recommendations contrary to single-factor/multi-factor trends.

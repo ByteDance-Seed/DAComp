@@ -1,0 +1,58 @@
+# [Total Score | 15 points]  The solution must meet three requirements: compute core security metrics by department, identify departments with weak security awareness, and provide risk explanations and improvement recommendations.
+---
+## Requirement 1: Quantitatively evaluate each department's security risk level from multiple dimensions (maximum 5 points for this requirement)
+### Standard 1.1: Use quantitative indicators to compute each department's security risk metrics (maximum 5 points, each sub-criterion score must be an integer)
+#### Path 1.1.A [5 points | Comprehensive calculation based on "core indicators + extended indicators"] (If this standard path does not match, do not generate a new path; directly score 0 points)
+- Standard 1.1.A.1 [2 points | Completeness]: Clearly define the calculation methods for at least 4 key indicators. The indicators must cover four dimensions: **abnormal frequency**, **risk intensity**, **security configuration**, and **scope of impact**.
+    - **Department Abnormal Login Rate** (abnormal frequency): (`Department total abnormal login count` / `Department total login count`) * 100%
+    - **Severe Anomalies Proportion** (risk intensity): (`Count of abnormal logins in the department with Risk Level='Severe'` / `Department total abnormal login count`) * 100%
+    - **Two-Factor Authentication Not Enabled Rate** (security configuration): (`Number of users in the department with Two-Factor Authentication Status='Not Enabled'` / `Department total user count`) * 100%
+    - **Abnormal User Coverage Rate** (scope of impact): (`Number of users in the department who have had abnormal logins (deduplicated)` / `Department total user count`) * 100%
+- Standard 1.1.A.2 [3 points | Accuracy]: Based on `user_information_table`, `login_records_table`, and `abnormal_logins_table`, perform joins and grouped aggregations to accurately compute the four indicators for each department. **Key information (Department name, Abnormal Login Rate, Severe Anomalies Proportion, Two-Factor Authentication Not Enabled Rate, Abnormal User Coverage Rate)** must match the reference answer (allowed error: none; subject to code output).
+    - **Reference Answer:**
+        | Department | Abnormal Login Rate | Severe Anomalies Proportion | Two-Factor Authentication Not Enabled Rate | Abnormal User Coverage Rate |
+        |------------|---------------------|-----------------------------|--------------------------------------------|-----------------------------|
+        | Finance Department | 91.5% | 20.9% | 30.0% | 45.0% |
+        | Marketing Department | 88.4% | 39.5% | 34.4% | 47.5% |
+        | Sales Department | 85.4% | 22.0% | 40.8% | 49.0% |
+        | Technical Department | 79.3% | 30.4% | 27.3% | 38.6% |
+---
+## Requirement 2: Accurately identify departments that need prioritized security awareness reinforcement (maximum 5 points for this requirement)
+### Standard 2.1: Use single or composite indicators to identify risk departments (maximum 5 points, each sub-criterion score must be an integer)
+#### Path 2.1.A [3 points | Rapid filtering based on a single core indicator threshold]
+- Standard 2.1.A.1 [1 point | Completeness]: Set the filter condition "Department Abnormal Login Rate > Company average Abnormal Login Rate" (company average is approximately 86.2%).
+- Standard 2.1.A.2 [2 points | Accuracy]: Based on the corrected results from Requirement 1, accurately filter departments that meet the condition.
+    - **Reference Answer:**
+        | Department | Abnormal Login Rate |
+        |------------|---------------------|
+        | Finance Department | 91.5% |
+        | Marketing Department | 88.4% |
+#### Path 2.1.B [5 points | Comprehensive ranking based on multi-indicator weighted scoring]
+- Standard 2.1.B.1 [1 point | Completeness]: Build a composite risk scoring model, assign weights to the four indicators in Requirement 1 and explain the rationale. For example: Severe Anomalies Proportion (weight 0.35), Two-Factor Authentication Not Enabled Rate (weight 0.30), Abnormal User Coverage Rate (weight 0.20), Abnormal Login Rate (weight 0.15). The score for this sub-criterion can only be 0 or 1.
+- Standard 2.1.B.2 [2 points | Accuracy]: Normalize each indicator and compute each department’s composite risk score according to the weights. The Top 3 departments and their risk scores must match the reference answer.
+    - **Reference Answer:**
+        | Department | Composite Risk Score (example) | Rank |
+        |------------|-------------------------------|------|
+        | Marketing Department | 78.5 | 1 |
+        | Sales Department | 75.2 | 2 |
+        | Finance Department | 69.8 | 3 |
+- Standard 2.1.B.3 [2 points | Conclusiveness]: Based on the composite scoring results, clearly identify that the Marketing Department and Sales Department are the highest-risk departments and should be prioritized for reinforcement. Rationale: The Marketing Department does not have the highest abnormal frequency, but its **Severe Anomalies Proportion is far ahead** (39.5%), implying the greatest potential harm; the Sales Department performs worst in **Two-Factor Authentication Not Enabled Rate** (40.8%) and **Abnormal User Coverage Rate** (49.0%), indicating the weakest baseline protection and the most widespread problems.
+#### Path 2.1.C [3 points | Identify risk departments based on abnormal login counts]
+- Standard 2.1.C.1 [1 point | Completeness]: Based on the provided single risk indicator (abnormal login counts), clearly identify the top-ranking departments.
+- Standard 2.1.C.2 [2 points | Accuracy]: The identified departments must exactly match the ranking results of the single indicator.
+---
+## Requirement 3: Risk explanation and improvement recommendations (maximum 5 points for this requirement)
+### Standard 3.1: Department-specific risk explanations and recommendations (maximum 3 points, each sub-criterion score must be an integer; if this standard path does not match, do not generate a new path; directly score 0 points)
+- Standard 3.1.1 [1 point | Conclusiveness]: Using the Marketing Department’s data (**Severe Anomalies Proportion is the highest, 39.5%**), clearly state its risk (the quality of anomalies is highest, most likely to lead to severe consequences) and propose recommendations (conduct targeted attack scenario drills such as phishing email recognition; review high-risk operation permissions).
+- Standard 3.1.2 [1 point | Conclusiveness]: Using the Sales Department’s data (**Two-Factor Authentication Not Enabled Rate is the highest at 40.8%, Abnormal User Coverage Rate is the highest at 49.0%**), clearly state its risk (baseline security defenses are lacking; security issues are widespread within the team) and propose recommendations (immediately enforce a policy to enable Two-Factor Authentication; provide foundational security awareness training and assessments for all staff).
+- Standard 3.1.3 [1 point | Conclusiveness]: Using the Finance Department’s data (**Abnormal Login Rate is the highest at 91.5%, but Severe Anomalies Proportion is the lowest at 20.9%**), clearly state its risk (a large number of basic, repetitive operational issues exist, such as forgotten passwords and account lockouts; although single-incident harm is small, they reduce work efficiency and create "noise" interference) and propose recommendations (optimize the password reset process; strengthen awareness and adoption of password management tools).
+### Standard 3.2: Integrated recommendations consolidating risk points (maximum 2 points, each sub-criterion score must be an integer)
+- Standard 3.2.1 [1 point | Accuracy]: Consolidate the analysis results from Requirement 2 and output a graded governance department list.
+    - **Reference Answer:**
+        | Governance Priority | Department | Main risk characteristics |
+        |---------------------|-----------|---------------------------|
+        | 1 (Immediate) | Marketing Department | Potential destructiveness of risk events is strongest |
+        | 1 (Immediate) | Sales Department | Baseline defensive capability is weakest; security issues are most prevalent |
+        | 2 (High) | Finance Department | Abnormal operation frequency is extremely high; basic security habits need improvement |
+        | 3 (Routine) | Technical Department | Relatively best-performing, but still has room for improvement |
+- Standard 3.2.2 [1 point | Conclusiveness]: Provide global action recommendations, with clear targets (e.g., Phase 1 (within 1 month) goal: raise the Two-Factor Authentication enablement rate of the Marketing Department and Sales Department to over 90%, and complete one round of mandatory security training and examination for all staff). The score for this sub-criterion can only be 0 or 1.

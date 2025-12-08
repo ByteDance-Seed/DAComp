@@ -1,0 +1,95 @@
+# [总分 | 30分] 解决方案需满足以下四个核心需求：
+
+- 需求1：以“CTR≥P75 且 CVR≤P25”识别高CTR低转化广告组
+- 需求2：构建意图匹配度（IMR = 实际CVR / 预期CVR）并识别错配层级
+- 需求3：解析高CTR低转化广告组的流量质量与共性特征
+- 需求4：提出关键词、受众、落地页协同的优化建议与监控闭环
+
+==============================
+一、需求1：数据准备与“高CTR×低CVR”广告组识别（本需求最高可得 9分）
+==============================
+### 标准1.1 [最高3分]：数据定位、口径声明与样本清洗
+#### 路径1.1.A [3分]
+- 标准 1.1.A.1 [1分 | 完备性]：明确使用 `/Users/bytedance/workspace/dacomp-release/dacomp-da/tasks/dacomp-060/dacomp-060.sqlite` 中的 `google_ads__ad_group_report`，字段需至少覆盖 `date_day/ad_group_id/ad_group_name/campaign_id/impressions/clicks/conversions/spend/view_through_conversions`；按 `ad_group_id` 聚合全历史（2021-01-01 至 2024-12-30），仅保留原始明细中 `impressions>0 AND clicks>0` 的记录。
+- 标准 1.1.A.2 [1分 | 精确性]：声明处理顺序：① `WHERE impressions>0 AND clicks>0`；② `GROUP BY ad_group_id`，`SUM(impressions/clicks/conversions/spend/view_through_conversions)` 并计算 `active_days = COUNT(DISTINCT CASE WHEN impressions>0 THEN substr(date_day,1,10) END)`；③ 派生指标 `CTR = clicks/impressions`、`CVR = conversions/clicks`、`CPC = spend/clicks`、`CPA = spend/conversions`（0 除返回 NULL）。
+- 标准 1.1.A.3 [1分 | 结论性]：输出聚合后广告组数 `4324`，说明该统一口径会在后续指标与分位数中保持一致。
+
+### 标准1.2 [最高4分]：CTR/CVR 分位阈值计算与问题组筛选
+#### 路径1.2.A [4分]
+- 标准 1.2.A.1 [1分 | 完备性]：在聚合结果上计算 `CTR`、`CVR`，零值需保留以反映真实表现（`conversions=0` ⇒ `CVR=0`）。
+- 标准 1.2.A.2 [2分 | 精确性]：使用精确分位函数得到 `CTR_P75 = 0.035876 ± 0.0002`、`CVR_P25 = 0.038462 ± 0.0002`。若误差超出容差需解释原因并提供复算证据。
+- 标准 1.2.A.3 [1分 | 结论性]：筛选满足 `CTR ≥ 0.035876` 且 `CVR ≤ 0.038462` 的广告组，确认问题组规模 `274`（占 `6.34% ±0.1pp`），并给出加权指标：`wCTR = 0.04079 ± 0.0005`、`wCVR = 0.02533 ± 0.0005`、`CPC = 2.8517 ± 0.01`、`CPA = 112.60 ± 0.5`。
+
+### 标准1.3 [最高2分]：问题组与对照组切分
+#### 路径1.3.A [2分]
+- 标准 1.3.A.1 [1分 | 完备性]：在 `CTR ≥ 0.035876` 的集合内，以 `CVR ≤ 0.038462` 与否切分：问题组 `274` 个（合计点击 `16738`、转化 `423.9`），对照组 `807` 个（合计点击 `52464`、转化 `3379.2`）。
+- 标准 1.3.A.2 [1分 | 精确性]：校验加权口径：问题组 `wCTR = 0.04079`、`wCVR = 0.02533`、`加权CPA = 112.60`；对照组 `wCTR = 0.04054`、`wCVR = 0.06441`、`加权CPA = 43.41`，误差容忍 `±0.0005`（率类）与 `±0.3`（金额类）。
+
+==============================
+二、需求2：意图匹配度构建与错配分层（本需求最高可得 9分）
+==============================
+### 标准2.1 [最高6分]：预期CVR构建
+#### 路径2.1.A [6分]
+- 标准 2.1.A.1 [1分 | 完备性]：以 `advertising_channel_type × ad_group_type × keyword_match_type` 为分层维度（缺失 `advertising_channel_type` 归为 `UNKNOWN`），结合 `google_ads__keyword_report`（`clicks>0`）与聚合后的广告组表。
+- 标准 2.1.A.2 [4分 | 精确性]：采用 EB 平滑 `expected_cvr = (conv + α) / (click + α + β)`，其中 `global_cvr = 0.05475246`、`α = 2.73762`、`β = 47.26238`（先验权重 50）。需列示至少三条锚点：
+  - `DISPLAY × SEARCH_STANDARD × BROAD` ⇒ `expected_cvr = 0.05636 ± 0.0005`
+  - `SEARCH × SEARCH_STANDARD × EXACT` ⇒ `expected_cvr = 0.05267 ± 0.0005`
+  - `SHOPPING × SEARCH_STANDARD × PHRASE` ⇒ `expected_cvr = 0.05758 ± 0.0005`
+  并说明当某广告组缺少关键词维度时回退到 `(channel × ad_group_type)`，仍缺失时回退到 `global_cvr`。
+- 标准 2.1.A.3 [1分 | 结论性]：基于 `IMR = actual_cvr / expected_cvr_final`，输出分布：均值 `1.0110`、中位 `1.0060`、P25 `0.7019`、P75 `1.3163`；设定错配阈值 `IMR<0.7` 并说明其覆盖率 `24.88%`。
+
+### 标准2.2 [最高3分]：IMR驱动的分层与优先级
+#### 路径2.2.A [3分]
+- 标准 2.2.A.1 [1分 | 完备性]：按 `IMR<0.5`、`0.5≤IMR<0.9`、`IMR≥0.9` 三档汇总广告组数、点击、花费。
+- 标准 2.2.A.2 [1分 | 精确性]：校验档位指标：`<0.5` 档 `548` 组，点击占比 `9.83% ±0.2pp`、花费占比 `10.26% ±0.2pp`；`0.5-0.9` 档 `1178` 组（点击 `29.17%`）、`≥0.9` 档 `2598` 组（点击 `61.00%`）。
+- 标准 2.2.A.3 [1分 | 结论性]：指出 `IMR<0.5` 档贡献 `65%` 的问题组（问题组平均 IMR `0.4595`，P25 `0.3332`），应作为治理优先级。
+
+==============================
+三、需求3：流量质量与共性特征分析（本需求最高可得 7分）
+==============================
+### 标准3.1 [最高4分]：关键词与搜索词画像
+#### 路径3.1.A [4分]
+- 标准 3.1.A.1 [1分 | 完备性]：对问题组 vs 其他组输出四类对比：`keyword_match_type`、`search_term_match_type`、词长（`short≤2`、`medium=3-4`、`long≥5`）、意图（词典：成交类 `{buy,price,order,discount,trial,demo,cheap,quote,subscribe,plan,package,pricing}`, 信息类 `{how,what,why,guide,tips,ideas,learn,tutorial,definition,meaning,examples,strategy,strategies,improve,help,support}`, 品牌类 `{brand,official,company,enterprise,corporate,agency,inc,llc,ltd,solutions,services,global,international}`, 竞品类 `{alternative,alternatives,vs,compare,comparison,competitor,competitors,review,reviews,replacement,instead}`，其余归 `other`）。
+- 标准 3.1.A.2 [2分 | 精确性]：提供加权指标（点击占比 & CVR），误差 `±0.5pp`：
+  - 关键词：问题组 `BROAD 23.07%/CVR 5.83%`、`BMM 26.64%/5.13%`、`EXACT 23.81%/5.36%`、`PHRASE 26.48%/6.07%`；其他组对应 `24.87%/5.40%`、`24.46%/5.59%`、`25.15%/5.36%`、`25.53%/5.47%`。
+  - 搜索词：问题组 `BROAD 16.47%/6.09%`、`EXACT 20.96%/6.07%`、`NEAR_EXACT 20.66%/5.34%`、`NEAR_PHRASE 18.11%/5.11%`、`PHRASE 23.80%/5.04%`；其他组 `18.73%/5.29%`、`21.32%/5.54%`、`19.39%/5.63%`、`20.60%/5.73%`、`19.95%/5.64%`。
+  - 词长：问题组 `short 83.09%`、`medium 16.91%`、`long 0%`；其他组 `short 85.60%`、`medium 14.40%`。
+  - 意图：问题组 `transactional 21.11%`、`brand 18.25%`、`informational 12.27%`、`other 48.37%`；其他组 `transactional 14.35%`、`brand 15.45%`、`informational 14.15%`、`other 56.05%`。
+  - 搜索词唯一度：问题组 `25.67` 词/100点击，其他组 `23.25` 词/100点击，容差 `±0.3`。
+- 标准 3.1.A.3 [1分 | 结论性]：指出问题组更依赖宽匹配 + 交易类词，意图分散导致 CVR 下滑且唯一度偏高。
+
+### 标准3.2 [最高3分]：流量来源与落地页质量
+#### 路径3.2.A [2分]
+- 标准 3.2.A.1 [1分 | 完备性]：对比问题组 vs 其他组的 `advertising_channel_type` 在点击、花费、CVR、CPC、CPA 维度表现。
+- 标准 3.2.A.2 [1分 | 精确性]：校验指标（容差 `±0.01` 金额、`±0.5pp` 占比）：问题组 `SHOPPING 25.45% clicks / CVR 2.65% / CPC 2.43 / CPA 91.92`、`MULTI_CHANNEL 17.15% / CVR 2.31% / CPC 3.30 / CPA 143.13`、`VIDEO 21.29% / CVR 2.50% / CPC 2.95 / CPA 117.89`。其他组 CPC 与 CPA 分别集中在 `2.72~2.80`、`46~48`。
+#### 路径3.2.B [1分]
+- 标准 3.2.B.1 [1分 | 结论性]：说明 `google_ads__url_report` 仅含 2 条记录（均为 `url_host='unknown'`、`url_path='unknown'`、0 转化），且覆盖 100% 非问题组 → 落地页分析需标注“数据缺失”，提出补数或日志采集计划。
+
+### 标准3.3 [最高3分]：贡献度排序
+#### 路径3.3.A [3分]
+- 标准 3.3.A.1 [1分 | 完备性]：定义 `Impact = click_share_problem × (CVR_control - CVR_segment)`，并给出 `CVR_control = 0.06441`、`CVR_problem = 0.02533`。
+- 标准 3.3.A.2 [1分 | 精确性]：列出 TOP3 影响段（容差 `±0.00005`）：
+  1. `Shopping Remarketing - Spring 2023`：`click_share_problem = 2.838%`、`CVR_segment = 0.02168`、`impact = 0.001032`、`waste_cost = 1,665.21`。
+  2. `Search Broad - Q2 2023`：`click_share_problem = 2.396%`、`CVR_segment = 0.01671`、`impact = 0.000990`、`waste_cost = 588.75`。
+  3. `Shopping Broad - Q3 2023`：`click_share_problem = 2.055%`、`CVR_segment = 0.01628`、`impact = 0.000858`、`waste_cost = 1,078.49`。
+- 标准 3.3.A.3 [1分 | 结论性]：明确优先顺序——先处置再营销购物与广泛搜索系列，其次为多渠道受众系列，以覆盖 ~30% 的问题点击。
+
+==============================
+四、需求4：优化建议与监控闭环（本需求最高可得 5分）
+==============================
+### 标准4.1 [最高4分]：关键词/受众/落地页三板斧
+#### 路径4.1.A [4分]
+- 标准 4.1.A.1 [1分 | 完备性]：建议至少覆盖关键词治理、受众/出价、落地页三个动作，并与问题数据逐项对应。
+- 标准 4.1.A.2 [2分 | 精确性]：建议需量化：
+  - 关键词：将问题组 `BMM` 点击占比从 `26.64%` 降至 `≤22%`（辅以否词命中交易词表），`Exact/Phrase` 占比提升 ≥3pp；周度清理唯一度>30词/100点击的广告组。
+  - 受众/出价：对 `Multi-channel/Video` 问题组降价 20%（当前 CPA `≥117`），优先把预算迁移至 `Shopping` 中 IMR≥0.9 的组；设置 `IMR<0.6` 组自动减价 15%。
+  - 落地页：由于采集缺口，需上线 host/path 埋点与实验版 LP，目标在 2 周内获取 ≥90% 问题组的真实落地页，随后将交易词流量导向专属页并验证表单收集率。
+  同时给出量化目标：问题组 `IMR` 从 `0.46` 提升至 `≥0.75`，`CVR` 抬升 30%，`CPA` 降 20%。
+- 标准 4.1.A.3 [1分 | 结论性]：排序行动优先级：`否词+匹配收紧 → 高CPA受众/渠道降级 → 新落地页验证`；阶段目标为问题组花费占比从 `8.77%` 降至 `<5%`，IMR≥0.75 的高意图组占比提升至 `≥70%`。
+
+### 标准4.2 [最高1分]：监控与告警闭环
+#### 路径4.2.A [1分]
+- 标准 4.2.A.1 [1分 | 完备性 + 精确性 + 结论性]：设计监控看板：
+  - KQI：问题广告组清单、IMR 分布、CTR/CVR/CPA、`BMM` 点击占比、交易类词占比、渠道点击占比、搜索词唯一度。
+  - 告警阈值：`连续7天 CTR≥0.0359 且 CVR≤0.0385 且 clicks≥150`；`IMR<0.6 且 clicks≥300`；`BMM 点击占比>26.5% 且 CVR 周环比下降>20%`。
+  - 刷新频率：KPI 日刷、结构周复盘，闭环流程（识别→派单→执行→回测）。

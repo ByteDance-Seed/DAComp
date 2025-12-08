@@ -1,0 +1,118 @@
+# [Total Score | 42 Points] Scoring Rubric for Analysis of Customer Cohort with Specific Conversion Behaviors
+
+---
+## Requirement 1: Data Governance and Target Cohort Construction (12 Points)
+
+### Standard 1.1 [Max 6 Points]: Table Join Logic and Deduplication Strategy
+
+#### Path 1.1.A: Latest Snapshot Deduplication Method
+- **Standard 1.1.A.1 [1 Point | Completeness]**: Must explain that the `customer360__customer_activity_metrics`, `customer360__conversion_funnel_analysis`, and `customer360__customer_value_analysis` tables are aligned on `primary_email`; use `ROW_NUMBER() OVER (PARTITION BY primary_email ORDER BY *_analysis_timestamp DESC, rowid DESC)` to extract the latest snapshot, and provide the LEFT JOIN process for building a comprehensive view.
+- **Standard 1.1.A.2 [4 Points | Accuracy]**: Reproducible SQL must output the following anchors: ① The average `composite_engagement_score` for the entire population based on the latest snapshots = **7.9565±0.005**; ② The sample size of the target cohort (`marketing_to_sales_days`∈[10,20] ∧ `sales_to_support_days`>30 ∧ `composite_engagement_score` > population average) = **959±1**; ③ Filtering conditions are applied only to the latest snapshots. Must show the exact validation query or equivalent pseudocode.
+- **Standard 1.1.A.3 [1 Point | Conclusion]**: Clarify that the latest snapshot method ensures temporal consistency and avoids including the same customer multiple times in the sample; must point out the need to add `rowid` or an equivalent secondary sort key when timestamps are identical, and explain the risk of duplicate records if not handled.
+
+#### Path 1.1.B: Customer-Level Deduplication Method
+- **Standard 1.1.B.1 [1 Point | Completeness]**: Explain the approach of first building a customer-level base table using `MIN(rowid)` or `DISTINCT primary_email`, and acknowledge that this method may retain outdated records.
+- **Standard 1.1.B.2 [4 Points | Accuracy]**: Provide the "deduplicate first, then join" process and validate: ① The overall average `composite_engagement_score` = **7.9466±0.01**; ② The cohort sample size = **953±2**; ③ Filtering conditions are the same as in Path 1.1.A. Must further compare the sources of discrepancy between the two approaches.
+- **Standard 1.1.B.3 [1 Point | Conclusion]**: Considering the data refresh frequency, explain why the latest snapshot method should be prioritized in high-frequency scenarios; point out that there are discrepancies in sample size and averages between the two approaches and provide a business interpretation.
+
+#### Path 1.1.C: Data Unavailability Fallback Method
+- **Standard 1.1.C.1 [1 Point | Completeness]**: Provide troubleshooting steps, such as `SELECT name FROM sqlite_master`, `PRAGMA page_count`, `COUNT(*)`, to confirm if the database/tables are empty or corrupted, and include the results.
+- **Standard 1.1.C.2 [4 Points | Accuracy]**: Output a complete SQL template (can include variable placeholders, no need for hardcoded values) that covers the entire analysis flow: Cohort Filtering → RFM → LTV → Channel → Geography → Platform → Risk Framework.
+- **Standard 1.1.C.3 [1 Point | Conclusion]**: Clearly state that numerical conclusions cannot be drawn at this time, and list data remediation priorities (e.g., populating ID mappings, re-running ETL) along with suggested owners/timelines.
+
+### Standard 1.2 [Max 6 Points]: Calculation of Average Scores for the Three RFM Dimensions
+
+#### Path 1.2.A: Average of Latest Records Method
+- **Standard 1.2.A.1 [1 Point | Completeness]**: On the cohort from Path 1.1.A, join with the latest snapshot of `customer_value_analysis` and explain how to ensure full coverage of R/F/M fields (sample size for this database = 959).
+- **Standard 1.2.A.2 [4 Points | Accuracy]**: Validate the anchors (tolerance ±0.005): `avg_recency` = **2.9541**, `avg_frequency` = **2.9698**, `avg_monetary` = **2.9614**; sample size = **959**.
+- **Standard 1.2.A.3 [1 Point | Conclusion]**: Interpret the profile—overall in the upper-middle range, with moderate recent activity and stable monetary value.
+
+#### Path 1.2.B: Robust Statistics Method
+- **Standard 1.2.B.1 [1 Point | Completeness]**: Explain the rationale and steps for using a P10-P90 trimmed mean or median (first sort → trim → then calculate the mean).
+- **Standard 1.2.B.2 [4 Points | Accuracy]**: Provide pseudocode and verify the result: the difference between the trimmed mean and the simple mean is < **0.05** (for this database, the difference for all three dimensions is 0).
+- **Standard 1.2.B.3 [1 Point | Conclusion]**: Compare the reliability of the two approaches, emphasizing the protective effect of robust metrics against the impact of extreme values.
+
+---
+## Requirement 2: LTV Relative Difference and Channel Analysis (12 Points)
+
+### Standard 2.1 [Max 6 Points]: LTV Difference Analysis by Tier
+
+#### Path 2.1.A: Tier-by-Tier Comparison Method (Latest Value Logic)
+- **Standard 2.1.A.1 [1 Point | Completeness]**: Describe the specific steps for comparing the cohort's latest value vs. the population's latest value by `customer_tier` (get latest snapshots for both → aggregate by tier → calculate the difference).
+- **Standard 2.1.A.2 [4 Points | Accuracy]**: Verify the anchors for each tier (tolerance ±50 currency units / ±0.5pp):
+  - Basic: +28.36 / +1.63pp (193 members)
+  - Bronze: +316.60 / +6.41pp (200 members)
+  - Silver: +186.20 / +1.80pp (189 members)
+  - Gold: +849.71 / +4.08pp (181 members)
+  - Platinum: +1977.00 / +4.70pp (196 members)
+- **Standard 2.1.A.3 [1 Point | Conclusion]**: Interpret the findings as "stable value premium in low/mid tiers, with incremental potential in high tiers," and propose resource allocation suggestions (e.g., solidify upsell rate for Bronze, deep-dive into Platinum for expansion).
+
+#### Path 2.1.B: Weighted Overall Difference Method
+- **Standard 2.1.B.1 [1 Point | Completeness]**: Explain the process of calculating the overall average of individual differences `delta_i = LTV_i - tier_avg_i`, and mention the necessary tier mapping and weight = 1/person.
+- **Standard 2.1.B.2 [4 Points | Accuracy]**: Validate the anchors: average absolute difference = **672.86±25**, average relative difference = **3.75±0.20pp**; must break down the main positive contributors (Platinum +1.98k, Gold +0.85k, Bronze +0.32k).
+- **Standard 2.1.B.3 [1 Point | Conclusion]**: Point out that the cohort has a systematic value advantage, but high-tier customers also contribute the most to the increment, advising to strengthen protection and upsell strategies for the high-value segment.
+
+#### Path 2.1.C: Funnel-Based LTV Comparison Method (When Value Table is Missing)
+- **Standard 2.1.C.1 [1 Point | Completeness]**: Specify using the `estimated_customer_ltv` from `customer360__conversion_funnel_analysis` instead, with the same process as 2.1.A.
+- **Standard 2.1.C.2 [4 Points | Accuracy]**: Verify the anchors (tolerance ±5%): Basic +526.88/+49.15%; Bronze +1077.07/+30.91%; Silver +3070.82/+50.96%; Gold +1905.82/+13.33%; Platinum +729.31/+2.22%.
+- **Standard 2.1.C.3 [1 Point | Conclusion]**: Explain the differences between the two data sources (funnel LTV is often a stage-based predictive value); state their respective use cases (temporary assessment when the value table is unavailable vs. comprehensive financial analysis).
+
+### Standard 2.2 [Max 6 Points]: Channel/Platform Insights and Summary
+
+#### Path 2.2.A: Comprehensive Conclusion Method
+- **Standard 2.2.A.1 [1 Point | Completeness]**: The summary must cover: ① The magnified effect of the Sales→Support delay; ② The interplay between channel, platform, and risk factors; ③ The main line for subsequent actions.
+- **Standard 2.2.A.2 [4 Points | Accuracy]**: Cite at least three core numerical values to support the arguments: e.g., Zendesk active rate of **26.59%**, `Content Marketing` share of **10.53%** and `Sales Driven` share of **10.01%**, average health score of **73.57** for customers present on all three platforms, the health score for 3 platforms is **3.52** points higher than for 2 platforms, average Sales→Support delay of **78.47 days**.
+- **Standard 2.2.A.3 [1 Point | Conclusion]**: Provide actionable recommendations (e.g., accelerate support SLAs, align operations with primary channels, create tiered operations based on platform completeness) and state the expected direction of improvement.
+
+---
+## Requirement 3: Geographical Distribution and Platform Combination Analysis (12 Points)
+
+### Standard 3.1 [Max 6 Points]: Geographical Join and Distribution Statistics
+
+#### Path 3.1.A: Source System ID Mapping Method
+- **Standard 3.1.A.1 [1 Point | Completeness]**: Clearly state the need to map Marketo/Stripe IDs to `customer360__address` by `source_system`, and use `ROW_NUMBER() OVER (PARTITION BY customer360_id ORDER BY priority, rank)` to select a unique address.
+- **Standard 3.1.A.2 [4 Points | Accuracy]**: Provide the UNION + ROW_NUMBER() implementation and disclose the actual test result: regardless of joining by Marketo, Stripe, or Zendesk ID, the number of matches is **0**.
+- **Standard 3.1.A.3 [1 Point | Conclusion]**: Analyze the reason (lack of a unified cross-system ID/email), propose engineering recommendations to build a mapping table and backfill addresses, and set priorities.
+
+#### Path 3.1.B: Weighted Estimation Method
+- **Standard 3.1.B.1 [1 Point | Completeness]**: When a direct match fails, explain how to weight the geographical distribution by system-level representation: `w_system = cohort_in_system / cohort_total`.
+- **Standard 3.1.B.2 [4 Points | Accuracy]**: Provide the formula: `geo_estimate = Σ w_system × dist_system`; and show example weights (Marketo=**0.532**, Stripe=**0.518**, Zendesk=**0.509**), as well as the latest address distribution for Marketo/Stripe (e.g., Marketo top country “School” with 42 entries, Stripe top country “Rather various economic” with 20 entries, counted after deduplication on `priority/rank`).
+- **Standard 3.1.B.3 [1 Point | Conclusion]**: Emphasize that this estimation is only an approximation and that prioritizing ID governance and address backfilling is necessary.
+
+### Standard 3.2 [Max 6 Points]: Impact of Multi-Platform Combination on Health Score
+
+#### Path 3.2.A: Eight-Combination Average Method
+- **Standard 3.2.A.1 [1 Point | Completeness]**: Create combination labels for `in_marketo/in_stripe/in_zendesk`, and calculate `cnt` and `AVG(customer_health_score)` for each.
+- **Standard 3.2.A.2 [4 Points | Accuracy]**: Anchors (tolerance ±0.5 points / ±2 members):
+  - 1-1-1 → **124 members / 73.57 score**
+  - 0-0-1 → **103 members / 73.44 score**
+  - 0-1-0 → **104 members / 71.08 score**
+  - 1-1-0 → **136 members / 69.37 score**
+  - Overall average = **70.96±0.2**.
+- **Standard 3.2.A.3 [1 Point | Conclusion]**: Point out that "Zendesk presence + all-three-platform completeness" significantly improves health, and recommend platform integration and customer touchpoint completion.
+
+#### Path 3.2.B: Platform Count Correlation Method
+- **Standard 3.2.B.1 [1 Point | Completeness]**: Calculate `platform_count` and analyze the health score stratified by 0/1/2/3 platforms.
+- **Standard 3.2.B.2 [4 Points | Accuracy]**: Validate the anchors: 0→70.21; 1→71.34; 2→70.05; 3→73.57; Pearson's r = **0.03095±0.005**.
+- **Standard 3.2.B.3 [1 Point | Conclusion]**: Interpret the "U-shaped improvement from zero to three platforms," emphasizing the importance of completing Zendesk integration and closing the loop on touchpoints.
+
+---
+## Requirement 4: Risk-Velocity Cross-Analysis and Value Framework (6 Points)
+
+### Standard 4.1 [Max 6 Points]: Comprehensive Analysis of Risk, Velocity, and Value Identification
+
+#### Path 4.1.A: Cross-Tabulation Matrix + Normalized Weighted Framework
+- **Standard 4.1.A.1 [1 Point | Completeness]**: Construct an `activity_risk_level × engagement_velocity` matrix and define:
+  - `CVI = 0.35·LTV_norm + 0.25·Health_norm + 0.20·Monetary_norm + 0.10·Frequency_norm + 0.10·Platform_norm`;
+  - `CRI = 0.40·risk_score + 0.25·velocity_risk + 0.20·support_delay_norm + 0.10·zendesk_inactive + 0.05·channel_risk`;
+  - Where `risk_score` maps {Very Low→0,…,Critical→1}, `velocity_risk` maps {Accelerating→0, Stable→0.25, Volatile→0.6, Declining→0.85, Stagnant→1}, and `channel_risk` is a boolean for whether channel health is below the overall 70.96.
+- **Standard 4.1.A.2 [4 Points | Accuracy]**: Reproduce the core anchors:
+  - Cross-tabulation matrix: `Critical|Stable` **60 members / 73.39 score**; `High Activity Risk|Stagnant` **19 members / 59.73 score**; health score range > **13** points.
+  - Indicator distribution: `CVI`∈[**0.0499**, **0.8843**], `CRI`∈[**0.0450**, **0.9005**]; `P33/P67` thresholds are CVI **0.3076 / 0.4927** and CRI **0.3981 / 0.5756**, respectively.
+  - Segment sizes: High Value / High Risk **110**, High Value / Low Risk **112**, Low Value / High Risk **104**, remainder **633**.
+- **Standard 4.1.A.3 [1 Point | Conclusion]**: Output a 3x3 strategy matrix (e.g., "High Value × High Risk → Prioritize for Protection"), and describe the execution path (e.g., assign dedicated CSMs to the high-risk group, move those with low CRI scores to an upsell program).
+
+#### Path 4.1.B: Cross-Tabulation Matrix + Rule-Triggered Framework
+- **Standard 4.1.B.1 [1 Point | Completeness]**: Building on the matrix, define rules: e.g., `sales_to_support_days>30 ∧ velocity ∈ {Declining, Stagnant} ∧ risk ∈ {High, High Activity Risk, Critical} ∧ health<70` triggers a red alert, and add secondary conditions like Zendesk status.
+- **Standard 4.1.B.2 [4 Points | Accuracy]**: Validate that the rule covers **54 members (5.63%)**, with an average health score of **57.50**; must include pseudocode/decision tree and explain how false positives are controlled (e.g., auto-downgrade alert if health≥70, make exception if Zendesk is active).
+- **Standard 4.1.B.3 [1 Point | Conclusion]**: Provide an actionable workflow (e.g., T+7 CSM follow-up, T+14 tech support, concurrently shorten SLAs) and its expected impact, and describe a closed-loop mechanism that coordinates with the CVI/CRI framework.

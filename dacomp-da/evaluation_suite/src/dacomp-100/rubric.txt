@@ -1,0 +1,54 @@
+# [Total Score | 36 Points] Scoring Rubric for Renewal Risk Prediction (Based on Intercom Customer Renewal Data)
+
+---
+## Requirement 1: Data Governance and Renewal Cohort Definition (Max 12 Points)
+### Criterion 1.1: Base Data Verification and Join Logic
+#### Path 1.1.A [6 Points | 1:4:1] Using intercom__company_enhanced × intercom__company_metrics
+- Sub-criterion 1.1.A.1 [1 Point | Completeness] Document the purpose of fields and keys for both tables: `company_id` as the primary key; `company_name`/`industry`/`plan_name` as company dimensions; metrics like `total_conversations`, `avg_conversation_rating`, and `p50_time_to_first_close_min` in the metrics table are annual summary metrics. The time granularity is at the company registration level (`created_at`/`updated_at` in the enhanced table) and annual conversation aggregation (in the metrics table).
+- Sub-criterion 1.1.A.2 [4 Points | Accuracy] Verify baseline counts using `company_id` with a LEFT JOIN: `SELECT COUNT(*) FROM intercom__company_enhanced` → **2,509**; `SELECT COUNT(*) FROM intercom__company_metrics` → **2,509**; `SELECT segment, COUNT(*) FROM ...` → `Enterprise=627`, `Upper Mid-Market=627`, `Mid-Market=627`, `SMB=628`; `SELECT contract_size, COUNT(*) ...` → `large=784`, `strategic=627`, `mid=585`, `small=513`. Must provide reproducible SQL and state that the join does not lose records.
+- Sub-criterion 1.1.A.3 [1 Point | Conclusion] Explain that the enhanced and metrics tables are aligned at a summary level: conversation time metrics are provided as annual aggregates, and the monetary field `acv_usd` is sourced from a tag string. If later recalculating from conversation-level details, one should note that monthly aggregated metrics do not have a direct one-to-one correspondence with invoice amounts.
+
+#### Path 1.1.B [6 Points | 1:4:1] Building a deduplicated customer_base_view (aggregated by company_name)
+- Sub-criterion 1.1.B.1 [1 Point | Completeness] Deduplicate based on `company_name` (only **75** unique customer names in the entire database). The view must declare source fields, the latest `acv_usd`, `renewal_window`, and the most recent `renewal_date` (`MAX`).
+- Sub-criterion 1.1.B.2 [4 Points | Accuracy] Validate view counts: `SELECT COUNT(*) FROM customer_base_view` → **75**. Derived fields like `SUM(active_inside_90)` must align with aggregations from the original table (e.g., the total number of customers with `renewal_window='inside_90_days'` is still **419**, but represented in the view as 75 unique customers, each with multiple contract versions). In the view, the weighted sum of `segment`/`contract_size` distributions must equal 1.
+- Sub-criterion 1.1.B.3 [1 Point | Conclusion] Explain that this view is used to accelerate joins with conversation data and avoid double-counting. Point out that aggregating by `company_name` assumes that multiple contracts share the same interaction data; for financial reconciliation, one must trace back to contract-level details.
+
+### Criterion 1.2: Identifying Customers Due for Renewal in the Next 90 Days
+#### Path 1.2.A [6 Points | 1:4:1] Based on the tag field `renewal_window='inside_90_days'`
+- Sub-criterion 1.2.A.1 [1 Point | Completeness] Clearly state the reference date is 2023-12-31 (conversation data is up to this date). The filtering criteria for the in-window cohort are: `renewal_window='inside_90_days'` AND `DATE(renewal_date)` is between 2024-04-01 and 2024-06-29.
+- Sub-criterion 1.2.A.2 [4 Points | Accuracy] Execute `SELECT COUNT(*) ...` to get a cohort size of **419**. Must output a list of customer IDs and names (75 unique customer names) along with key fields (`renewal_date`, `contract_size`, `acv_usd`). Validate statistics: `AVG(acv_usd)=55,174.42`, `MIN(acv_usd)=5,508`, `MAX=177,792`.
+- Sub-criterion 1.2.A.3 [1 Point | Conclusion] Explain that this method relies on CRM tag synchronization and is suitable for customers on annual plans. If tags are missing, one should fall back to calculating from `renewal_date` and flag the risk (e.g., missing data or multi-year contracts).
+
+---
+## Requirement 2: Communication & Interaction Feature Engineering (Last 30 Days) (Max 6 Points)
+### Criterion 2.1: Conversation Frequency & Negative Sentiment Ratio
+#### Path 2.1.A [6 Points | 1:4:1] Based on conversation details from intercom__conversation_enhanced
+- Sub-criterion 2.1.A.1 [1 Point | Completeness] Must extract the following fields: `conversation_id`, `conversation_created_at`, `all_conversation_tags` (to parse `sentiment`), and `all_contact_company_names`. The window is [2023-12-02, 2023-12-31]. Enumerate negative sentiments as `cautious_watch`/`data_required`/`escalation`/`risk_mitigation`.
+- Sub-criterion 2.1.A.2 [4 Points | Accuracy] Calculation logic: `avg_conversations_30d = COUNT(*)/30`, `negative_ratio_30d = neg_count/COUNT(*)`. Must verify aggregated results: total conversations in the window is **1,783**, of which **989** are negative. For the cohort, the average `avg_conversations_30d=0.1418` (≈4.25 conversations/30 days), with a median of 0.1333. The average `negative_ratio_30d` is 0.5475. Must provide SQL snippets (for string to JSON parsing) and export company-level details.
+- Sub-criterion 2.1.A.3 [1 Point | Conclusion] Describe the distribution characteristics: **5** customers had zero conversations in the last 30 days. The 80th percentile for `negative_ratio_30d=0.75`; the **86/419 (20.5%)** customers exceeding this threshold should be added to a warning list.
+
+---
+## Requirement 3: Support Experience Feature Engineering (From a Conversation Perspective) (Max 6 Points)
+### Criterion 3.1: Average Resolution Time & Reopened Conversation Ratio
+#### Path 3.1.A [6 Points | 1:4:1] Using intercom__conversation_metrics as a proxy for conversations
+- Sub-criterion 3.1.A.1 [1 Point | Completeness] Limit the window to [2023-01-01, 2023-12-31]. Fields to use: `time_to_last_close_minutes` (converted to hours), `count_reopens`. Associate with conversation details via `conversation_id` × `company_name`.
+- Sub-criterion 3.1.A.2 [4 Points | Accuracy] Formulas: `avg_resolution_timeh = AVG(time_to_last_close_minutes)/60`, `repeat_ratio = AVG(count_reopens>0)`. Must validate the cohort's total 12-month conversation volume of **3,996**. Average `avg_resolution_timeh=39.0061` hours, `repeat_ratio=0.6675`. Provide SQL and show that the number of customers with `repeat_ratio>=0.8` is **140 (33.41%)**.
+- Sub-criterion 3.1.A.3 [1 Point | Conclusion] Identify high-risk thresholds: `repeat_ratio≥0.80` triggers a support intervention mechanism (140 companies). There are currently no customers with resolution time >72h; a 45h warning threshold can be set and noted as 0 in the report for now.
+
+---
+## Requirement 4: Product Value Feature Engineering (Max 6 Points)
+### Criterion 4.1: Core Feature Coverage & Time Since Value Milestone
+#### Path 4.1.A [6 Points | 1:4:1] Based on tag fields + parsing milestone conversations
+- Sub-criterion 4.1.A.1 [1 Point | Completeness] Parse the percentage from the `feature_adoption` tag to create `core_feature_coverage`. Calculate `value_milestone_lag = julianday('2023-12-31') - MAX(convo_date)` using the most recent conversation date for topics `{workflow_expansion, adoption_health, feature_enablement, integration, renewal_strategy}`.
+- Sub-criterion 4.1.A.2 [4 Points | Accuracy] Must output company-level details and verify statistics: average coverage **0.7449**, median **0.74**. Number of customers with `coverage<0.70` is **158 (37.71%)**. Average `value_milestone_lag` is **12.54** days, P75=19 days, max 60 days. SQL must demonstrate string-to-JSON parsing and date difference calculation.
+- Sub-criterion 4.1.A.3 [1 Point | Conclusion] Propose decision logic: `coverage<0.70` and `lag>19` are considered weak product value signals. Must list the customers who meet these criteria and their corresponding `expansion_signal` for operational follow-up.
+
+---
+## Requirement 5: Renewal Comparative Analysis, Discriminative Power Assessment, and Operational Recommendations (Max 6 Points)
+### Criterion 5.1: Renewal Labels, Discriminative Metrics, and Industry × Contract Size Recommendations
+#### Path 5.1.A [6 Points | 1:4:1] Based on expansion_signal tag + AUC
+- Sub-criterion 5.1.A.1 [1 Point | Completeness] Define the renewal label: `renewal_label=1` when `expansion_signal='Upsell Ready'`, `=0` when `'Risk Mitigation'`, and ignore `'Monitor'`. Within the `inside_90` cohort, the sample sizes are: Renewed **149**, Churned **168**, Monitor **102**.
+- Sub-criterion 5.1.A.2 [4 Points | Accuracy] Evaluate features using univariate AUC, must provide a reproducible script/SQL+Python workflow: `milestone_lag_days` AUC=**0.5796** (Top 1), `avg_resolution_hours`=**0.5057**, `feature_coverage`=**0.4910**. Also report mean differences: Churned group `negative_ratio_30d=0.5830`, Renewed group `0.4934`. Contract size tercile thresholds: Tier 1 `<22,040`, Tier 2 `[22,040, 56,796]`, Tier 3 `>56,796`. Respective success rates: Tier 1 **37.5% (36/96)**, Tier 2 **45.79% (49/107)**, Tier 3 **56.14% (64/114)**. For the Top 5 industries (by customer count), must output renewal rates and feature means: Manufacturing 63.16% success, avg coverage 0.7353; Energy & Utilities 41.67%, negative ratio 0.5226; SaaS 32.14%, negative ratio 0.5690; EdTech 46.43%, negative ratio 0.5927; Financial Services 51.35%, coverage 0.7430.
+- Sub-criterion 5.1.A.3 [1 Point | Conclusion] Formulate operational actions by industry × size: e.g., for Tier 3 Manufacturing with its high success rate, prioritize monitoring the 7 customers with `negative_ratio_30d≥0.75` (hitting the high negative threshold triggers a consultant review). For Tier 1 SaaS, with a success rate of only 32.14% and avg negative ratio of 0.5690, core feature coverage must be increased to 0.75+ within 30 days. Global warning thresholds: customers with `negative_ratio_30d≥0.75` or `milestone_lag_days>19` should be placed on a "priority follow-up" list.
+
+---

@@ -1,0 +1,37 @@
+# [Total Score | 13 points] The solution needs to satisfy two requirements:
+- Requirement 1: Accurate identification of booking peaks and troughs and core characteristics
+- Requirement 2: Link cancellation rate/cost analysis and propose operational recommendations
+---
+## Requirement 1: Analysis of booking peaks/troughs and core characteristics (up to 7 points for this requirement)
+### Criterion 1.1: Identification of peaks and troughs for specific times of day
+#### Path 1.1.A [4 points | Intraday (hourly) analysis]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Adopt an hourly granularity analysis approach.
+- Sub-criterion 1.1.A.2 [1 point | Accuracy]: The booking count at 18:00 (or 6 pm, in the afternoon/evening) is 12,397 (allowed error not exceeding 5%); the peak period must include 18:00 (it can be expressed as a peak of 17:00–19:00; as long as the peak period covers 18:00, it counts as correct).
+- Sub-criterion 1.1.A.3 [1 point | Accuracy]: The booking count at 10:00 is 9,577 (allowed error not exceeding 5%); the peak period must include 10:00 (it can be expressed as a peak of 09:00–11:00; as long as the peak period covers 10:00, it counts as correct).
+- Sub-criterion 1.1.A.4 [1 point | Accuracy]: The booking count at 04:00 is 1,321 (allowed error not exceeding 5%); the trough period must include 04:00 (it can be expressed as a trough of 00:00–04:00; as long as the trough period covers 04:00, it counts as correct).
+### Criterion 1.2: Identification of peaks and troughs on specific dates
+#### Path 1.2.A [3 points | Calendar day (date)/holiday analysis]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Adopt a calendar-day granularity analysis approach.
+- Sub-criterion 1.2.A.2 [1 point | Accuracy]: The peak day November 16 has 462 bookings (booking count error must not exceed 1%); 0 points if the date is incorrect.
+- Sub-criterion 1.2.A.3 [1 point | Accuracy]: The trough day August 22 has 355 bookings (booking count error must not exceed 1%); 0 points if the date is incorrect.
+#### Path 1.2.B [2 points | Day-of-week analysis]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: Adopt a day-of-week analysis approach, conducting separate statistical analysis for Monday through Sunday (you can also split into weekdays vs weekend).
+- Sub-criterion 1.2.B.2 [1 point | Conclusiveness]: Basically no peaks/troughs effect.
+---
+## Requirement 2: Cancellation rate/per-kilometer ride cost analysis and operational recommendations (up to 7 points for this requirement)
+### Criterion 2.1: Cancellation rate analysis and operational recommendations
+#### Path 2.1.A [3 points | Cancellation rate analysis and operational recommendations]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Compute the cancellation rate and provide corresponding operational recommendations.
+- Sub-criterion 2.1.A.2 [1 point | Accuracy]: The cancellation rate calculation is correct (you may compute an overall cancellation rate, or compute customer cancellation rate and driver cancellation rate separately). When computing the overall cancellation rate, filtering Booking Status must include the two categories "Cancelled by Driver" and "Cancelled by Customer"; it may include "No Driver Found", but must not include "Completed" and must not include "Incomplete". You may refer to the following three algorithms; as long as the code logic is correct, the format is not required.
+  ```Pseudocode: cancellation rate calculation
+  df["cancel"] = df["Booking Status"].apply(lambda x: x in ["Cancelled by Driver", "Cancelled by Customer"])
+  df["cancel"] = df["Booking Status"].apply(lambda x: x in ["Cancelled by Driver", "Cancelled by Customer", "No Driver Found"])
+  df["cancel"] = df["Booking Status"].apply(lambda x: x not in ["Completed", "Incomplete"])
+  df["cancel"] = df["Booking Status"].apply(lambda x: x not in ["Completed", "Incomplete", "No Driver Found"])
+  ```
+- Sub-criterion 2.1.A.3 [1 point | Accuracy]: Review customer/driver cancellation reasons, and based on the cancellation reasons respectively provide user-side and driver-side operational recommendations.
+### Criterion 2.2: Per-kilometer ride cost analysis and operational recommendations
+#### Path 2.2.A [4 points | Per-kilometer ride cost analysis and operational recommendations]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Compute the per-kilometer ride cost and provide corresponding operational recommendations.
+- Sub-criterion 2.2.A.2 [1 point | Accuracy]: The per-kilometer ride cost calculation is correct. The calculation method is total cost divided by total distance. You must filter Booking Status to Completed; do not compute Booking Value when Booking Status is Incomplete.
+- Sub-criterion 2.2.A.3 [2 points | Conclusiveness]: Propose targeted pricing plans; plans are acceptable as long as they are reasonable.

@@ -1,0 +1,128 @@
+# [Total Score | 38 Points] Scoring Rubric for User Value Model and Tiered Operations Solution
+---
+## Requirement 1: Data Preparation and User-Level Feature Engineering (Up to 9 Points)
+### Criterion 1.1: User Primary Key and Multi-Table Alignment (Up to 3 Points)
+#### Path 1.1.A [3 Points | Aggregation Led by the Response Table]
+- Sub-criterion 1.1.A.1 [Completeness | 1 Point] Clearly define `LOWER(TRIM(recipient_email))` as the default user key, first aggregating within `qualtrics__response` by `survey_response_id`. Must declare strategy for handling empty strings and NULLs, and concurrently retain fields like `distribution_channel`, `survey_response_recorded_at`, `user_language`, latitude, and longitude.
+- Sub-criterion 1.1.A.2 [Accuracy | 1 Point] Provide reproducible SQL results: `COUNT(DISTINCT survey_response_id)=17671`, `SUM(is_finished_with_survey)=8841`, `COUNT(DISTINCT CASE WHEN TRIM(recipient_email)<>'' THEN LOWER(TRIM(recipient_email)) END)=4422`. The aggregation example should use `MAX()`/`MIN()` to ensure each `survey_response_id` results in a single row, avoiding question-level duplication.
+- Sub-criterion 1.1.A.3 [Conclusion | 1 Point] Output key coverage metrics: number of distinct users after cleaning = 4422, number of responses = 17671, number of channels = 5 (email/mobile/sms/social/web); the max `survey_response_recorded_at` is 2025-10-13 13:43:31.138602, corresponding to a 90-day window start date of 2025-07-15; coverage for `location_latitude/longitude` and `user_language` at the response level is 100%.
+
+#### Path 1.1.B [3 Points | Contact Table Primary + Response Supplement]
+- Sub-criterion 1.1.B.1 [Completeness | 1 Point] Use `qualtrics__contact.email` (4000 records, all non-null) as the primary key, left-joining the user-aggregated data from the response side. Provide a fallback from `external_data_reference` to `email` for users with empty emails, and state the intention to retain native contact fields (e.g., `total_count_surveys`, `avg_survey_progress_pct`, `last_survey_response_recorded_at`).
+- Sub-criterion 1.1.B.2 [Accuracy | 1 Point] Validate the scope difference between aggregated and contact data: among 2619 matched users, the median difference between `response_count` and `total_count_surveys` is -3, with an IQR of [-13, 1]. The report must explain the scope discrepancy caused by SMS/anonymous distributions and ensure that one-to-many duplicates are eliminated by pre-aggregation before joining.
+- Sub-criterion 1.1.B.3 [Conclusion | 1 Point] Provide matching results: `match_rate=59.23%` (2619/4422), contact language field coverage is 100%, `last_survey_response_recorded_at` ranges from 2023-11-11 to 2026-07-15. Explain the impact of unmatched samples on the representativeness of the subsequent scoring and suggest remediation strategies.
+
+#### Path 1.1.C [3 Points | External ID First Strategy]
+- Sub-criterion 1.1.C.1 [Completeness | 1 Point] Declare the primary key priority: `contact_external_data_reference` → `recipient_email` → `email`. Point out that only 5 responses are missing an external ID.
+- Sub-criterion 1.1.C.2 [Accuracy | 1 Point] Verify uniqueness: `COUNT(DISTINCT external_id)=3129`, all of which can be matched one-to-one in `qualtrics__contact.external_data_reference`. For cases where a single external ID has multiple emails, the one with the latest `survey_response_recorded_at` should be kept, and the resolution logic must be documented.
+- Sub-criterion 1.1.C.3 [Conclusion | 1 Point] Clarify that using the external ID stabilizes the user master table at 3134 keys, and explain the benefits for cross-system reproducibility and production deployment (reduces matching loss due to email changes and allows for direct rolling recalculation of value scores).
+
+### Criterion 1.2: Core Behavioral Feature Calculation (Up to 6 Points)
+#### Path 1.2.A [6 Points | Basic Six-Feature Set]
+- Sub-criterion 1.2.A.1 [Completeness | 1 Point] Output at least six user-level metrics: `total_responses`, `responses_90d`, `completion_rate`, `avg_progress`, `avg_duration_sec`, `recent_days` (days from the global max timestamp). The fields must maintain the same scope as the response aggregation.
+- Sub-criterion 1.2.A.2 [Accuracy | 4 Points] Must provide verifiable formulas: `total_responses = COUNT(DISTINCT survey_response_id)`; `responses_90d = SUM(CASE WHEN survey_response_recorded_at >= '2025-07-15' THEN 1 ELSE 0 END)`; `completion_rate = AVG(is_finished_with_survey)`; `avg_progress = AVG(survey_progress)`; `avg_duration_sec = AVG(duration_in_seconds)`; `recent_days = JULIANDAY('2025-10-13 13:43:31.138602') - JULIANDAY(MAX(survey_response_recorded_at))`. Verification anchors: `P95(total_responses)=7`, `AVG(completion_rate)=0.5000±0.005`, `AVG(avg_progress)=50.04±0.1`, `AVG(avg_duration_sec)=400.90±1`, `Median(recent_days)=119`.
+- Sub-criterion 1.2.A.3 [Conclusion | 1 Point] Describe distribution characteristics: `total_responses` is highly right-skewed (only 5% of users have ≥7); the 95th percentile of `avg_duration_sec` is 667.24s, which needs to be handled during scoring to prevent interference from extreme values.
+
+#### Path 1.2.B [6 Points | Enhanced with Cross-Channel Diversity]
+- Sub-criterion 1.2.B.1 [Completeness | 1 Point] For cross-channel activity, must output both `channel_count` and Simpson's diversity index `D = 1 - Σ(p_i^2)`, ensuring it is normalized to [0,1].
+- Sub-criterion 1.2.B.2 [Accuracy | 4 Points] Verify calculation steps: `channel_count = COUNT(DISTINCT distribution_channel)`; `p_i = COUNT(channel_i)/COUNT(all channels)`. Measured averages: `AVG(channel_count)=2.77±0.01`, `AVG(D)=0.528±0.005`, `P90(D)=0.722±0.005`. Must state that for the 2601 users with `channel_count≥3`, the high-value proportion is 0.4479, whereas for `channel_count<3` it is only 0.0243.
+- Sub-criterion 1.2.B.3 [Conclusion | 1 Point] Point out the complementary nature of diversity and channel count: the low-tier (417 users) has an average `D=0.173` and only a 0.72% share of `channel_count≥3`; the high-tier (1199 users) has `D=0.684` and 97.16% coverage for `channel_count≥3`, verifying that multi-channel engagement is key to value transition.
+
+#### Path 1.2.C [6 Points | Supplemented with Efficiency and Lifecycle]
+- Sub-criterion 1.2.C.1 [Completeness | 1 Point] Add `lifetime_days = MAX(recorded_at)-MIN(recorded_at)`, `active_months = COUNT(DISTINCT strftime('%Y-%m', recorded_at))`, `reactivation_interval_days = lifetime_days/(total_responses-1)` (for single-response users, use `lifetime_days`).
+- Sub-criterion 1.2.C.2 [Accuracy | 4 Points] Verification anchors: `Median(lifetime_days)=418`, `Median(reactivation_interval_days)=122.9`, `P90(reactivation_interval_days)=257.45`, `AVG(active_months)=3.69`. Must explain the rationale for using percentile thresholds for segmentation (to avoid hard-coding duration limits).
+- Sub-criterion 1.2.C.3 [Conclusion | 1 Point] Explain the directional impact of efficiency metrics on scoring: a very short `reactivation_interval` (<30 days) has high overlap with `responses_90d≥3` and should receive a positive score adjustment; a very long interval suggests a need for re-engagement.
+
+---
+## Requirement 2: 0–100 User Value Scoring and Segmentation (Up to 9 Points)
+### Criterion 2.1: Scoring Formula and Normalization (Up to 6 Points)
+#### Path 2.1.B [6 Points | Percentile Scoring Method]
+- Sub-criterion 2.1.B.1 [Completeness | 1 Point] Clearly define the formula: `Score = 100 * (0.25·R_freq + 0.15·R_recent90 + 0.20·R_completion + 0.15·R_diversity + 0.15·R_progress + 0.10·R_recency)`, where each `R_x` is the result of `PERCENT_RANK()` or `CUME_DIST()`.
+- Sub-criterion 2.1.B.2 [Accuracy | 4 Points] Re-check: `AVG(Score)=56.9269`, `STD=11.9385`, `P10=40.3533`, `P50=57.8652`, `P90=71.7333`. Must explain that missing values are imputed to zero and `recent_days` uses reverse percentile ranking to avoid data leakage from the future. Must submit a reproducible SQL/script.
+- Sub-criterion 2.1.B.3 [Conclusion | 1 Point] Explain that the score distribution is not excessively skewed (median ≈ mean) and emphasize that `channel_count` and `responses_90d` have a combined weight of over 35% for the high-score segment.
+
+### Criterion 2.2: Segmentation Thresholds and Scale (Up to 3 Points)
+#### Path 2.2.A [3 Points | Fixed Threshold Method]
+- Sub-criterion 2.2.A.1 [Completeness | 1 Point] Use the following thresholds: `low<40`, `40≤medium<65`, `65≤high<85`, `≥85 power`. Explain the correspondence with business experience and the score distribution.
+- Sub-criterion 2.2.A.2 [Accuracy | 1 Point] Validate the scale: low=417 (9.43%), medium=2804 (63.41%), high=1199 (27.11%), power=2 (0.05%). Provide calculation details to confirm the splits do not result in overly sparse samples.
+- Sub-criterion 2.2.A.3 [Conclusion | 1 Point] Compare with the cumulative proportions in `qualtrics__user_cohort_analysis` (power≈7.85%, high≈14.9%). Point out that the current scoring concentrates the high-value segment more in the medium→high range, and explain the source of this difference in the interpretation (e.g., scope differences or stricter thresholds).
+
+---
+## Requirement 3: Identifying Key Behaviors for Medium→High Transition (Up to 8 Points)
+### Criterion 3.1: Methodology and Execution (Up to 6 Points)
+#### Path 3.1.A [6 Points | Conditional Probability / Lift]
+- Sub-criterion 3.1.A.1 [Completeness | 1 Point] Limit the sample to medium+high tiers, totaling 4003 users (baseline high-tier proportion = 29.95%). List candidate conditions: `channel_count≥3`, `channel_diversity≥0.6`, `responses_90d≥3`, `recent_days≤30`, `completion_rate≥0.8`, `avg_progress≥80`.
+- Sub-criterion 3.1.A.2 [Accuracy | 4 Points] Reproduce the conditional comparisons:
+  - `channel_count≥3`: Sample=2601, P(high|condition)=0.4479, P(high|not condition)=0.0243, Lift=18.47;
+  - `channel_diversity≥0.6`: Sample=2393, P(high|condition)=0.4613, P(high|not condition)=0.0590, Lift=7.82;
+  - `responses_90d≥3`: Sample=74, P(high|condition)=0.6892, P(high|not condition)=0.2922, Lift=2.36;
+  - `recent_days≤30`: Sample=707, P(high|condition)=0.3890, P(high|not condition)=0.2803;
+  - `completion_rate≥0.8`: Sample=685, P(high|condition)=0.3577, P(high|not condition)=0.2875;
+  - `avg_progress≥80`: Sample=126, P(high|condition)=0.2222, which is lower than the control group's 0.3020, considered a risk signal. All conditions must be noted with a sample size ≥50 and accompanied by SQL/script screenshots.
+- Sub-criterion 3.1.A.3 [Conclusion | 1 Point] Rank and output strategic levers based on lift: ① Multi-channel reach (`channel_count≥3`); ② Channel diversification (`D≥0.6`); ③ ≥3 participations within 90 days. Point out that high progress with excessive duration (`avg_progress≥80`) does not drive transition.
+
+### Criterion 3.2: Transition Insight Output (Up to 2 Points)
+#### Path 3.2.A [2 Points | Strategic Summary]
+- Sub-criterion 3.2.A.1 [Completeness | 1 Point] Summarize the behavioral chain: First expand channel coverage → then increase channel diversity → then establish at least 3 effective interactions within 90 days → finally, control duration while ensuring `completion_rate≥80%`.
+- Sub-criterion 3.2.A.2 [Conclusion | 1 Point] Provide prioritization: Multi-channel expansion is the top priority (18x lift), recent frequency is second, and completion quality is third. Simultaneously, warn against pushing for high progress at the expense of user experience.
+
+---
+## Requirement 4: Analysis of Language and Geographical Differences (Up to 6 Points)
+### Criterion 4.1: Differences by Language Dimension (Up to 3 Points)
+#### Path 4.1.A [3 Points | Language Group Comparison]
+- Sub-criterion 4.1.A.1 [Completeness | 1 Point] Only retain languages with sample size ≥50, totaling 10 groups (EN/ES/FR/DE/IT/NL/PT/JA/KO/ZH). Output: user count, average Score, `high+power` proportion, mean `total_responses`, mean completion rate, mean channel count, and proportion active in the last 30 days.
+- Sub-criterion 4.1.A.2 [Accuracy | 1 Point] Verify key anchors: ES users=416, avg score=57.8647, high-tier proportion=31.25%; NL 447/57.4788/27.96%; ZH 448/57.3977/28.79%; EN 406/56.6928/24.38%. All metrics allow a ±0.01 margin of error.
+- Sub-criterion 4.1.A.3 [Conclusion | 1 Point] Point out that Spanish-speaking languages (ES/PT) lead in multi-channel average at 2.88 and 2.81. French/Italian have insufficient high-tier segments (24.77%) and should prioritize improving completion rates (currently ≈0.513/0.506).
+
+#### Path 4.1.B [3 Points | Language × Tier Profile Analysis]
+- Sub-criterion 4.1.B.1 [Completeness | 1 Point] Provide a language × tier matrix. Example: DE row `[low=50, medium=266, high=135, power=0]`, FR row `[39, 288, 108, 1]`.
+- Sub-criterion 4.1.B.2 [Accuracy | 1 Point] Each row's high-tier proportion in the matrix must match the standalone language's high-tier proportion (e.g., ES row high-tier proportion = 31.25%). Ensure row totals equal the language's user count.
+- Sub-criterion 4.1.B.3 [Conclusion | 1 Point] Identify high-potential languages (ES/NL/ZH) and languages needing improvement (FR/EN/IT), and explain the operational implications: focus on incremental incentives for high-potential languages, and start with completion rate coaching for those needing improvement.
+
+#### Path 4.1.C [3 Points | Language Clustering Path]
+- Sub-criterion 4.1.C.1 [Completeness | 1 Point] Perform KMeans clustering (k=3, random_state=42) based on `avg_score`, `high_share`, `avg_channels`, `avg_diversity`, `recent30_share`, and `avg_completion`. Explain the standardization process.
+- Sub-criterion 4.1.C.2 [Accuracy | 1 Point] Re-check clustering results: Cluster1={ES, NL, ZH} feature means (avg score≥57.58, high-tier proportion≈0.293, channel count≈2.84); Cluster0={EN, JA, PT} feature means (avg score≈56.58, high-tier proportion≈0.260); Cluster2={DE, FR, IT, KO} has the highest completion rate (≥0.511) but the fewest channels (≈2.71). Must provide the clustering script and a discussion of the silhouette score.
+- Sub-criterion 4.1.C.3 [Conclusion | 1 Point] Propose differentiated strategies: Cluster1 should focus on advanced incentives (maintaining multi-channel advantage), Cluster0 needs to improve completion rate and last 30-day interaction, and Cluster2 should primarily focus on channel expansion.
+
+### Criterion 4.2: Differences by Geographical Dimension (Up to 3 Points)
+#### Path 4.2.A [3 Points | Binning by Longitude/Latitude]
+- Sub-criterion 4.2.A.1 [Completeness | 1 Point] Partition by longitude: `lon≤-30→Americas`, `(-30,60]→EMEA`, `>60→APAC`. Provide user count, average score, high-tier proportion, proportion with `completion_rate≥0.8`, proportion with `channel_count≥3`, and proportion active in the last 30 days for each region.
+- Sub-criterion 4.2.A.2 [Accuracy | 1 Point] Verification: Americas=1841 users/avg score 57.1784/high-tier 0.2890/`completion_rate≥0.8` prop. 0.1559/multi-channel prop. 0.5991/last 30 days 0.1646; APAC=1479 users/56.7649/0.2576/0.1535/0.5896/0.1582; EMEA=1102 users/56.7241/0.2613/0.1652/0.5726/0.1670.
+- Sub-criterion 4.2.A.3 [Conclusion | 1 Point] Point out that Americas has the highest density of high-value users. APAC's multi-channel performance is close, but its recent 30-day activity is slightly lower, requiring strengthened periodic outreach. Although EMEA has a high completion rate, its multi-channel proportion is the lowest and should prioritize channel diversification.
+
+#### Path 4.2.B [3 Points | Regional Cross-Analysis]
+- Sub-criterion 4.2.B.1 [Completeness | 1 Point] List region × language combinations with ≥40 users, covering at least ES/NL/DE/FR/PT/EN/KO/JA/IT/ZH.
+- Sub-criterion 4.2.B.2 [Accuracy | 1 Point] Example anchors: Americas-ES (178 users, avg_score=58.6174, high-tier prop.=0.3090, multi-channel=0.6292); APAC-ZH (129 users, avg_score=57.8096, high-tier prop.=0.2868, multi-channel=0.6899); EMEA-NL (98 users, avg_score=59.3119, high-tier prop.=0.3776, `completion_rate≥0.8` prop.=0.2143).
+- Sub-criterion 4.2.B.3 [Conclusion | 1 Point] Propose strategies based on regional differences: e.g., EMEA-NL is suitable for high-value user cultivation, Americas-EN needs to first improve completion rate (only 0.0971 have rate ≥0.8), and APAC-PT should boost multi-channel engagement (0.5906).
+
+---
+## Requirement 5: User Segmentation Strategy and Personalized Incentives (Up to 6 Points)
+### Criterion 5.1: Tiered Operations Strategy (Up to 3 Points)
+#### Path 5.1.A [3 Points | Tiered Action Blueprint]
+- Sub-criterion 5.1.A.1 [Completeness | 1 Point] For each of the four tiers, provide goals and actions:
+  - Low (417 users): median responses=2, `channel_count≥3` proportion is 0.72%. The primary task is channel expansion + re-engagement.
+  - Medium (2804 users): `channel_count≥3` proportion is 51.21%. The goal is to increase this to ≥70% to reach the high-conversion zone of 2601 users.
+  - High (1199 users): Maintain the 97.16% multi-channel advantage and expand the proportion with `responses_90d≥3` from the current 6.17% to ≥10%.
+  - Power (2 users): Nurture through targeted co-creation; just needs to be documented.
+- Sub-criterion 5.1.A.2 [Accuracy | 1 Point] Actions must align with the behavioral levers from Section 3. For example, set up a cross-channel trial for the Medium tier (goal: experience ≥3 channels in 3 weeks), and implement at least one follow-up within 30 days for the High tier. Explain frequency controls (e.g., ≤2 sends per week) and cadence.
+- Sub-criterion 5.1.A.3 [Conclusion | 1 Point] Set quantitative KPIs: ≥+4pp quarterly increase in Medium→High transition; track `channel_count≥3`, `responses_90d≥3`, and average `value_score`; establish a monthly review cadence.
+
+#### Path 5.1.B [3 Points | Dashboard and Experimentation Framework]
+- Sub-criterion 5.1.B.1 [Completeness | 1 Point] List monitoring metrics: user counts per tier, average Score, conditional trigger rates (`channel_count≥3`, `recent_days≤30`), and language/region breakdowns. Formulate experiments (e.g., A/B tests for cross-channel invitations, quick-completion guidance, re-engagement SMS content).
+- Sub-criterion 5.1.B.2 [Accuracy | 1 Point] Metrics must use a consistent scope: e.g., `Score` is recalculated on a rolling weekly basis; experiment conversion metric is the change in the high-tier proportion. Funnel formula (`open→start→complete`) must be provided.
+- Sub-criterion 5.1.B.3 [Conclusion | 1 Point] State clear expectations: for example, a cross-channel challenge is expected to increase the `channel_count≥3` proportion by +15pp, leading to a +6pp increase in the high-tier proportion. Explain that results will be reviewed on a weekly dashboard upon completion.
+
+### Criterion 5.2: Personalized Incentive Plan (Up to 3 Points)
+#### Path 5.2.A [3 Points | Language/Region Differentiated Incentives]
+- Sub-criterion 5.2.A.1 [Completeness | 1 Point] Cover at least three languages or two regions:
+  1) ES (avg_score 57.86, high-tier prop. 31.25%): Primarily push email + social dual-channels and add tiered points.
+  2) NL (avg_score 57.48, high-tier prop. 27.96%): Introduce a "New Channel Badge" to maintain the 0.56 multi-channel share.
+  3) EN (avg_score 56.69, high-tier prop. 24.38%): Use a combination of email + SMS for re-engagement to compensate for low completion rate (0.48).
+  4) Americas region: Emphasize multi-channel reinforcement (already at 0.5991). APAC region: Focus on strengthening last 30-day activity (0.1582).
+- Sub-criterion 5.2.A.2 [Accuracy | 1 Point] Specify frequency and incentive: e.g., for ES users with a 16.6% trigger rate in the last 30 days, suggest a monthly dual-channel task offering 50 points upon completion. For NL users, set up a 3-channel task with a prize draw. For EN users, include a quick-completion reward (badge + follow-up coupon) in SMS reminders.
+- Sub-criterion 5.2.A.3 [Conclusion | 1 Point] Form an action list with KPIs: e.g., for ES language, the goal is to increase the high-tier proportion by +3pp/quarter. For APAC, increase last 30-day activity to ≥20%. Explain the strategy adjustment path if targets are not met.
+
+#### Path 5.2.B [3 Points | Behavioral Loop Incentives]
+- Sub-criterion 5.2.B.1 [Completeness | 1 Point] Design an incentive loop around behavioral levers: grant a "Channel Explorer" badge for 3 consecutive cross-channel participations; offer tiered points for 3 participations within 90 days; unlock premium survey access for `completion_rate≥80%`.
+- Sub-criterion 5.2.B.2 [Accuracy | 1 Point] Clearly define trigger conditions, frequency controls, and compliance: e.g., a cross-channel badge is triggered only when `channel_count` increases and at most once per month; point distribution must respect unsubscribe/preference center settings.
+- Sub-criterion 5.2.B.3 [Conclusion | 1 Point] Explain the evaluation method: recalculate Score weekly. If the `Score` does not improve by ≥2 points after the incentive, log it in the experiment dashboard and adjust the plan. Maintain consistency between the incentive-scoring feedback loop.

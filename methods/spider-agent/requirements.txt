@@ -1,0 +1,14 @@
+gymnasium
+requests
+pandas
+pyyaml
+openai
+duckdb
+matplotlib
+huggingface_hub
+scipy
+numpy
+seaborn
+scikit-learn
+loguru
+tenacity

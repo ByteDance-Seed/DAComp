@@ -1,0 +1,195 @@
+# [Total score | 27 points] The solution must meet two core requirements:
+- Requirement 1: Analyze and compare high-value users (Diamond/Platinum) versus regular users in Category/Brand preferences for Search and Favorites, and differences in Search active time
+- Requirement 2: Provide targeted tiered user operations strategies and optimized product recommendation plans
+---
+## Requirement 1: Analyze and compare high-value users (Diamond/Platinum) versus regular users in Category/Brand preferences for Search and Favorites, and differences in Search active time (Maximum 15 points for this requirement; each path’s score must be an integer)
+### Criterion 1.1: Search preferences (Category/Brand) (maximum 3 points)
+#### Path 1.1.A [3 points | Frequency/share differences (Chi-square/proportion test)]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly define cohort split (Diamond/Platinum = high-value; others = regular), scope (dedupe/aggregate Search records), metrics (Category/Brand search share).
+- Sub-criterion 1.1.A.2 [1 point | Accuracy]: Verify using the pseudo-process:
+```
+FOR each Category/Brand:
+Compute high-value users' search frequency/share vs regular users' search frequency/share
+Run chi-square test or two-proportion z test
+Compute effect size (Cramer's V or Cohen's d)
+IF p < 0.05: mark as significant difference
+Output Top-N difference list (Category/Brand name, frequency comparison, p-value, effect size)
+```
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: 
+Based on actual data analysis, provide conclusions:
+1) Top-5 significant differences: high-value users prefer toothbrushes (24 vs 16), Apple phones (21 vs 14), hiking backpacks (16 vs 11); regular users prefer running shoes (25 vs 11), down jackets (20 vs 14);
+2) Targeted actions: increase targeted ads for personal care and digital products toward high-value users; focus promotion on sports apparel for regular users;
+3) Threshold standard: a search frequency difference ≥ 5 times and a share difference ≥ 2% is considered a significant difference.
+#### Path 1.1.B [3 points | Preference score (TF-IDF/Preference index) comparison]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Define the preference score (e.g., log frequency × inverse population coverage) and the calculation steps.
+- Sub-criterion 1.1.B.2 [2 points | Accuracy]: Compute preference scores and validate key values (error ≤ ±0.005):
+Reference anchors: Top-5 preference items for high-value users: toothbrush (0.0430), Apple phone (0.0376), hiking backpack (0.0273), coffee machine (0.0206), children's schoolbag (0.0152).
+#### Path 1.1.C [3 points | Qualitative analysis based on frequency]
+- Criterion 1.1.C.1 [1 point | Completeness]: Clearly split user cohorts and extract Search Keyword values, attempting Category mapping.
+- Criterion 1.1.C.2 [1 point | Accuracy]: Correctly extract Top-N search keywords and frequencies for both cohorts and provide intuitive comparisons.
+- Criterion 1.1.C.3 [1 point | Conclusion]: Based on data, present qualitative preference differences for Category/Brand in the two cohorts and summarize their characteristics.
+### Criterion 1.2: Favorites preference (Category/Brand) differences (maximum 3 points)
+#### Path 1.2.A [3 points | Frequency/share differences]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Define Favorites scope (Product-level/Brand-level), compute shares by cohort.
+- Sub-criterion 1.2.A.2 [1 point | Accuracy]: Verify using the pseudo-process:
+```
+FOR each Category/Brand:
+Compute high-value users' favorites frequency/share vs regular users' favorites frequency/share
+Run chi-square test or two-proportion test
+Compute effect size and confidence interval
+IF p < 0.05: mark as significant difference
+Output Top-N difference list (including frequency comparison, statistics, p-value)
+```
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: 
+Specific differences in Favorites preferences:
+1) High-value user preferred brands: Tibet Nuodikang (favorites ratio 1.21×), Tsingtao Beer (1.13×), BYD (1.08×);
+2) Regular user preferred brands: Yunnan Baiyao (1.57×), Kweichow Moutai (1.38×), Haier Smart Home (1.13×);
+3) Differentiated actions: prioritize shelf exposure for Healthcare + Automotive Categories for high-value users; focus promotional spots on Baijiu + Home Appliances Categories for regular users; monitor Favorites conversion rate with a target +20% improvement.
+#### Path 1.2.C [3 points | Favorites cancellation rate and quality difference analysis]
+- Sub-criterion 1.2.C.1 [1 point | Completeness]: Define Favorites cancellation rate = number of cancellations / total Favorites, compute by cohort and by Category.
+- Sub-criterion 1.2.C.2 [2 points | Accuracy]: Calculate Favorites cancellation rate and validate key numbers (error ≤ ±2%):
+Reference anchors: overall Favorites cancellation rate for high-value users 46.8% vs regular users 49.6%; regular users’ Home Appliances cancellation rate 70.6%; high-value users’ Home Appliances cancellation rate 44.0%.
+#### Path 1.2.B [3 points | Propensity score (Propensity/Logit)]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: Define binary target "Favorite = 1" and features (cohort, Category/Brand dummies, interactions optional).
+- Sub-criterion 1.2.B.2 [2 points | Accuracy]: Verify using the pseudo-process:
+```
+Construct dataset: y = Whether Favorited (0/1)
+Feature variables: X = [cohort dummy, Category dummy, Brand dummy, interaction terms (optional)]
+Declare baseline classes (e.g., regular users, a specific Category as reference)
+Fit Logistic regression: logit(P) = β0 + β1*cohort + β2*Category + β3*Brand
+Output results: OR, 95% confidence interval, p-value (especially the cohort coefficient’s significance)
+```
+### Criterion 1.3: Differences in Search active time (maximum 3 points. Must select a path from 1.3.A, 1.3.B, 1.3.C, 1.3.D for scoring; do not create new paths. If multiple paths match, prioritize Path 1.3.A)
+#### Path 1.3.A [3 points | Time histogram/density + difference testing]
+- Sub-criterion 1.3.A.1 [1 point | Completeness]: Define time aggregation (time segment/day-of-week × User), address time zone/seasonality scope.
+- Sub-criterion 1.3.A.2 [1 point | Accuracy]: Verify using the pseudo-process:
+```
+FOR each time segment (hours 0–23 or Monday–Sunday):
+Compute high-value users’ Search share for the segment vs regular users’ Search share for the segment
+Run Kolmogorov–Smirnov test or proportion test
+IF p < 0.05: mark as significant time segment difference
+Output Top-N active segments and difference magnitude (including share comparison, test statistic)
+```
+- Sub-criterion 1.3.A.3 [1 point | Conclusion]: 
+Specific findings on Search time differences:
+1) High-value users’ peak active segment: 22:00–23:00 most active (6.0%), 16:00–17:00 second (5.6%), showing an evening concentration pattern;
+2) Regular users’ peak active segment: 00:00–01:00 most active (8.5%), 08:00–09:00 second (6.0%), showing a late-night + morning dual peak;
+3) Reach strategy: push personal care + digital products to high-value users at 22:00–23:00, KPI target open rate > 15%; push sports apparel to regular users at 00:00–01:00, conversion rate target > 8%.
+#### Path 1.3.B [3 points | Cyclical patterns (cosinor/Fourier terms)]
+- Sub-criterion 1.3.B.1 [1 point | Completeness]: Declare model setup (period, harmonic orders) and feature construction.
+- Sub-criterion 1.3.B.2 [2 points | Accuracy]: Verify using the pseudo-process:
+```
+FOR each cohort (high-value/regular):
+Construct time features: sin(2πt/T), cos(2πt/T) (T = 24 hours or 7 days)
+Fit regression: Search frequency = α + β1*sin + β2*cos + ε
+Compute amplitude: A = √(β1² + β2²)
+Compute phase: φ = atan2(β1, β2) 
+Output significance test: F-statistic, p-value, R²
+Compare amplitude and phase differences across cohorts
+```
+#### Path 1.3.C [3 points | Composite Search quality metric differences]
+- Sub-criterion 1.3.C.1 [1 point | Completeness]: Define Search quality metrics: Input Duration, Autocomplete usage rate, Search Result Page Count, Viewed Result Count, Clicked Result Count, Search Conversion Rate, No-result rate, Correction rate.
+- Sub-criterion 1.3.C.2 [2 points | Accuracy]: Compute Search quality metrics and validate key values (error ≤ ±0.5s or ±1%):
+Reference anchors: high-value users’ Input Duration 15.0s vs regular 15.8s, No-result rate 5.1% vs 8.5%, Correction rate 50.5% vs 47.9%, Conversion rate 0.483 vs 0.484.
+#### Path 1.3.D [3 points | Time segment–Category linkage differences]
+- Sub-criterion 1.3.D.1 [1 point | Completeness]: Compute Category shares across different time segments (e.g., four quadrants) and provide Top Categories by cohort.
+- Sub-criterion 1.3.D.2 [2 points | Accuracy]: Verify using the pseudo-process:
+```
+Build a time segment × Category × cohort 3D pivot table
+FOR each time segment AND each Category:
+Compute high-value users’ share for the Category within the segment vs regular users’ share
+Run two-proportion test or chi-square test
+IF p < 0.05: mark segment–Category combinations with significant differences
+Output significant difference list (segment, Category, share comparison, p-value, direction)
+```
+### Criterion 1.4: Search → Favorites interest carryover analysis (maximum 3 points)
+#### Path 1.4.A [3 points | Category carryover difference analysis] (If Path 1.4.A is not matched, do not create a new path. Criterion 1.4 gets 0 points directly.)
+- Sub-criterion 1.4.A.1 [1 point | Completeness]: Define interest carryover = Favorites share / Search share; compute the carryover metric by Category for both cohorts. If “interest carryover” is not clearly defined and calculated, score 0 for this item.
+- Sub-criterion 1.4.A.2 [2 points | Accuracy]: Compute interest carryover and validate key values (error ≤ ±0.05):
+Reference anchors: high-value users: Clothing, Shoes & Hats 1.156; beauty & skincare 1.125; 3C carryover 0.23; regular users: beauty & skincare 1.556; Home Appliances 1.133; 3C carryover 0.356.
+### Criterion 1.5: User behavior depth and value differences (maximum 3 points)
+#### Path 1.5.A [3 points | User activity and behavior depth analysis]
+- Sub-criterion 1.5.A.1 [1 point | Completeness]: Define behavior depth metrics: Login Count, browsing depth (Homepage click rate, Viewed Specifications rate), Favorites follow rate, average Search/Favorites counts per active user, etc. (metrics are acceptable if reasonable).
+- Sub-criterion 1.5.A.2 [2 points | Accuracy]: Compute behavior depth metrics and validate key numbers (error ≤ ±5 counts or ±2%); provided metrics should be reasonable.
+---
+## Requirement 2: Provide targeted tiered user operations strategies and optimized product recommendation plans (Maximum 12 points for this requirement; each path’s score must be an integer)
+### Criterion 2.1: Tiered user operations strategy (maximum 3 points)
+#### Path 2.1.A [3 points | KPI–cohort–actions–frequency closed loop]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Clearly define each tier’s (Diamond/Platinum/Regular) target KPIs, cohort definitions, channels, and frequency.
+- Sub-criterion 2.1.A.2 [1 point | Accuracy]: Verify using the pseudo-process:
+```
+FOR each user tier (Diamond/Platinum/Regular):
+Define target KPIs (conversion rate/retention rate/average order value, etc.)
+Set targeted actions (push content, touchpoint channels, frequency)
+Match optimal timing (based on active time findings from Requirement 1)
+Verify consistency with preference differences in Requirement 1
+Output tiered operations strategy matrix (tier × KPI × actions × timing × channels)
+```
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: 
+- Explicitly address Requirement 2 (user tiered operations strategy part):
+- Diamond/Platinum strategy: precise pushes for personal care + digital Categories at 22:00–23:00; exclusive VIP channels prioritize displaying preferred products such as toothbrushes and Apple phones
+- Regular user strategy: push promotions for sports apparel at 00:00–01:00; focus on Categories with high preference such as running shoes and down jackets
+- Expected impact: overall click-through rate +20%, high-value user conversion rate +25%, regular user repurchase rate +15%
+- Monitoring KPIs: provide monthly tiered conversion rate, Category penetration rate, and user activity metrics; evaluate and adjust strategy monthly
+#### Path 2.1.B [3 points | Uplift/Sensitivity driven]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Define tiered uplift or sensitivity (price/benefits/content).
+- Sub-criterion 2.1.B.2 [2 points | Accuracy]: Verify using the pseudo-process:
+```
+FOR each user tier:
+Design controlled experiments (randomized groups or matched controls)
+Compute uplift = conversion rate (experiment) – conversion rate (control)
+OR compute price elasticity: log(quantity) ~ log(price) + control variables
+Statistical test: t-test or bootstrap confidence interval
+Output results: uplift value, 95% CI, p-value, sample size
+Rank user tiers by uplift magnitude for prioritization
+```
+### Criterion 2.2: Optimized product recommendation plan (maximum 3 points)
+#### Path 2.2.A [3 points | Tiered Top-N preferences + coverage/diversity constraints]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Build tiered preference scores from Search/Favorites preferences with constraints (coverage/diversity).
+- Sub-criterion 2.2.A.2 [2 points | Accuracy]: Verify using the pseudo-process:
+```
+FOR each user tier:
+Compute product preference scores based on preference analysis in Requirement 1
+Apply constraints: Category coverage ≥ K categories, same-Brand products ≤ M% of total
+Sort to generate Top-N recommendation list
+Verify alignment of recommendations with the tier’s Search/Favorites preferences
+Output tiered recommendation matrix (tier × product × preference score × constraint satisfaction)
+```
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]: 
+- Explicitly address Requirement 2 (product recommendation optimization part):
+- Diamond/Platinum recommendation list: prioritize toothbrushes, Apple phones, coffee machines, hiking backpacks, children's schoolbags—paired with preferred Brands such as Tibet Nuodikang and Tsingtao Beer
+- Regular user recommendation list: focus on running shoes, down jackets, air fryers, wireless mice—paired with preferred Brands such as Yunnan Baiyao and Kweichow Moutai
+- Expected impact: the conclusion must include expected outcomes data: recommendation CTR increase +30%, conversion rate increase +18%, user satisfaction increase +25%
+- Coverage constraints: cover at least 3 Categories per user; same-Brand products no more than 30% of total recommendations; validation window 30 days
+#### Path 2.2.B [3 points | Rules/Collaborative filtering (tiered)]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Set rules (co-occurrence/sequence) or CF features (ItemCF/UserCF) and compute by tier.
+- Sub-criterion 2.2.B.2 [2 points | Accuracy]: Verify using the pseudo-process:
+```
+Choose recommendation method: Association rules OR Collaborative filtering
+IF Association rules:
+Compute support = P(A ∩ B), confidence = P(B|A)
+Compute lift = confidence / P(B)
+Set thresholds: support ≥ min_sup, confidence ≥ min_conf
+IF Collaborative filtering:
+Compute user/item similarity (cosine/Pearson)
+Generate Top-K similar users/items
+Predict scores and rank
+Output tiered recommendation results (tier × recommended item × metric value × ranking)
+```
+### Criterion 2.3: Marketing campaign and promotion strategy design (maximum 3 points)
+#### Path 2.3.A [3 points | Tiered marketing campaign design]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Design targeted campaigns based on user differences (theme, time window, Category bundle, promotion mechanism).
+- Sub-criterion 2.3.A.2 [2 points | Accuracy]: Verify using the pseudo-process:
+```
+FOR each user tier:
+Design campaign themes and product bundles based on preference differences from Requirement 1
+Match the tier’s active time window (based on time difference analysis results)
+Design targeted promotion mechanisms (discounts/full reduction/benefits, etc.)
+Validate alignment of the campaign with user behavior characteristics
+Output campaign plan (tier × theme × time window × products × promotion)
+```
+### Criterion 2.4: A/B testing and effectiveness measurement design (maximum 3 points; if no concrete A/B test design is provided, score 0 directly)
+#### Path 2.4.A [3 points | Testing methodology and measurement design]
+- Sub-criterion 2.4.A.1 [1 point | Completeness]: Design an A/B testing plan (experiment/control groups, sample size calculation, randomization strategy, success metric definitions).
+- Sub-criterion 2.4.A.2 [2 points | Accuracy]: Design the test plan and provide expected outcome metrics (error ≤ ±3%):
+Reference metrics: high-value user retention rate increase 15–20%, regular user conversion rate increase 10–15%, overall GMV increase 20–25%, recommendation CTR increase ≥ 30%.

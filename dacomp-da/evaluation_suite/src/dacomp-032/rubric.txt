@@ -1,0 +1,239 @@
+# [Total Score | 20 points] The solution must satisfy the following three core requirements:
+- Requirement 1: Accurately filter customers whose Contact priority equals 1
+- Requirement 2: Quantify customer complaint and service ticket handling indicators
+- Requirement 3: Complete a comparative assessment of service quality against the overall baseline
+---
+## Requirement 1: Accurately filter customers whose Contact priority equals 1 (maximum 2 points)
+### Criterion 1.1 [maximum 2 pts] Identification of high-priority customers
+#### Path 1.1.A [2 pts | precise identification]
+- Sub-criterion 1.1.A.1 [2 pts | Accuracy | Allowed error = 0]: In `customer_contact_table`, filter `Contact priority = 1`, extract and **deduplicate by `Customer ID`**; verification value: **deduplicated Customer ID count = 105**.
+  ```
+  INPUT: customer_contact_table Contact(Customer ID, Contact priority, …)
+  STEP1: F = Filter(Contact, Contact priority == 1)
+  STEP2: U = Unique(F.Customer ID)        # Deduplicate by Customer ID
+  STEP3: n = Count(U)
+  ASSERT n == 105                         # Allowed error = 0 (sample data); for live data, report actual n and explain
+  OUTPUT: U, n
+  ```
+---
+## Requirement 2: Quantify customer complaint and service ticket handling indicators (maximum 12 points)
+### Criterion 2.1 [maximum 6 pts] Core complaint-handling metrics
+#### Path 2.1.A [6 pts | Text-based speed, column `Complaint Handling Speed` shaped like “34h”]
+- Sub-criterion 2.1.A.1 [2 pts | Completeness]: State the text parsing rule (regex `^\d+(\.\d+)?h$`), sample scope (only P1 customers, i.e., `Contact priority = 1`), exception handling (drop non-matching records), and aggregation per `Work Order ID` = mean.
+- Sub-criterion 2.1.A.2 [4 pts | Accuracy]: **(Scoring note: values below are verification references for the sample data. For live/dynamic data, a ±10% deviation is acceptable, or provide different values with consistent definitions and describe them.)**
+  Verification values:
+  - Average complaint satisfaction = **3.01**; average complaint handling speed (text) = **36.80h**;
+  - 1-star complaint rate = **21.43%**; 2-star complaint rate = **17.30%** (or combined **38.73%**).
+  ```
+  INPUT: complaints_table C(Work Order ID, Complaint Customer Satisfaction, Complaint Handling Speed_text, …)
+  STEP1: C1 = Filter(C, Complaint Handling Speed_text matches r"^\d+(\.\d+)?h$")
+  STEP2: C1.speed_h = ParseFloat(RemoveSuffix(C1.Complaint Handling Speed_text, "h"))
+  STEP3: G = GroupBy(C1, Work Order ID).Agg(
+            csat = mean(Complaint Customer Satisfaction),
+            speed = mean(speed_h),
+            star1 = mean(Complaint Customer Satisfaction == 1),
+            star2 = mean(Complaint Customer Satisfaction == 2)
+          )
+  STEP4: out.csat = mean(G.csat)
+         out.speed = mean(G.speed)
+         out.star1 = mean(G.star1) * 100%
+         out.star2 = mean(G.star2) * 100%
+  ASSERT |out.csat - 3.01|  <= 0.05
+  ASSERT |out.speed - 36.80|<= 0.05
+  ASSERT |out.star1 - 21.43|<= 0.5
+  ASSERT |out.star2 - 17.30|<= 0.5
+  OUTPUT: out
+  ```
+#### Path 2.1.B [6 pts | Timestamp-based speed (speed = `Complaint Resolution Time` − `Complaint Submission Time`)]
+- Sub-criterion 2.1.B.1 [2 pts | Completeness]: State the definition (hours), scope (only P1 customers), anomaly handling (drop negative durations/nulls), and aggregation per `Work Order ID` = mean.
+- Sub-criterion 2.1.B.2 [4 pts | Accuracy | Fixed answers]: Verification values:
+  - Average complaint satisfaction = **3.01**; average complaint handling speed (timestamp) = **16664.21h**.
+  **Verification pseudo-code:**
+  ```
+  INPUT: complaints_table C(Work Order ID, Complaint Customer Satisfaction, Complaint Submission Time, Complaint Resolution Time)
+  STEP1: C1 = DropNA(C, [Complaint Submission Time, Complaint Resolution Time, Complaint Customer Satisfaction])
+  STEP2: C1.speed_h = Hours(Complaint Resolution Time - Complaint Submission Time)
+  STEP3: C1 = Filter(C1, speed_h >= 0)
+  STEP4: G = GroupBy(C1, Work Order ID).Agg(
+            csat = mean(Complaint Customer Satisfaction),
+            speed = mean(speed_h)
+          )
+  STEP5: out.csat = mean(G.csat)
+         out.speed = mean(G.speed)
+  ASSERT |out.csat - 3.01|     <= 0.05
+  ASSERT |out.speed - 16664.21|<= 0.05
+  OUTPUT: out
+  ```
+#### Path 2.1.C [6 pts | Composite index (no fixed answer, must be reproducible)]
+- Sub-criterion 2.1.C.1 [2 pts | Completeness]: Define `Index = Z(csat) - Z(speed_ts)`; standardization = Z-score; scope = all P1 complaints; aggregation = sample mean.
+- Sub-criterion 2.1.C.2 [4 pts | Accuracy]:
+  ```
+  INPUT: complaints_table C(Work Order ID, Complaint Customer Satisfaction, Complaint Submission Time, Complaint Resolution Time)
+  STEP1: Build timestamp-based speed following Path 2.1.B STEP1-3 → obtain C1(Work Order ID, csat, speed_h)
+  STEP2: S = Select(C1, [csat, speed_h])  # Explicit scope: no aggregation by Work Order ID; standardize per record
+  STEP3: Z_csat  = ZScore(S.csat)
+         Z_speed = ZScore(S.speed_h)
+  STEP4: Index = Z_csat - Z_speed
+  STEP5: out.mean = mean(Index)
+  # Expected theoretical mean near 0.00 (balanced Z difference); no fixed target but output must be auditable
+  OUTPUT: out.mean, Index distribution
+  ```
+#### Path 2.1.D [6 pts | Custom metric (no fixed answer, must be reproducible)]
+- Sub-criterion 2.1.D.1 [2 pts | Completeness]: Define `X = 0.6*Z(csat) + 0.4*Z(speed_ts)`; state the origin of the weights and missing-data handling.
+- Sub-criterion 2.1.D.2 [4 pts | Accuracy]:
+  ```
+  INPUT: same as Path 2.1.C
+  STEP1-3: same as Path 2.1.C
+  STEP4: X = 0.6*Z_csat + 0.4*Z_speed
+  STEP5: out.mean = mean(X)
+  OUTPUT: out.mean, X distribution
+  ```
+#### Path 2.1.E [6 pts | Complaint type distribution (no fixed answer, must be reproducible)]
+- Sub-criterion 2.1.E.1 [2 pts | Completeness]: Provide a type-mapping dictionary, scope = only P1 complaints, and map abnormal categories to "Other". **(Scoring note: if the column is already standardized, explicitly state “dictionary = identity mapping”.)**
+- Sub-criterion 2.1.E.2 [4 pts | Accuracy]: **(Scoring note: SQL/pseudo-code/equivalent code are all acceptable. Output may be the full distribution or “Top-N + Other” as long as the sum ≈100%.)**
+  ```
+  INPUT: complaints_table C(Work Order ID, Complaint Type, …)
+  STEP1: C1.Type = Map(C.Complaint Type, dictionary) default="Other"
+  STEP2: P = 100% * CountBy(C1.Type) / Count(C1)   # Proportion
+  STEP3: ASSERT |sum(P.values) - 100| <= 0.1
+  OUTPUT: Type distribution sorted by proportion in descending order
+  ```
+### Criterion 2.2 [maximum 6 pts] Core service-ticket metrics
+#### Path 2.2.A [6 pts | Per-ticket averages (fixed answers)]
+- Sub-criterion 2.2.A.1 [2 pts | Completeness]: Scope = only P1 tickets (`Ticket priority = 1`; if unidentifiable, explicitly state in the solution that all tickets are used as a proxy); metrics = average ticket satisfaction, average `Ticket resolution duration`, share of “High” in `Ticket processing urgency level`; describe missing/abnormal handling.
+  **(Scoring note: side-by-side presentation can be table or text; if `Ticket resolution duration` is numeric or text with “h”, explain the parsing rule and keep units consistent.)**
+- Sub-criterion 2.2.A.2 [4 pts | Accuracy]: Verification values:
+  - Average ticket satisfaction = **3.00**; average ticket hours = **37.04h**; "High" urgency share = **33.41%**.
+  **Verification pseudo-code:**
+  ```
+  INPUT: service_ticket_table W(Work Order ID, Ticket customer satisfaction score, Ticket resolution duration, Ticket processing urgency level, Ticket priority, …)
+  STEP1: W1 = Filter(W, Ticket priority == 1) or use W (must declare the substitution)
+  STEP2: ASSERT Ticket resolution duration is expressed in hours (parse strings with “h” if needed)
+  STEP3: out.mean_satisfaction = mean(W1.Ticket customer satisfaction score)
+         out.mean_hours       = mean(W1.Ticket resolution duration)
+         out.rate_high        = mean(W1.Ticket processing urgency level == "High") * 100%
+  ASSERT |out.mean_satisfaction - 3.00| <= 0.05
+  ASSERT |out.mean_hours - 37.04|       <= 0.05
+  ASSERT |out.rate_high - 33.41|        <= 0.5
+  OUTPUT: out
+  ```
+#### Path 2.2.B [6 pts | Stratified weighting (no fixed answer, must be reproducible)]
+- Sub-criterion 2.2.B.1 [2 pts | Completeness]: Stratify by `{High / Medium / Low}` per `Ticket processing urgency level`; compute layer means, then weight by layer sample shares; weights must align with layer sample counts.
+- Sub-criterion 2.2.B.2 [4 pts | Accuracy]:
+  ```
+  INPUT: same W1 from Path 2.2.A STEP1
+  STEP1: Layers L ∈ {"High","Medium","Low"}
+  STEP2: For each L:
+            m_s[L] = mean(W1.Ticket customer satisfaction score | layer=L)
+            m_h[L] = mean(W1.Ticket resolution duration | layer=L)
+            w[L]   = Count(layer=L) / Count(W1)
+  STEP3: out.mean_s = sum_L w[L]*m_s[L]
+         out.mean_h = sum_L w[L]*m_h[L]
+         out.rate_high = w["High"]*100%
+  OUTPUT: out (consistency with Path 2.2.A can be used as a cross-check)
+  ```
+#### Path 2.2.C [6 pts | Agent-weighted metrics (no fixed answer, must be reproducible)]
+- Sub-criterion 2.2.C.1 [2 pts | Completeness]: Aggregate by `Ticket handling agent ID`; weights = ticket counts per agent; specify how to handle agents with extreme low volume (e.g., n < 3).
+- Sub-criterion 2.2.C.2 [4 pts | Accuracy]:
+  ```
+  INPUT: same W1 from Path 2.2.A STEP1
+  STEP1: S = GroupBy(W1, Ticket handling agent ID).Agg(
+            s_mean = mean(Ticket customer satisfaction score),
+            h_mean = mean(Ticket resolution duration),
+            n = count()
+          )
+  STEP2: Optional filter extreme agents: S1 = Filter(S, n >= 3) else use S
+  STEP3: w[i] = S1.n[i] / sum(S1.n)
+         out.mean_s = sum_i w[i]*S1.s_mean[i]
+         out.mean_h = sum_i w[i]*S1.h_mean[i]
+         out.rate_high = mean(W1.Ticket processing urgency level=="High")*100%
+  OUTPUT: out
+  ```
+#### Path 2.2.D [6 pts | Ticket-type differences (no fixed answer, must be reproducible)]
+- Sub-criterion 2.2.D.1 [2 pts | Completeness]: Provide a mapping of ticket types (e.g., inquiry / failure / cancellation / other), scope = only P1 tickets.
+- Sub-criterion 2.2.D.2 [4 pts | Accuracy]:
+  ```
+  INPUT: W1 (with Ticket Type)
+  STEP1: W1.Type = Map(W1.Ticket Type, dictionary) default="Other"
+  STEP2: T = GroupBy(W1, Type).Agg(
+            mean_s = mean(Ticket customer satisfaction score),
+            mean_h = mean(Ticket resolution duration),
+            share  = count()/Count(W1)
+          )
+  STEP3: Output T sorted by share in descending order
+  OUTPUT: Ticket-type comparison table
+  ```
+---
+## Requirement 3: Complete a comparative assessment of service quality against the overall baseline (maximum 6 points)
+### Criterion 3.1 [maximum 6 pts] Service-quality comparison
+#### Path 3.1.A [6 pts | Static mean comparison (fixed answers)]
+- Sub-criterion 3.1.A.1 [2 pts | Completeness]: Present P1 vs. overall side-by-side for five metrics (complaint satisfaction, complaint speed_ts, ticket satisfaction, ticket hours, “High” urgency share); maintain consistent definitions. **(If “overall” cannot be directly isolated, explicitly state the replacement with the full dataset while retaining the same definitions.)**
+- Sub-criterion 3.1.A.2 [3 pts | Accuracy]: Verification comparison values (P1 = overall):
+  - Complaint satisfaction **3.01 vs 3.01**; complaint speed_ts **16664.21h vs 16664.21h**
+  - Ticket satisfaction **3.00 vs 3.00**; ticket hours **37.04h vs 37.04h**; “High” urgency share **33.41% vs 33.41%**
+  **Verification pseudo-code:**
+  ```
+  INPUT: P1 metrics table M1 (five items), overall metrics table M0 (five items)
+  STEP1: Compare each metric, Δ = M1 - M0
+  STEP2: ASSERT |Δ_complaint satisfaction| <= 0.05
+         ASSERT |Δ_complaint speed|       <= 0.05
+         ASSERT |Δ_ticket satisfaction|   <= 0.05
+         ASSERT |Δ_ticket hours|          <= 0.05
+         ASSERT |Δ_high share|            <= 0.5
+  OUTPUT: Δ table
+  ```
+- Sub-criterion 3.1.A.3 [1 pt | Conclusion]: **Macro statement**: P1 and overall are **fully aligned** on key experience indicators; there is no evidence that “resource prioritization delivers experience gains.” (Acceptable equivalents: “almost identical,” “no notable difference,” “overall similar/aligned.”)
+#### Path 3.1.B [6 pts | Relative difference comparison (no fixed answer, must be reproducible)]
+- Sub-criterion 3.1.B.1 [2 pts | Completeness]: Define relative difference `RelDiff = (P1 - overall) / overall`, present as percentages with two decimal places.
+- Sub-criterion 3.1.B.2 [3 pts | Accuracy]:
+  ```
+  INPUT: same as Path 3.1.A
+  STEP1: RelDiff = (M1 - M0) / M0 * 100%
+  STEP2: Output each metric’s RelDiff; if |RelDiff| < 1 percentage point, label it as “≈0”.
+  OUTPUT: RelDiff table
+  ```
+- Sub-criterion 3.1.B.3 [1 pt | Conclusion]: **Macro statement**: Relative differences are close to zero, meaning **structural prioritization has not produced an experience advantage**; improvements must come from process/strategy changes.
+#### Path 3.1.C [6 pts | Significance testing (no fixed answer, must be reproducible)]
+- Sub-criterion 3.1.C.1 [2 pts | Completeness]: Set `H0: P1 and overall means are equal` (for ticket satisfaction and ticket hours), apply Welch’s t-test; report p-values and Cohen’s d.
+- Sub-criterion 3.1.C.2 [3 pts | Accuracy]:
+  ```
+  INPUT: P1 sample vectors S1, overall sample vectors S0 (ticket satisfaction / ticket hours)
+  STEP1: (t, p) = WelchT(S1, S0)
+  STEP2: d = CohenD(S1, S0)               # Standardized effect size
+  STEP3: Output p and d; specify α = 0.05
+  OUTPUT: {p, d}
+  ```
+- Sub-criterion 3.1.C.3 [1 pt | Conclusion]: **Macro statement**: If `p ≥ 0.05` and `|d|` is small, conclude **“no statistical difference”**; redirect resources toward improving first-contact resolution / complaint handling quality.
+#### Path 3.1.D [6 pts | Service Health Index SHI (no fixed answer, must be reproducible)]
+- Sub-criterion 3.1.D.1 [2 pts | Completeness]: Define `SHI = 0.4*Z(complaint satisfaction) - 0.3*Z(ticket hours) - 0.3*Z(complaint speed_ts)`; conduct ±10% weight sensitivity tests.
+- Sub-criterion 3.1.D.2 [3 pts | Accuracy]:
+  ```
+  INPUT: Metric matrix (P1 or overall)
+  STEP1: Standardize the three indicators via Z-score
+  STEP2: Compute SHI_base
+  STEP3: Adjust weights ±10% to form several combinations and recompute the range [min, max]
+  OUTPUT: SHI_base, range
+  ```
+- Sub-criterion 3.1.D.3 [1 pt | Conclusion]: **Macro statement**: If P1 and overall SHI are close and the sensitivity range is stable, conclude **“system health is equivalent,”** so optimization should target bottlenecks rather than merely adding resources.
+#### Path 3.1.E [6 pts | Time-series trend comparison (no fixed answer, must be reproducible)]
+- Sub-criterion 3.1.E.1 [2 pts | Completeness]: Aggregate by **week** with ≥6 periods for complaint speed_ts, complaint satisfaction, ticket hours, and ticket satisfaction.
+- Sub-criterion 3.1.E.2 [3 pts | Accuracy]:
+  ```
+  INPUT: Time-stamped records
+  STEP1: Week = ToWeek(timestamp)
+  STEP2: Aggregate weekly to obtain four time series (P1 and overall each set)
+  STEP3: Run linear regression to get slope_P1 and slope_All
+  OUTPUT: Slope comparison table
+  ```
+- Sub-criterion 3.1.E.3 [1 pt | Conclusion]: **Macro statement**: If the P1 satisfaction slope ≤ overall and the P1 hours slope ≥ overall, conclude **“no catch-up in experience over time.”**
+#### Path 3.1.F [6 pts | Customer segment comparison (no fixed answer, must be reproducible)]
+- Sub-criterion 3.1.F.1 [2 pts | Completeness]: Segment P1 vs. overall by industry/size/region; ensure each segment has ≥30 samples (merge smaller ones into “Other”).
+- Sub-criterion 3.1.F.2 [3 pts | Accuracy]:
+  ```
+  INPUT: Customer-dimension table + joined indicators
+  STEP1: Segment labels = Map(industry/size/region)
+  STEP2: For each segment, compute (P1, overall) means and differences / relative differences
+  STEP3: Produce the segment comparison matrix; optionally mark significance (e.g., t-test)
+  OUTPUT: Segment delta matrix
+  ```
+- Sub-criterion 3.1.F.3 [1 pt | Conclusion]: **Macro statement**: If differences cluster within specific segments, conclude **“structural factors (e.g., industry complexity) dominate,”** and recommend **custom SLAs and knowledge bases.**

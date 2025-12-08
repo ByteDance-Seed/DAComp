@@ -1,0 +1,58 @@
+# [Total Score | 15 points] Solutions must satisfy two requirements:
+Requirement 1: Analyze the trend of the Surface Water to Groundwater supply ratio in China from 2005 to 2018.
+Requirement 2: Demonstrate how the trend in that ratio relates to changes in the Urbanization rate.
+
+The detailed criteria are as follows:
+## Requirement 1: Trend analysis of the Surface Water to Groundwater supply ratio (maximum 9 points)
+### Standard 1.1 [maximum 9 points]: Calculate the Surface Water to Groundwater supply ratio and present the computation process
+- **Path 1.1.A [9 points]: Analyze the trend of the Surface Water to Groundwater supply ratio for 2005-2018**
+  - Sub-criterion 1.1.A.1 [1 point | Completeness]: Compute the ratio for every year between 2005 and 2018.
+  - Sub-criterion 1.1.A.2 [1 point | Completeness]: Describe the characteristic changes of the ratio in different time segments.
+  - Sub-criterion 1.1.A.3 [1 point | Completeness]: Derive the overall trend for the ratio based on the 2005-2018 data.
+  - Sub-criterion 1.1.A.4 [2 points | Accuracy]: Identify the following documented features for the 2005-2018 span (each listed insight earns 1 point):
+     1. The ratio remains roughly stable around 4.4 during 2005–2014 with no obvious change.
+     2. The ratio rises rapidly during 2015–2018.
+  - Sub-criterion 1.1.A.5 [2 points | Accuracy]: Provide accurate ratio values whose deviation from the reference data does not exceed 1%.
+| Year | Ratio |
+| ---- | ----- |
+| 2005 | 4.40  |
+| 2006 | 4.42  |
+| 2007 | 4.42  |
+| 2008 | 4.42  |
+| 2009 | 4.42  |
+| 2010 | 4.41  |
+| 2011 | 4.47  |
+| 2012 | 4.38  |
+| 2013 | 4.45  |
+| 2014 | 4.41  |
+| 2015 | 4.65  |
+| 2016 | 4.65  |
+| 2017 | 4.86  |
+| 2018 | 5.07  |
+  - Sub-criterion 1.1.A.6 [1 point | Conclusion]: Conclude that the Surface-to-Groundwater ratio shows an overall upward trend from 2005 to 2018.
+  - Sub-criterion 1.1.A.7 [1 point | Conclusion]: Note that Surface Water demand grows while Groundwater demand shrinks (or express an equivalent interpretation).
+
+
+## Requirement 2: Relationship between the surface/groundwater ratio trend and urbanization rate evolution (maximum 6 points)
+### Standard 2.1 [maximum 6 points]: Analyze the connection between the surface/groundwater ratio trend and the urbanization rate change
+- **Path 2.1.A [6 points]: Use the 2005-2018 ratio trend and the Urbanization rate data to argue their relationship**
+  - Sub-criterion 2.1.A.1 [1 point | Completeness]: Gather the 2005-2018 Urbanization rate data to compare alongside the ratio trend.
+  - Sub-criterion 2.1.A.2 [1 point | Completeness]: Compute the correlation coefficient between the ratio trend and the Urbanization rate.
+  - Sub-criterion 2.1.A.3 [2 points | Accuracy]: Use the documented ratio and Urbanization rate values with no more than 1% deviation from the reference data.
+| Year | Ratio | Urbanization rate (%) |
+| ---- | ----- | --------------------- |
+| 2005 | 4.40  | 23.12                |
+| 2006 | 4.42  | 26.98                |
+| 2007 | 4.42  | 30.29                |
+| 2008 | 4.42  | 30.72                |
+| 2009 | 4.42  | 27.58                |
+| 2010 | 4.41  | 32.30                |
+| 2011 | 4.47  | 33.71                |
+| 2012 | 4.38  | 30.14                |
+| 2013 | 4.45  | 30.90                |
+| 2014 | 4.41  | 37.93                |
+| 2015 | 4.65  | 38.18                |
+| 2016 | 4.65  | 40.43                |
+| 2017 | 4.86  | 36.97                |
+| 2018 | 5.07  | 42.08                |
+  - Sub-criterion 2.1.A.4 [2 points | Accuracy]: Report that the Pearson correlation coefficient is 0.729 (rounded to two decimals) to support a positive relationship; alternatively, Spearman 0.648 or Kendall 0.538 are acceptable. State that the Surface-to-Groundwater ratio tends to rise as the Urbanization rate increases (merely noting a general relationship earns 1 point).

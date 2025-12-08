@@ -1,0 +1,123 @@
+# [总分 | 48分] 职位价值重估评分标准（Tier 1/2，高/很高竞争）
+
+  - 需求1：数据范围界定与核心指标计算
+  - 需求2：高/很高竞争职位的产出错配识别
+  - 需求3：工作特征差异与投入产出失衡诊断
+  - 需求4：职位价值重估报告、调配建议与优先级
+
+  ———
+
+  ## 需求1：数据范围界定与核心指标计算（最高 12分）
+
+  ### 标准1.1：样本筛选与字段口径（最高 6分）
+
+  #### 路径1.1.A｜Tier 1/2 样本过滤 + 字段核对
+  - 小标准1.1.A.1（完备性｜1分）：明确说明仅使用 workday__job_overview，筛选 job_value_tier ∈ {Tier 1, Tier 2}，并给出后续分析所需字段（active_positions_count、current_employees_count、high_performer_percentage、career_growth_potential_percentage、job_health_score、avg_career_development_score、talent_competition_level、avg_weekly_hours、is_work_shift_required、retention_difficulty_level），禁止额外清洗假设。
+  - 小标准1.1.A.2（精确性｜4分）：验证样本规模与基础口径：职位总数=900（容差±1），active_positions_count=0 的记录必须为0；输出整体均值：avg_saturation ≈ 0.7186、avg_tqi ≈ 0.0624、avg_job_health ≈ 70.8101、avg_career_development ≈ 3.2197、avg_weekly_hours ≈ 42.8708（容差≤0.5%）；说明百分比字段保持0–1量纲。
+  - 小标准1.1.A.3（结论性｜1分）：声明该样本定义将贯穿后续所有指标，并再次强调“百分比字段为小数”“仅当 active_positions_count>0 时计算 saturation”。
+
+  #### 路径1.1.B｜竞品分层先行（含竞争层级确认）
+  - 小标准1.1.B.1（完备性｜1分）：在Tier 1/2样本上统计 talent_competition_level 结构，注明高阶分析仅覆盖 High 与 Very High。
+  - 小标准1.1.B.2（精确性｜4分）：报告 High 与 Very High 样本量分别为349与311（容差≤±1），同时校验整体 avg_saturation ≈ 0.7186、avg_tqi ≈ 0.0624 不变；分别输出 High 平均 job_health_score ≈ 70.0708、Very High ≈ 75.0759（容差≤1%），不得引入额外处理。
+  - 小标准1.1.B.3（结论性｜1分）：指出“Very High 组健康分更高但仍需核对产出错配”的业务疑问，并重申数据口径保持一致。
+
+  ### 标准1.2：派生指标与分Tier基线（最高 6分）
+
+  #### 路径1.2.A｜逐职位计算 saturation / TQI
+  - 小标准1.2.A.1（完备性｜1分）：逐职位生成 saturation = current_employees_count / active_positions_count（分母>0时计算）与 tqi = high_performer_percentage × career_growth_potential_percentage。
+  - 小标准1.2.A.2（精确性｜4分）：输出 Tier 1 与 Tier 2 的均值：Tier 1 avg_saturation ≈ 0.7207、avg_tqi ≈ 0.0617、avg_weekly_hours ≈ 45.0015；Tier 2 avg_saturation ≈ 0.7168、avg_tqi ≈ 0.0630、avg_weekly_hours ≈ 41.1118（容差≤0.5%），需基于原始字段直接计算。
+  - 小标准1.2.A.3（结论性｜1分）：解释 Tier 1 更接近饱和、周工时更高而 TQI 反而略低的运营含义。
+
+  #### 路径1.2.B｜分布属性刻画（分布敏感视角）
+  - 小标准1.2.B.1（完备性｜1分）：给出 Tier 1/2 联合样本的 saturation 与 tqi 分位点（至少 P25/P50/P75）或等效密度描述。
+  - 小标准1.2.B.2（精确性｜4分）：需呈现 median_saturation ≈ 0.7143、median_tqi ≈ 0.0554，以及 saturation 范围 [0.000, 1.200]、tqi 范围 [0.0050, 0.2709]（容差≤0.01）；描述与分布一致，无平滑假设。
+  - 小标准1.2.B.3（结论性｜1分）：指出饱和度/质量指数的长尾特征，为后续设置“过饱和/欠配”阈值提供背景。
+
+  ———
+
+  ## 需求2：高/很高竞争职位的产出错配识别（最高 12分）
+
+  ### 标准2.1：错配判定方法（最高 6分）
+
+  #### 路径2.1.A｜分位阈值法（推荐）
+  - 小标准2.1.A.1（完备性｜1分）：定义 combined_output = (job_health_score + avg_career_development_score)/2，并在 High、Very High 内分别独立求 Q25。
+  - 小标准2.1.A.2（精确性｜4分）：给出阈值 High Q25=33.850、Very High Q25=35.6075（容差≤1%）；错配职位（combined_output < 各自Q25）总计164个，其中 High 86、Very High 78（容差≤3%），结果须与子集计数一致。
+  - 小标准2.1.A.3（结论性｜1分）：阐明“位于自身竞争层的后四分位即为产出错配”，并说明高竞争≠高产出的管理含义。
+
+  ### 标准2.2：错配职位的特征对比（最高 6分）
+
+  #### 路径2.2.A｜组间均值比较
+  - 小标准2.2.A.1（完备性｜1分）：在错配 vs 非错配集合中，对 job_health_score、avg_career_development_score、avg_weekly_hours、is_work_shift_required、retention_difficulty_level、saturation、tqi、combined_output 进行对比。
+  - 小标准2.2.A.2（精确性｜4分）：应复现：非错配组 avg_health ≈ 76.30、avg_cds ≈ 3.207、avg_weekly_hours ≈ 43.59、shift_rate ≈ 18.75%、avg_combined ≈ 39.76；错配组 avg_health ≈ 60.71、avg_cds ≈ 3.079、avg_weekly_hours ≈ 44.18、shift_rate ≈ 22.56%、avg_combined ≈ 31.89（容差≤2%）。
+  - 小标准2.2.A.3（结论性｜1分）：指出错配岗位在工时/倒班/留才难度投入更高却产出更低，需优先校准。
+
+  #### 路径2.2.B｜工作负荷分段
+  - 小标准2.2.B.1（完备性｜1分）：构建 avg_weekly_hours>45、是否轮班、retention_difficulty_level≥High 等交叉分段，并统计错配率。
+  - 小标准2.2.B.2（精确性｜4分）：复现关键信息：>45h 且轮班=1 的职位96个，其中错配28个（错配率≈29.17%）；全部 >45h 的职位243个；给出整体错配率≈24.85%，说明该组合显著高于整体水平（容差≤1pp）。
+  - 小标准2.2.B.3（结论性｜1分）：认定“高工时+轮班”是错配核心驱动之一，需纳入治理优先级。
+
+  ———
+
+  ## 需求3：工作特征差异与投入产出失衡诊断（最高 12分）
+
+  ### 标准3.1：投入 vs 产出度量与失衡识别（最高 6分）
+
+  #### 路径3.1.A｜输出/输入比（ratio）法
+  - 小标准3.1.A.1（完备性｜1分）：定义 output_input_ratio = combined_output / input_score，其中 input_score = avg_weekly_hours/40 + 0.5×shift_flag + retention_score（Low=0.25、Medium=0.5、High=0.75、Very High=1.0）。
+  - 小标准3.1.A.2（精确性｜4分）：给出 High/Very High 子集 overall Q25 ≈ 16.817、Q75 ≈ 23.070（容差≤1%）；低比值职位 (ratio < Q25) 共165个；统计对比：低比值组 avg_ratio ≈ 14.54、avg_hours ≈ 46.82、shift率 ≈ 67.3%、Very High retention ≈ 80.0%；其余组 avg_ratio ≈ 21.77、avg_hours ≈ 42.71、shift率 ≈ 3.84%、Very High retention ≈ 23.4%。
+  - 小标准3.1.A.3（结论性｜1分）：阐述低比值岗位“投入重、产出轻”的结构性矛盾及治理必要性。
+
+  #### 路径3.1.B｜投入负担−产出得分（imbalance）法
+  - 小标准3.1.B.1（完备性｜1分）：构建 output_norm = 0.6×(job_health/100) + 0.4×((avg_career_development−1)/4)，input_burden = 0.4×saturation + 0.3×(avg_weekly_hours/40) + 0.1×shift_flag + 0.2×retention_score，imbalance_score = input_burden − output_norm。
+  - 小标准3.1.B.2（精确性｜4分）：复现整体 avg_imbalance ≈ 0.1354、median ≈ 0.1299；Top 25 失衡岗位 avg_imbalance ≈ 0.499、avg_weekly_hours ≈ 47.09、shift率 ≈ 84%、Very High retention=100%（容差≤0.01/1pp）。
+  - 小标准3.1.B.3（结论性｜1分）：说明 Top 25 由倒班+Very High 留才难度叠加驱动，输入侧负担远超产出。
+
+  #### 路径3.1.C｜饱和×产出象限（Reduce vs Invest）
+  - 小标准3.1.C.1（完备性｜1分）：以 output_norm 中位数≈0.656 为分界，划分 reduce = saturation>1.0 & output_norm<median，invest = saturation<0.6 & output_norm>median。
+  - 小标准3.1.C.2（精确性｜4分）：报告 reduce 53个（avg_sat ≈ 1.117、avg_out ≈ 0.571、avg_tqi ≈ 0.0545）、invest 115个（avg_sat ≈ 0.406、avg_out ≈ 0.725、avg_tqi ≈ 0.0590），其余 other 492 个（容差≤1%）。
+  - 小标准3.1.C.3（结论性｜1分）：解释 reduce 需减配、invest 需增配的业务含义，为调配提供量化依据。
+
+  ### 标准3.2：模式洞察与驱动因素（最高 6分）
+
+  #### 路径3.2.A｜相关性分析
+  - 小标准3.2.A.1（完备性｜1分）：给出 output_z 与 tqi、saturation、avg_weekly_hours、shift_flag、Very High retention 的相关系数，以及 imbalance_score 与 avg_weekly_hours、shift_flag、retention_score 的相关系数。
+  - 小标准3.2.A.2（精确性｜4分）：需复现 corr(output_z, tqi) ≈ -0.011、corr(output_z, saturation) ≈ 0.016、corr(output_z, hours) ≈ -0.035、corr(output_z, shift) ≈ 0.061、corr(output_z, VeryHigh_retention) ≈ 0.119；corr(imbalance, hours) ≈ 0.424、corr(imbalance, shift) ≈ 0.409、corr(imbalance, retention_score) ≈ 0.407（容差≤0.01）。
+  - 小标准3.2.A.3（结论性｜1分）：得出“产出与人才质量/饱和度弱相关，失衡与工时/轮班/留才强相关”的治理重点。
+
+  #### 路径3.2.B｜角色/家族集中度
+  - 小标准3.2.B.1（完备性｜1分）：按 job_title 或 job_family_names 汇总失衡/错配样本数与均值特征（工时、轮班、留才、saturation、ratio/imbalance）。
+  - 小标准3.2.B.2（精确性｜4分）：识别 ≥5 样本的典型角色：Junior Security Engineer（avg_imb ≈ 0.386、avg_hours ≈ 46.41、shift率=100%、Very High retention=100%）、DevOps Engineer（avg_imb ≈ 0.248、avg_hours ≈ 47.74、shift率=100%、Very High retention=100%）、Security Engineer（avg_imb ≈ 0.300、avg_hours ≈ 46.34、shift率=100%）；同时指出 Product Manager（avg_hours ≈ 49.31、shift率=0）与 Sales Manager（avg_hours ≈ 45.15、shift率=0）存在明显失衡。
+  - 小标准3.2.B.3（结论性｜1分）：概括“安全/DevOps 班制高压带”与“产品/销售高工作量”的模式，并对比 HRBP/UX 等高ROI岗位的轻负荷特征。
+
+  #### 路径3.2.C｜工作负荷阈值策略（补充视角）
+  - 小标准3.2.C.1（完备性｜1分）：设定 avg_weekly_hours>45、shift_flag=1、retention_difficulty_level≥High 的高负荷组合，并比较失衡率。
+  - 小标准3.2.C.2（精确性｜4分）：报告该组合职位96个，imbalance_score 均值 ≈ 0.298、82.3% 超过整体中位数；在失衡 Top25% 中占比 58/165 ≈ 35.2%；对比整体失衡>中位数比例（50%）与整体错配率（24.85%）。
+  - 小标准3.2.C.3（结论性｜1分）：提出针对高负荷组合的自动化、轮班优化、调休策略，并说明其与失衡诊断结果的一致性。
+
+  ———
+
+  ## 需求4：重估报告、调配建议与优先级（最高 12分）
+
+  ### 标准4.1：报告结构与证据链（最高 6分）
+
+  #### 路径4.1.A｜结构化重估报告
+  - 小标准4.1.A.1（完备性｜1分）：报告需覆盖方法/口径、样本规模、核心锚点（Q25/Q75、均值等）、错配与失衡规模、角色模式、输入/输出指标、调配清单、优先级、KPI/目标等章节。
+  - 小标准4.1.A.2（精确性｜4分）：所有引用需与验证数据一致：tier_12_jobs=900、high_comp_jobs=660、错配=164、ratio Q25/Q75=16.817/23.070、reduce=53、invest=115、相关系数（-0.011/0.016/...）、高负荷错配28/96、high load>median 82.3% 等；清单所列职位须来自实际低ROI/高ROI样本（如 JP00000242、JP00000247、JP00000740、JP00000652、JP00000366、JP00000204、JP00000154、JP00000515、JP00000225，JP00000344、JP00000180、JP00000699、JP00000207、JP00000209、JP00000422、JP00000451、JP00000200、JP00000447、JP00000468、JP00000276、JP00000290、JP00000267、JP00000788、JP00000437、JP00000432、JP00000606、JP00000633），并附 saturation、ratio、hours、shift、retention 指标（如 JP00000276 sat≈0.769、ratio≈30.53、hours=38.0、shift=0）。
+  - 小标准4.1.A.3（结论性｜1分）：形成“高竞争不等于高产出”“投入侧是关键杠杆”的结论，指明预期改进方向。
+
+  #### 路径4.1.B｜Reduce / Invest 双清单
+  - 小标准4.1.B.1（完备性｜1分）：输出减配候选与增配候选各≥10条（job_title / job_profile_id / saturation / output_norm 或 ratio / avg_weekly_hours / shift / retention）。
+  - 小标准4.1.B.2（精确性｜4分）：减配清单覆盖代表岗位：JP00000242 (sat≈1.059, output_norm≈0.558, ratio≈10.31, hours≈43.2, shift=1, Very High)、JP00000247 (1.050,0.621,10.75,47.9,1,Very High)、JP00000652 (1.133,0.542,11.42,51.8,1,Very High)、JP00000740 (1.111,0.513,11.55,52.3,1,Very High)、JP00000860 (1.185,0.544,12.18,46.7,1,Very High)、JP00000366 (1.176,0.597,12.52,46.9,1,Very High)、JP00000204 (1.136,0.609,12.81,47.9,1,Very High)、JP00000154 (1.050,0.512,13.42,45.5,1,Very High)、JP00000515 (1.087,0.587,13.69,43.8,1,Very High)、JP00000225 (1.031,0.596,14.59,44.4,1,Very High)；增配清单包含高ROI岗位：JP00000344 (sat=0.500, output_norm≈0.918, ratio≈30.93, hours≈39.1, shift=0, Medium)、JP00000180 (0.476,0.739,30.54,39.0,0,Medium)、JP00000699 (0.333,0.830,29.81,38.9,0,Medium)、JP00000207 (0.543,0.677,29.74,40.1,0,Medium)、JP00000209 (0.429,0.742,28.68,35.7,0,Medium)、JP00000422 (0.357,0.690,27.90,38.7,0,Medium)、JP00000451 (0.528,0.663,27.69,41.6,0,Medium)、JP00000200 (0.250,0.670,27.61,38.9,0,Medium)、JP00000447 (0.591,0.723,27.52,43.3,0,Medium)、JP00000468 (0.500,0.687,26.97,40.5,0,Medium)，整体均值需与 reduce/invest 汇总表一致。
+  - 小标准4.1.B.3（结论性｜1分）：阐明双清单的资源再分配意义（释放过饱和低产出编制、保障高ROI岗位成长）。
+
+  ### 标准4.2：调配优先级与执行路径（最高 6分）
+
+  #### 路径4.2.A｜量化优先级 + 行动计划
+  - 小标准4.2.A.1（完备性｜1分）：定义 priority_score = 0.6×imbalance + 0.2×retention_score + 0.2×tier_weight（Tier1=1.0、Tier2=0.6）或等效逻辑，并说明用途。
+  - 小标准4.2.A.2（精确性｜4分）：列出高优先级样本：JP00000740 priority≈0.774、imbalance≈0.624、ratio≈11.55、sat≈1.111、hours≈52.3、shift=1；JP00000652 priority≈0.760；JP00000788 priority≈0.751；JP00000267 priority≈0.741；JP00000204 priority≈0.703；JP00000366 priority≈0.715；JP00000154 priority≈0.730；JP00000109 priority≈0.697；JP00000860 priority≈0.748（容差≤0.01），保证与前述锚点一致。
+  - 小标准4.2.A.3（结论性｜1分）：将优先级拆分为 P1（Security/DevOps 班制岗位）、P2（Product/ML/Data 过劳但高潜力）、P3（HRBP/前端/UX 高ROI）等层级，提出阶段目标（如 6 个月内将 Security/DevOps 平均工时降至≤44h、Top25 失衡分下降≥30%、Invest 组 output_norm 提升≥0.05）。
+
+  #### 路径4.2.B｜资源重分配与 KPI 守护
+  - 小标准4.2.B.1（完备性｜1分）：从缩编/转岗、增配/外包、自动化与流程治理、留才与发展项目等维度提出调配策略，并指向具体岗位族。
+  - 小标准4.2.B.2（精确性｜4分）：策略需引用验证数据：P1（Very High + 倒班 + 高工时）聚焦 Security/DevOps（如 JP00000290 ratio≈10.54、imbalance≈0.417；JP00000267 ratio≈10.13；JP00000437 ratio≈11.21），实施班次重构与自动化；P2（High 高工时产品/数据）覆盖 JP00000432（hours≈48.2、imbalance≈0.288）、JP00000606（hours≈48.0、imbalance≈0.230）推进项目池收敛；P3（ML/Data 欠配高产出）如 JP00000633（ratio≈14.62、imbalance≈0.203）配套资产化/导师制；P4（HRBP/前端/UX 高ROI）如 JP00000344、JP00000180、JP00000699、JP00000207、JP00000451 优先补给资源。所列指标须与前述路径一致。
+  - 小标准4.2.B.3（结论性｜1分）：设定可量化 KPI（如 将 Very High 留才岗位的倒班率由当前≈52.4% 降至≤30%、失衡岗位占比由25.0% 降至≤18%、invest 组 tqi 提升≥15%）、明确复盘节奏（双周/季度），确保闭环。

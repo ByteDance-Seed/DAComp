@@ -1,0 +1,76 @@
+# [Total Score | 36 Points] Scoring Rubric for com.dev.photoeditor: High-Revenue vs. Low-Revenue Market Performance Divergence
+
+---
+
+## Requirement 1: Construct a Reproducible Data Foundation for Revenue and Performance (Up to 12 Points)
+
+### Standard 1.1: Parsing `embedded_data` and Establishing the Revenue Metric (Up to 6 Points)
+
+#### Path 1.1.A [6 Points | Baseline for Expanding Embedded Fields]
+- Sub-criterion 1.1.A.1 [1 Point | Completeness]: State that only records from `qualtrics__response` where `embedded_data` contains `value_` are used, and list the core fields to be retained during expansion (`question_response_id`, `survey_response_id`, `user_language`, `distribution_channel`, `value`, `survey_progress`, `duration_in_seconds`, `is_finished_with_survey`).
+- Sub-criterion 1.1.A.2 [4 Points | Accuracy]: Provide a reproducible parsing logic (e.g., recursive CTE or an equivalent script) to generate `(field_key, field_value)` pairs. Must verify against the following anchor points: number of records after expansion = 23,928 (tolerance ±1), distinct `field_key` count = 997 (tolerance ±1), the average `revenue_usd` (from `field_value/100`) is ≈5.00, and the USD range is [0.01, 9.99] (tolerance ±0.01).
+- Sub-criterion 1.1.A.3 [1 Point | Conclusion]: Clearly state that `field_value/100` will be used as the revenue metric for subsequent analysis, and mention that all entries originate from KPI campaign data for `com.dev.photoeditor`.
+
+### Standard 1.2: Binning High/Low Revenue Segments and Verifying Sample Stability (Up to 6 Points)
+
+#### Path 1.2.A [6 Points | Revenue Thresholds and Metric Validation]
+- Sub-criterion 1.2.A.1 [1 Point | Completeness]: Explain the segmentation criteria: 'Top markets= `revenue_usd` ≥7' and 'Low markets= `revenue_usd` <3', while retaining the columns required by the problem statement for performance comparison: `question_value`, `survey_progress`, `duration_in_seconds`, and `is_finished_with_survey`.
+- Sub-criterion 1.2.A.2 [4 Points | Accuracy]: Output the metrics for each bin: `High` group sample size = 7,101; `Low` group = 7,088 (tolerance ±5); corresponding averages `avg_revenue_usd`=8.50 vs 1.51, `avg_question_value`=5.53 vs 5.49, `avg_survey_progress`=50.66 vs 51.01, `avg_duration_in_seconds`=44.66 vs 44.43, `finish_rate`=0.5308 vs 0.5380 (tolerances ±0.02 and ±0.0005, respectively).
+- Sub-criterion 1.2.A.3 [1 Point | Conclusion]: Conclude that the two groups have comparable sizes and a significant revenue gap, providing a reliable baseline for the subsequent geographical analysis.
+
+---
+
+## Requirement 2: Uncover Performance Divergence Between High- and Low-Revenue Markets (Up to 12 Points)
+
+### Standard 2.1: Identifying Differences in Geographical Structure (Up to 6 Points)
+
+#### Path 2.1.A [6 Points | Comparing Distribution by Language/Region]
+- Sub-criterion 2.1.A.1 [1 Point | Completeness]: Use `user_language` as the dimension for `region`, and calculate the count and proportion of entries for high- and low-revenue segments respectively.
+- Sub-criterion 2.1.A.2 [4 Points | Accuracy]: Present data for at least 6 key markets and align with the anchor points:
+  • ZH: total=2,538, high_cnt=821, low_cnt=689, high_share=32.35%, low_share=27.15%
+  • FR: total=2,364, high_cnt=746, low_cnt=716, high_share=31.56%, low_share=30.29%
+  • ES: total=2,415, high_cnt=754, low_cnt=688, high_share=31.22%, low_share=28.49%
+  • PT: total=2,610, high_cnt=790, low_cnt=772, high_share=30.27%, low_share=29.58%
+  • IT: total=2,379, high_cnt=693, low_cnt=834, high_share=29.13%, low_share=35.06%
+  • KO: total=2,305, high_cnt=602, low_cnt=758, high_share=26.12%, low_share=32.89%
+  (row count tolerance ±5, percentage point tolerance ±0.1pp).
+- Sub-criterion 2.1.A.3 [1 Point | Conclusion]: Point out that high-revenue is concentrated in ZH/FR/ES, while low-revenue has a high proportion in IT/KO, revealing a geographical structural misalignment.
+
+### Standard 2.2: Gaps in Key Performance Indicators (KPIs) (Up to 6 Points)
+
+#### Path 2.2.A [6 Points | Regional Performance Comparison]
+- Sub-criterion 2.2.A.1 [1 Point | Completeness]: For each `region`, calculate the average `survey_progress`, `question_value`, and `duration_in_seconds` for both high- and low-revenue segments.
+- Sub-criterion 2.2.A.2 [4 Points | Accuracy]: List the numerical differences for at least 3 representative markets:
+  • ZH: progress_high=54.74, progress_low=49.10, duration_high=42.38, duration_low=44.05;
+  • PT: progress_high=49.95, progress_low=55.96, question_value_high=5.54, question_value_low=5.40;
+  • EN: progress_high=45.91, progress_low=51.57, duration_high=44.40, duration_low=44.82;
+  (tolerance ±0.1).
+- Sub-criterion 2.2.A.3 [1 Point | Conclusion]: Summarize that there are both positive differences in high-revenue markets (e.g., ZH progress +5.64pp) and inverted cases (e.g., high-revenue segments in PT/EN lag behind), providing a basis for discussing the root causes of these differences.
+
+---
+
+## Requirement 3: Channel Correlation and Governance Priorities (Up to 12 Points)
+
+### Standard 3.1: Amplifying Differences Through the Channel Dimension (Up to 6 Points)
+
+#### Path 3.1.A [6 Points | Cross-Analysis of Channel × Revenue]
+- Sub-criterion 3.1.A.1 [1 Point | Completeness]: State that `distribution_channel` will be cross-analyzed with the revenue bins, and output three sets of metrics: share, `survey_progress`, and `duration_in_seconds`.
+- Sub-criterion 3.1.A.2 [4 Points | Accuracy]: Provide anchor points for key channels:
+  • mobile: high_cnt=1,537, low_cnt=1,435, high_share=31.32%, low_share=29.24%, progress_high=53.61, progress_low=49.80;
+  • sms: high_cnt=1,349, low_cnt=1,433, high_share=28.94%, low_share=30.74%, progress_high=48.02, progress_low=50.67, duration_high=43.94, duration_low=42.26;
+  • web: high_cnt=1,439, low_cnt=1,440, high_share=29.85%, low_share=29.88%, progress_high=48.96, progress_low=50.78.
+  (count tolerance ±5, percentage point tolerance ±0.1pp, metric tolerance ±0.1).
+- Sub-criterion 3.1.A.3 [1 Point | Conclusion]: Point out that the `mobile` channel is the only one where the high-revenue segment also shows a significant increase in progress, while `sms` and `web` present a risk of high revenue but declining user experience.
+
+### Standard 3.2: Governance Priorities and Actionable Recommendations (Up to 6 Points)
+
+#### Path 3.2.A [6 Points | Data-Driven Strategic Loop]
+- Sub-criterion 3.2.A.1 [1 Point | Completeness]: Using a 'region × channel' combination, identify at least two types of priority targets for governance, covering both scenarios of lagging high-revenue performance and untapped low-revenue potential.
+- Sub-criterion 3.2.A.2 [4 Points | Accuracy]: Support recommendations with quantitative anchor points, for example:
+  • KO: high_share=26.12% vs low_share=32.89%, progress_high=48.75 vs 49.49, needs to improve the high-revenue conversion process;
+  • PT: progress_high=49.95 vs 55.96, duration_high=46.10 vs 44.48, recommend optimizing the retention path for the high-revenue customer segment;
+  • `mobile` channel: progress improves by +3.81pp, making it more suitable for expanded investment compared to `sms` (-2.65pp).
+  (tolerance ±0.1pp / ±0.1).
+- Sub-criterion 3.2.A.3 [1 Point | Conclusion]: Formulate a dual-track strategy: 'Immediate Expansion vs. Focused Remediation', and quantify expected outcomes (e.g., increase survey progress for the high-revenue segment in KO by ≥1pp, and reduce the proportion of the low-revenue segment in the `sms` channel to ≤29%).
+
+---

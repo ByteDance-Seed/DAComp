@@ -1,0 +1,183 @@
+# [Total Score | 78 points] The solution must satisfy the following five core requirements:
+
+  - Requirement 1: Define the analysis window and state mapping methodology.
+  - Requirement 2: Calculate the five core state-level metrics according to the specified formulas.
+  - Requirement 3: Build a state competition intensity model and validate its robustness.
+  - Requirement 4: Design an investment return and composite investment efficiency scoring framework.
+  - Requirement 5: Output the investment efficiency ranking and a 3-year expansion recommendation.
+
+  ———
+
+  ## Requirement 1: Analysis Window and State Mapping Definition (Up to 12 points)
+
+  ### Standard 1.1: Setting the Time Window and Standardizing the New Customer Definition
+
+  #### Path 1.1.A [6 points | Last 12 Months Close Date Scope]
+  - Sub-standard 1.1.A.1 [1 point | Completeness]: Declare the analysis window as `[2024-10-13, 2025-10-13]`. All opportunity-related metrics (new customers, sales efficiency, win cycle, etc.) must be filtered by `close_date` within this interval.
+  - Sub-standard 1.1.A.2 [4 points | Accuracy]: Using `salesforce__opportunity_enhanced`, filter for opportunities with `is_won=1` and verify that the minimum won `close_date` = 2024-10-13 and the maximum = 2025-10-13. Identify the first win date for each `account_id` using `MIN(close_date)`, and then cumulate the new customers within the window. The result must be reproducible, showing the total new customers in 12 months = 978 (error ≤±1), and list sample states (California=159, Texas=113, New York=70).
+  - Sub-standard 1.1.A.3 [1 point | Conclusion]: Explain that the 12-month window aligns with the Marketing department's annual budget and sales rep performance cycles. Note the expected impact if a shorter window were used: `new_customers_12` would be significantly lower than 978, amplifying CAC fluctuations.
+
+  #### Path 1.1.B [6 points | 24-Month Lookback Scope]
+  - Sub-standard 1.1.B.1 [1 point | Completeness]: Add a 24-month window `[2023-10-14, 2025-10-13]` to assess sample stability and the risk of zero new customers.
+  - Sub-standard 1.1.B.2 [4 points | Accuracy]: Reusing the first-win logic, confirm that the total new customers in the 24-month window is also = 978 (error ≤±1). Provide the SQL/pseudo-code: `COUNT(DISTINCT CASE WHEN first_win_date BETWEEN '2023-10-14' AND '2025-10-13' THEN account_id END)`. The submission must highlight and explain the fact that the 12M and 24M results are identical (because the earliest won deal in history occurred on 2024-10-13).
+  - Sub-standard 1.1.B.3 [1 point | Conclusion]: State that the 24-month window can serve as a long-term monitoring baseline. Even though it currently yields the same result as the 12-month window, recommend noting the window difference in the report to facilitate reconciliation in case of future sample distribution shifts.
+
+  ### Standard 1.2: State Field Mapping and Sales Rep Territory Definition
+
+  #### Path 1.2.A [6 points | Account State Scope]
+  - Sub-standard 1.2.A.1 [1 point | Completeness]: Clearly state that all state-level aggregations are based on a direct match between the `billing_state` from the latest snapshot of `salesforce__account_daily_history` and `state_economic_data.state_name`, with no cleaning or mapping replacements.
+  - Sub-standard 1.2.A.2 [4 points | Accuracy]: Verify that the mapping covers 50 states and re-confirm through a query that the customer counts for California=489, Texas=336, and New York=204 (error ≤±1). Ensure there are no missing values when joining with `state_economic_data.population` to calculate penetration rate.
+  - Sub-standard 1.2.A.3 [1 point | Conclusion]: Explain that this scope is suitable for customer base metrics (penetration rate, customer value, industry concentration) and advise that if other geographical scopes are used for sales activities, the source of the difference must be noted in the conclusion.
+
+  #### Path 1.2.B [6 points | Sales Rep Primary State Approximation]
+  - Sub-standard 1.2.B.1 [1 point | Completeness]: Describe the method for determining a rep's territory: for each `owner_id`, count the number of accounts in each state and assign the state with the highest count as their "primary state". If there's a tie, break it alphabetically by state name.
+  - Sub-standard 1.2.B.2 [4 points | Accuracy]: Using the above rule, provide the top states by rep count: California=316, Texas=63, New York=43 (error ≤±1). State that this result is derived directly from the raw account distribution without additional cleaning or truncation.
+  - Sub-standard 1.2.B.3 [1 point | Conclusion]: Comment on the applicability of this approximation (suitable for estimating personnel density, CAC). Point out potential sources of bias (cross-state coverage, historical account migration) and require this assumption to be disclosed in any conclusions based on rep density.
+
+  ———
+
+  ## Requirement 2: Five Core State-Level Metrics Calculation (Up to 30 points)
+
+  ### Standard 2.1: Customer Acquisition Cost (CAC) = State Rep Count × 150,000 / New Customer Count
+
+  #### Path 2.1.A [6 points | Primary State Reps ÷ Actual New Customers]
+  - Sub-standard 2.1.A.1 [1 point | Completeness]: State that `rep_count` comes from the primary state assignment, `new_customers_24` uses the 24-month first-win scope, and the formula is consistently `CAC = rep_count × 150000 / new_customers_24`.
+  - Sub-standard 2.1.A.2 [4 points | Accuracy]: Verify at least the CAC for California≈298,113, Texas≈83,628, and New York≈92,143 (error ≤±0.5%). Highlight high-CAC states (Delaware≈450,000, Alabama≈311,538, Colorado≈300,000) and low-CAC states (Virginia≈26,786, Wisconsin≈21,429, Tennessee≈31,579). The submission must include the formula and key intermediate values (`rep_count`, `new_customers_24`).
+  - Sub-standard 2.1.A.3 [1 point | Conclusion]: Explain the CAC differences by linking rep density and new customer volume. For example, Delaware's cost is high because 14 reps acquired only ≈4.7 new customers, whereas Virginia maintains a low CAC with 14 reps for ≈28 new customers. Propose an initial resource allocation strategy.
+
+  #### Path 2.1.B [6 points | Opportunity Volume ÷ Rep-Average Opportunity Estimation]
+  - Sub-standard 2.1.B.1 [1 point | Completeness]: If rep territory data is unavailable, allow estimation via opportunity volume: `estimated_rep = opportunity_count_in_state / company_avg_opps`, where `company_avg_opps` is the average opportunity count per `owner_id` for the entire company.
+  - Sub-standard 2.1.B.2 [4 points | Accuracy]: Calculate the company-wide average opportunities per rep = 100.50 (error ≤±0.1). Use this to derive California's estimated rep count ≈32.2 and estimated CAC ≈30,366 (error ≤±3%), and note the discrepancy with the actual 316 reps. Must include SQL/pseudo-code like `SELECT COUNT(*) FROM opportunities WHERE billing_state=...` and the estimation formula, emphasizing this method is only for relative comparison when data is missing.
+  - Sub-standard 2.1.B.3 [1 point | Conclusion]: Point out that the opportunity-based method underestimates allocation in large states (like California) and advise noting this estimation bias in the report to prevent misinterpretation as actual personnel costs.
+
+  ### Standard 2.2: Average Customer Value (Mean vs. Median of Annual Revenue)
+
+  #### Path 2.2.A [6 points | Latest Snapshot Mean/Median]
+  - Sub-standard 2.2.A.1 [1 point | Completeness]: Aggregate `annual_revenue` by state using the latest account snapshot, outputting both the mean and median.
+  - Sub-standard 2.2.A.2 [4 points | Accuracy]: Verify California mean≈8,764,511, median≈3,101,195; New York mean≈9,620,962, median≈3,207,385; Oregon mean≈7,922,315, median≈4,025,001; West Virginia mean≈26,582,355, median≈5,564,391 (error ≤±1%).
+  - Sub-standard 2.2.A.3 [1 point | Conclusion]: Point out that states where the mean is much higher than the median (e.g., CA, NY, WV) have long-tail, high-value customers. Recommend a strategy that distinguishes between operating models for flagship accounts versus mid-market volume accounts.
+
+  #### Path 2.2.B [6 points | Quantile and Balance Analysis]
+  - Sub-standard 2.2.B.1 [1 point | Completeness]: Supplement the mean/median with `P90` (or P75), maintaining the original data scale.
+  - Sub-standard 2.2.B.2 [4 points | Accuracy]: Example values: California P90≈19,460,993, New York P90≈20,980,091, Oregon P90≈20,359,830, West Virginia P90≈55,122,047 (error ≤±1%). Must explain the calculation logic (e.g., sorting and locating the quantile index or using `quantile(0.9)`).
+  - Sub-standard 2.2.B.3 [1 point | Conclusion]: Propose a tiered strategy from a quantile perspective (e.g., P90+ customers for deep-dive engagement, P50- for standardized packages) to ensure actionable recommendations.
+
+  ### Standard 2.3: Market Penetration = Customer Count / (Population / 10,000)
+
+  #### Path 2.3.A [6 points | Customers per 10,000 Population]
+  - Sub-standard 2.3.A.1 [1 point | Completeness]: The penetration formula is fixed as `penetration = customer_count / (population/10000)`, with population taken from `state_economic_data`.
+  - Sub-standard 2.3.A.2 [4 points | Accuracy]: Verify top states: Delaware≈0.14142, Massachusetts≈0.13569, California≈0.12368, Washington≈0.12199, Wyoming≈0.12135 (error ≤±0.0002). Also, provide low-penetration states: Mississippi≈0.02702, Alaska≈0.04091, Rhode Island≈0.04556.
+  - Sub-standard 2.3.A.3 [1 point | Conclusion]: Analyze that high-penetration states tend to be mature and highly competitive, while low-penetration states (e.g., MS, AK) have ample greenfield opportunity but require evaluation of CAC and ROI before entry.
+
+  #### Path 2.3.B [6 points | Incremental Penetration Perspective]
+  - Sub-standard 2.3.B.1 [1 point | Completeness]: Add `penetration_gap = 1 - penetration_norm`, where `penetration_norm` is the Min-Max normalized result across the 50 states.
+  - Sub-standard 2.3.B.2 [4 points | Accuracy]: Verify that for high-penetration states (Delaware) the gap is ≈0, and for low-penetration states (Mississippi≈1.000, Alaska≈0.879, Rhode Island≈0.838) it approaches 1. Must explain the normalization range and formula.
+  - Sub-standard 2.3.B.3 [1 point | Conclusion]: Use the penetration gap to articulate "pioneering" priorities (e.g., MS, AK require channel pilots) and distinguish between existing market deepening and new market expansion strategies in the submission.
+
+  ### Standard 2.4: Sales Efficiency = Avg. Won Deal Amount / Avg. Sales Cycle × Win Probability
+
+  #### Path 2.4.A [6 points | Won Deal Scope + Average Probability]
+  - Sub-standard 2.4.A.1 [1 point | Completeness]: The sample for won deals is limited to `is_won=1`. Amount and cycle are `AVG(amount)` and `AVG(days_to_close)` respectively. Probability is the arithmetic mean of `probability/100` for all opportunities.
+  - Sub-standard 2.4.A.2 [4 points | Accuracy]: Verify efficiency for key states: Vermont≈1,545.92, Utah≈1,024.87, West Virginia≈847.08, Louisiana≈717.47, Oklahoma≈697.62, California≈576.21 (error ≤±5%). Also, list low-efficiency states: Alaska≈32.89, Maine≈186.19, New Hampshire≈189.76, Delaware≈212.65.
+  - Sub-standard 2.4.A.3 [1 point | Conclusion]: Summarize the characteristics of high-efficiency states (high deal value + short cycle + high probability) and propose improvement areas for low-efficiency states (e.g., Alaska needs to focus on lead qualification and cycle compression).
+
+  #### Path 2.4.B [6 points | Expected Revenue Method]
+  - Sub-standard 2.4.B.1 [1 point | Completeness]: Calculate `expected_per_day = SUM(expected_revenue) / SUM(days_to_close)`. This implicitly includes probability and is suitable for forecast-driven contexts.
+  - Sub-standard 2.4.B.2 [4 points | Accuracy]: Example results: Vermont≈1,242.03, Alaska≈800.94, Arkansas≈794.96, West Virginia≈726.48, Kansas≈687.64 are in the high tier; Delaware≈290.23, New Mexico≈372.07, Maine≈381.29 are in the low tier (error ≤±5%).
+  - Sub-standard 2.4.B.3 [1 point | Conclusion]: Emphasize that the expected revenue method is suitable for states with small won-deal samples or for forecasting scenarios. Require comparison with the actual won-deal efficiency to identify model bias (e.g., Alaska has high expected value but low actual performance).
+
+  ### Standard 2.5: Industry Concentration (Sum of Top 3 Industry Share)
+
+  #### Path 2.5.A [6 points | Top 3 Share by Customer Count]
+  - Sub-standard 2.5.A.1 [1 point | Completeness]: Group by state, count customers per industry, sum the top 3, and calculate `top3_share = Top3_customer_count / Total_customer_count`.
+  - Sub-standard 2.5.A.2 [4 points | Accuracy]: Verify Wyoming≈0.857, Idaho≈0.818, Alabama≈0.794, California≈0.636, New York≈0.608, Texas≈0.601 (error ≤±0.01). Must show the calculation table or pseudo-code (sort + accumulate).
+  - Sub-standard 2.5.A.3 [1 point | Conclusion]: Point out that highly concentrated states are suitable for vertical-specific strategies but must be wary of cyclical risks, while diversified states (e.g., South Carolina≈0.500, Minnesota≈0.548) require a multi-industry go-to-market approach.
+
+  #### Path 2.5.B [6 points | Indexed Diversity]
+  - Sub-standard 2.5.B.1 [1 point | Completeness]: Supplement with the Herfindahl Index `HHI = Σ share²` and calculate `diversity_index = 1 - HHI`.
+  - Sub-standard 2.5.B.2 [4 points | Accuracy]: Examples: Alaska and Vermont have a diversity_index≈0.444, Minnesota≈0.862, South Carolina≈0.858, Texas≈0.845 (error ≤±0.01). Must provide calculation steps or a code snippet.
+  - Sub-standard 2.5.B.3 [1 point | Conclusion]: Propose an industry portfolio strategy combining both metrics (e.g., set a health target of "Top3 share ≤ 60% AND diversity_index ≥ 0.80").
+
+  ———
+
+  ## Requirement 3: State Competition Intensity Model (Up to 12 points)
+
+  ### Standard 3.1: Model Design and Implementation
+
+  #### Path 3.1.A [6 points | Min-Max Normalization + Weighted Sum]
+  - Sub-standard 3.1.A.1 [1 point | Completeness]: Explain the directionality of indicators: Higher win rate ↑ and deal size ↑ indicate lower competition (use `1-norm`), while a longer sales cycle ↑ indicates higher competition (use `norm`). Set weights to 0.4/0.3/0.3 for win rate / deal size / cycle, respectively.
+  - Sub-standard 3.1.A.2 [4 points | Accuracy]: List scores for core states: Louisiana≈27.71, Idaho≈39.63, Georgia≈35.50, California≈40.18, Texas≈44.20, Maine≈69.59, Alaska≈78.01, Delaware≈67.08 (error ≤±1.5). Must include the normalization formula and a sample calculation.
+  - Sub-standard 3.1.A.3 [1 point | Conclusion]: Explain the characteristics of low-competition states (Vermont, Utah, Louisiana) and high-competition states (Alaska, Maine, Delaware). Propose resource allocation recommendations (e.g., accelerate investment in low-competition states, focus on improving win rates in high-competition states).
+
+  #### Path 3.1.B [6 points | Z-score or Quantile-based Robust Method]
+  - Sub-standard 3.1.B.1 [1 point | Completeness]: Use Z-score standardization to avoid the influence of outliers: `score = 50 + 10*(0.4*(-Z_prob)+0.3*(-Z_amount)+0.3*Z_cycle)`.
+  - Sub-standard 3.1.B.2 [4 points | Accuracy]: Ensure the trend is consistent with the Min-Max method. Examples: Louisiana≈40.66, Idaho≈48.19, California≈48.48, Texas≈51.03, Maine≈65.92, Alaska≈70.44 (error ≤±1.5).
+  - Sub-standard 3.1.B.3 [1 point | Conclusion]: Compare the differences between the two methods (score differences for small-sample states are smoother) and explain scenario selection (prioritize Z-score for regulated environments or when outliers are frequent).
+
+  ### Standard 3.2: Model Documentation and Sensitivity
+
+  #### Path 3.2.A [6 points | Parameter Transparency + Sensitivity]
+  - Sub-standard 3.2.A.1 [1 point | Completeness]: List the model inputs, normalization ranges, weights, and calculation order to ensure reproducibility by directly calling a `sales_efficiency` pipeline.
+  - Sub-standard 3.2.A.2 [4 points | Accuracy]: Complete a sensitivity test with weights ±10% (individually increasing the weight of win rate / deal size / cycle). Verify that the Top/Bottom 5 rankings are generally stable; the actual maximum rank displacement should be ≤ 6.
+  - Sub-standard 3.2.A.3 [1 point | Conclusion]: If sensitivity analysis causes rank fluctuations for some mid-tier states, provide recommendations for handling them (e.g., add a sample size threshold or introduce additional metrics).
+
+  #### Path 3.2.B [6 points | Rank-based Synthesis Alternative]
+  - Sub-standard 3.2.B.1 [1 point | Completeness]: Use rank-based weighting: rank win rate and deal size in descending order, rank sales cycle in ascending order, then sum the ranks to get a `competition_rank_score`.
+  - Sub-standard 3.2.B.2 [4 points | Accuracy]: Example results: Vermont score=17, Louisiana=26, Oklahoma=45, Alaska=143, Maine=142, Delaware=139 (error ≤±2).
+  - Sub-standard 3.2.B.3 [1 point | Conclusion]: Discuss the advantage of the rank-based method being insensitive to outliers. Explain that it can be prioritized to validate Min-Max results when missing or abnormal values exist.
+
+  ———
+
+  ## Requirement 4: Investment Return and Overall Investment Efficiency (Up to 12 points)
+
+  ### Standard 4.1: State ROI Prediction Algorithm
+
+  #### Path 4.1.A [6 points | Linear Weighted Model]
+  - Sub-standard 4.1.A.1 [1 point | Completeness]: Define `ROI Score = 0.35×economic_potential(=0.5×gdp_norm+0.5×population_norm) + 0.20×business_friendly_norm + 0.25×industry_fit_norm + 0.20×sales_eff_norm - 0.10×competition_norm`. Explain the source of each metric.
+  - Sub-standard 4.1.A.2 [4 points | Accuracy]: Verify key states: California≈73.77, Texas≈47.56, New York≈52.62, Florida≈36.51, Idaho≈48.35, Ohio≈48.06 (error ≤±0.5). Provide at least one expanded formula example.
+  - Sub-standard 4.1.A.3 [1 point | Conclusion]: Explain that high-ROI states (CA, NY, ID) are driven by market size and industry fit, while low-ROI states (Hawaii≈8.42, Alaska≈16.28) are limited by market scale and competitive disadvantages. Propose targeted strategies.
+
+  #### Path 4.1.B [6 points | Multiplicative or Geometric Mean Model]
+  - Sub-standard 4.1.B.1 [1 point | Completeness]: Construct a multiplicative framework: `ROI_geo = 100×[(econ_potential+ε)×(industry_fit_norm+ε)×(1-competition_norm+ε)×(sales_eff_norm+ε)×(business_friendly_norm+ε)]^{1/5}`.
+  - Sub-standard 4.1.B.2 [4 points | Accuracy]: Verify that the results are directionally consistent with the linear method: California≈66.42, New York≈55.36, Ohio≈49.39, Texas≈45.97, Minnesota≈43.40, Florida≈42.29; low-end states like Alaska≈0.10, Wyoming≈0.91 (error ≤±0.5).
+  - Sub-standard 4.1.B.3 [1 point | Conclusion]: Explain that the multiplicative model emphasizes the 'weakest link' effect (any dimension being zero drags down the overall score) and is suitable for high-investment decisions. Recommend cross-validating with the linear model.
+
+  ### Standard 4.2: Investment Efficiency Score and Sample Governance
+
+  #### Path 4.2.A [6 points | Linear Synthesis + Sample Threshold]
+  - Sub-standard 4.2.A.1 [1 point | Completeness]: Use the formula `Score = 0.25×(1-CAC_norm) + 0.25×sales_eff_norm + 0.20×ROI_norm + 0.15×penetration_gap + 0.15×(1-top3_share_norm)`. Set sample thresholds: must have account count ≥ 10 and new customers in 12 months ≥ 3 to be included in the scoring.
+  - Sub-standard 4.2.A.2 [4 points | Accuracy]: Among the valid samples (39 states), output the Top 10: Utah≈0.666, Minnesota≈0.639, South Carolina≈0.635, Idaho≈0.610, Tennessee≈0.604, New York≈0.599, Virginia≈0.599, Ohio≈0.596, Oklahoma≈0.594, Louisiana≈0.589; and Bottom 10: Delaware≈0.158, Connecticut≈0.377, Kansas≈0.404, New Hampshire≈0.414, Alabama≈0.426, Massachusetts≈0.428, Colorado≈0.431, Arizona≈0.443, Montana≈0.463, Iowa≈0.464 (error ≤±0.01).
+  - Sub-standard 4.2.A.3 [1 point | Conclusion]: Emphasize the sample thresholds and penalty logic (low-sample states should be flagged for "observation"), ensuring that noisy states (e.g., West Virginia with <10 customers) are excluded or listed separately.
+
+  #### Path 4.2.B [6 points | Multi-Criteria Decision-Making Method]
+  - Sub-standard 4.2.B.1 [1 point | Completeness]: Using TOPSIS as an example, use the same metrics but apply vector normalization. Score = distance_to_negative_ideal / (distance_to_positive_ideal + distance_to_negative_ideal).
+  - Sub-standard 4.2.B.2 [4 points | Accuracy]: Example rankings: Vermont≈0.682, Utah≈0.605, Idaho≈0.546, Minnesota≈0.533, California≈0.532 are at the top; tail-end states: Delaware≈0.215, Wyoming≈0.287, Alaska≈0.316, Connecticut≈0.318, New Hampshire≈0.335 (error ≤±0.02).
+  - Sub-standard 4.2.B.3 [1 point | Conclusion]: Compare TOPSIS and linear results (e.g., Vermont jumps up due to high efficiency but should be flagged as "for reference only" due to small sample size). Note the stability under minor weight adjustments (max rank change ≤ 4 for a ±10% weight change).
+
+  ———
+
+  ## Requirement 5: Investment Efficiency Ranking and Regional Expansion Recommendations (Up to 12 points)
+
+  ### Standard 5.1: Investment Efficiency Ranking and Insights
+
+  #### Path 5.1.A [6 points | Ranking + Insights Combined]
+  - Sub-standard 5.1.A.1 [1 point | Completeness]: Output a complete investment efficiency score table, listing at least the Top 10 and Bottom 10 states, and including key metric columns: CAC, Sales Efficiency, Penetration, Top3 Share, ROI, Competition Score, Investment Efficiency Score.
+  - Sub-standard 5.1.A.2 [4 points | Accuracy]: The Top 10/Bottom 10 must align with Standard 4.2 (error ≤±0.01 or ±5%). Example for top state Utah (CAC≈37,500, SalesEff≈1,024.87, Penetration≈0.087, Top3≈0.640, ROI≈42.43, Competition≈25.95, Score≈0.666), and bottom state Delaware (CAC≈450,000, SalesEff≈212.65, Penetration≈0.141, Top3≈0.800, ROI≈22.48, Competition≈67.08, Score≈0.158).
+  - Sub-standard 5.1.A.3 [1 point | Conclusion]: Summarize the common traits of top states (low CAC, high sales efficiency, room for penetration) and the limitations of bottom states (high competition + high CAC + low ROI) in an insights paragraph.
+
+  #### Path 5.1.B [6 points | Tiered Thresholds + Sensitivity]
+  - Sub-standard 5.1.B.1 [1 point | Completeness]: Divide states into three tiers based on investment efficiency scores (top 33%, 33-66%, bottom 34%). Example: Tier 1 = 13 states (Utah, Minnesota, South Carolina, Idaho, Tennessee, New York, Virginia, Ohio, Oklahoma, Louisiana, Michigan, Wisconsin, Oregon); Tier 2 = 13 states; Tier 3 = 13 states.
+  - Sub-standard 5.1.B.2 [4 points | Accuracy]: Thresholds should be based on the actual distribution (approx. 0.60 / 0.52 / 0.45). Record the sensitivity results for ±10% weight changes—maximum rank change ≤ 4, with no state jumping two tiers. The sensitivity table must be presented in the submission.
+  - Sub-standard 5.1.B.3 [1 point | Conclusion]: Define a strategic positioning for each tier (Tier 1 = immediate expansion, Tier 2 = focused pilots, Tier 3 = observe/remediate) and specify metric thresholds (e.g., Tier 1 requires `Score≥0.60` AND `ROI≥40`).
+
+  ### Standard 5.2: 3-Year Expansion Priorities and Action Plan
+
+  #### Path 5.2.A [6 points | Tiered Strategy + Action Items]
+  - Sub-standard 5.2.A.1 [1 point | Completeness]: Propose at least three priority tiers, with ≥3 states in each. Example: Tier 1 (Utah, Minnesota, Idaho, Tennessee, New York), Tier 2 (Virginia, Ohio, Oklahoma, Louisiana, California, Texas, Georgia), Tier 3 (Kansas, Connecticut, Delaware, etc.).
+  - Sub-standard 5.2.A.2 [4 points | Accuracy]: Actions for each tier must match their current metrics. E.g., for Utah/Idaho (low CAC + high efficiency) → Action: Expand rep team + set quarterly penetration targets (PenGap decrease ≥0.05); for Texas/California (high ROI but high competition) → Action: Optimize qualification and pricing strategies; for Tier 3 (high CAC + high competition) → Action: Freeze new hires, focus on proving customer value. Provide at least two executable actions for each tier.
+  - Sub-standard 5.2.A.3 [1 point | Conclusion]: Set quantitative KPIs to create a closed-loop system (e.g., Tier 1 3-year goals: decrease CAC by 15%, increase sales efficiency by 10%, increase penetration by 0.01; review cycle = quarterly).
+
+  #### Path 5.2.B [6 points | Four-Quadrant Approach]
+  - Sub-standard 5.2.B.1 [1 point | Completeness]: Construct a four-quadrant matrix using `ROI≥40` and `Competition≤40` as thresholds. List representative states for each quadrant: High ROI/Low Competition (Alabama, Idaho, Minnesota, New York, Utah, Vermont), High ROI/High Competition (California, Texas, Virginia, Ohio, Oregon, Colorado), Low ROI/Low Competition (Arizona, Florida, Georgia, Louisiana, Oklahoma, etc.), Low ROI/High Competition (Alaska, Delaware, Connecticut, Kansas, Maine, etc.).
+  - Sub-standard 5.2.B.2 [4 points | Accuracy]: Thresholds should be based on the actual distribution (mean ROI≈33, mean Competition≈42.6). The quadrant assignments must be consistent with the data. A simple table showing the states in each quadrant can be included.
+  - Sub-standard 5.2.B.3 [1 point | Conclusion]: Propose resource allocation and exit conditions for each quadrant. For example, High ROI/Low Competition → prioritize expansion (Goal: +0.02 penetration in 3 years), High ROI/High Competition → refined tactics (Goal: decrease competition score by 3 points), Low ROI/Low Competition → lightweight pilots, Low ROI/High Competition → observe and set a trigger threshold of ROI increasing by 5 points / Competition decreasing by 5 points.

@@ -1,0 +1,185 @@
+==============================
+I. Task Context (dacomp-071 Final Scoring Rubric)
+==============================
+- Data Source: /Users/bytedance/workspace/dacomp-release/dacomp-da/tasks/dacomp-071/dacomp-071.sqlite, with `lever__opportunity_stage_history` as the core table and `lever__opportunity_enhanced` as a supplementary table for closed-loop validation.
+- Scoring Baseline: Only results from SQL/Python queries executed on the provided database are accepted. All anchor points were re-validated on 2025-02-21. Error tolerance is ±0.005 for ratios, ±0.5 days for durations, and ±1 for counts.
+
+# [Total Score | 48 points] Hiring Funnel Efficiency Diagnosis—Scoring Rubric
+
+---
+
+## Requirement 1: Data Preparation and Stage Metric Construction (Up to 12 points)
+
+### Criterion 1.1: Data Table Identification and Stage Ordering
+
+#### Path 1.1.A [6 points | Business Stage Mapping Method]
+
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly identifies `lever__opportunity_stage_history` (using fields like `opportunity_id`, `stage`, `valid_from`, `days_in_stage`, `archive_reason`, `job_team`, etc.) as the primary data source, with `lever__opportunity_enhanced` used only for closed-loop validation. Provides the business stage order: Application Review→Phone Screening→Technical Assessment→First Interview→Second Interview→Final Interview→Reference Check→Offer Discussion→Background Check→Hired, and assigns ranks from 1 to 10.
+- Sub-criterion 1.1.A.2 [4 points | Accuracy]: Aggregates sample counts and average days in stage by `stage`. Must reproduce the following anchor points: Application Review 3000/5.92, Phone Screening 1962/9.12, Technical Assessment 1342/44.11, First Interview 768/16.10, Second Interview 460/19.56, Final Interview 224/42.28, Reference Check 83/63.54, Offer Discussion 74/38.54, Background Check 55/39.29, Hired 51/49.90.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: States that using the business stage order mitigates the risk of misjudging stages due to reversed `valid_from` timestamps, and confirms that subsequent analysis will be based on this mapping.
+
+#### Path 1.1.B [6 points | Time Window LEAD Method]
+
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: States that within each `opportunity`, records are sorted by `datetime(valid_from) DESC`, and `LEAD(stage)` / `LEAD(rank)` is used to capture the next stage.
+- Sub-criterion 1.1.B.2 [4 points | Accuracy]: Recalculates `samples` and `avg_days` for each `stage`, matching the anchor points in Path 1.1.A. Notes that reverse chronological sorting is necessary to avoid identifying 'Application Review' as the final stage.
+- Sub-criterion 1.1.B.3 [1 point | Conclusion]: Explains that the reverse time window method can cross-validate the business mapping method, ensuring a consistent progression chain.
+
+#### Path 1.1.C [6 points | Attribution Tag Method]
+
+- Sub-criterion 1.1.C.1 [1 point | Completeness]: States that the raw records from `stage_history` are used directly without additional cleaning or supplementation.
+- Sub-criterion 1.1.C.2 [4 points | Accuracy]: Aggregates `samples` and `avg_days` by `stage`, with results matching the values in Path 1.1.A. If there are discrepancies, the filtering or aggregation scope must be explained.
+- Sub-criterion 1.1.C.3 [1 point | Conclusion]: States that subsequent analysis will classify pass/attrition based on `archive_reason`, which differs from the 'advanced to a higher stage' scope, and that both scopes should be compared.
+
+---
+
+### Criterion 1.2: Core Stage Metric Calculation
+
+#### Path 1.2.A [6 points | Business Order Logic × Full Dataset Scope]
+
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Outputs a complete table including `stage`, `rank`, `samples`, `avg_days`, `pass_rate` (proportion where MAX(rank) > current rank), `attrition_rate` (proportion where MAX(rank) = current rank and `stage` ≠ 'Hired'), and `efficiency_index` = pass_rate/avg_days×100.
+- Sub-criterion 1.2.A.2 [4 points | Accuracy]: Anchor points must match (tolerance ±0.005): Application Review pass=0.6540/attr=0.3460/eff=11.0523; Phone Screening 0.6840/0.3160/7.5039; Technical Assessment 0.5723/0.4277/1.2973; First Interview 0.5990/0.4010/3.7202; Second Interview 0.4870/0.5130/2.4900; Final Interview 0.3705/0.6295/0.8764; Reference Check 0.8916/0.1084/1.4031; Offer Discussion 0.7432/0.2568/1.9285; Background Check 0.9273/0.0727/2.3600. Must explain the CASE conditions and grouping method for pass/attrition.
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: Points out the funnel characteristic of 'high progression rate in early stages, prominent attrition in later stages' and emphasizes that subsequent conclusions and recommendations will only apply to stages with `samples` ≥ 100.
+
+#### Path 1.2.B [6 points | Reverse Chronological LEAD Scope]
+
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: Defines `progressed` = `next_stage` is not null, and `attrited` = `next_stage` is null and `stage` ≠ 'Hired', creating an identically structured metrics table.
+- Sub-criterion 1.2.B.2 [4 points | Accuracy]: All metrics must match those from Path 1.2.A within the tolerance. Must clearly explain the implementation steps: partition by `opportunity_id`, order by `valid_from` descending, use `LEAD` to mark the next stage, then calculate proportions.
+- Sub-criterion 1.2.B.3 [1 point | Conclusion]: States that the time window method can handle timestamp anomalies and serves as a consistent validation for the business mapping scope.
+
+#### Path 1.2.C [6 points | Attribution Category Scope]
+
+- Sub-criterion 1.2.C.1 [1 point | Completeness]: Defines 'pass' using the `archive_reason` set {'Proceeding', 'Advanced to next stage', 'Qualified', 'Hired'}, treating all others as 'attrition'. Outputs a table with `samples`, `avg_days`, `pass_rate`, `drop_rate`, and `efficiency_index`.
+- Sub-criterion 1.2.C.2 [4 points | Accuracy]: Key stages must meet: Technical Assessment pass≈0.0037/drop≈0.9963/eff≈0.0084; Final Interview pass≈0.0089/drop≈0.9911/eff≈0.0211. Other stages should have differences from Path 1.2.A within tolerance. Explains the attribution mapping and proportion calculation.
+- Sub-criterion 1.2.C.3 [1 point | Conclusion]: Notes that the attribution perspective reveals reasons for rejection but significantly lowers the progression rate, and should be interpreted in conjunction with the progression-based scope.
+
+#### Path 1.2.D [6 points | Closed-Loop Opportunity Scope]
+
+- Sub-criterion 1.2.D.1 [1 point | Completeness]: Filters for closed-loop opportunities (where `lever__opportunity_enhanced.archived_at` is not null or the 'Hired' stage is present for the opportunity) and reuses the metric framework from Path 1.2.A.
+- Sub-criterion 1.2.D.2 [4 points | Accuracy]: Anchor points must be met: Application Review samples≈954/pass≈0.6583/attr≈0.3417; Technical Assessment samples≈433/avg≈44.14/pass≈0.6097/attr≈0.3903/eff≈1.3813; Final Interview samples≈106/avg≈41.98/pass≈0.6038/attr≈0.3962/eff≈1.4382. Must explain the closed-loop determination criteria.
+- Sub-criterion 1.2.D.3 [1 point | Conclusion]: Explains that the closed-loop scope only retains concluded samples, which reduces the count but helps validate bottleneck identification.
+
+---
+
+## Requirement 2: Key Bottleneck Stage Identification (Up to 12 points)
+
+### Criterion 2.1: Stages with avg_days > 25 and attrition > 40%
+
+#### Path 2.1.A [6 points | Business Order Scope]
+
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Filters stages from Path 1.2.A metrics where `avg_days` > 25 & `attrition_rate` > 0.40.
+- Sub-criterion 2.1.A.2 [4 points | Accuracy]: Only Technical Assessment (44.11 days / attr=0.4277 / samples=1342) and Final Interview (42.28 days / attr=0.6295 / samples=224) should match. No other stages should appear.
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: Declares these two stages as funnel bottlenecks due to 'long duration + high attrition'.
+
+#### Path 2.1.B [6 points | LEAD Scope]
+
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Repeats the filtering using the `progressed`/`attrited` metrics from Path 1.2.B.
+- Sub-criterion 2.1.B.2 [4 points | Accuracy]: The filtered result must be identical to Path 2.1.A. Any discrepancies must be explained by differences in sorting or logic.
+- Sub-criterion 2.1.B.3 [1 point | Conclusion]: Confirms that different progression scopes both identify Technical Assessment and Final Interview as the bottlenecks.
+
+#### Path 2.1.C [6 points | Attribution Category Scope]
+
+- Sub-criterion 2.1.C.1 [1 point | Completeness]: Filters stages from Path 1.2.C metrics where `avg_days` > 25 & `drop_rate` > 0.40 (for stages with `samples` ≥ 100).
+- Sub-criterion 2.1.C.2 [4 points | Accuracy]: The result is still Technical Assessment (drop≈0.9963) and Final Interview (drop≈0.9911). Although Reference Check has drop≈0.7711, it is only noted for observation as `samples`=83 and not included in the conclusion.
+- Sub-criterion 2.1.C.3 [1 point | Conclusion]: States that the attribution perspective is more stringent but its conclusion aligns with the progression scope.
+
+### Criterion 2.2: Supporting Statistics for Bottleneck Stages
+
+#### Path 2.2.A [6 points | Pass/Attrition Counts]
+
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Lists the counts of `advanced` (progressed) / `attrited` for the bottleneck stages.
+- Sub-criterion 2.2.A.2 [4 points | Accuracy]: Technical Assessment advanced≈768, attrited≈574; Final Interview advanced≈83, attrited≈141 (tolerance ±1).
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]: Emphasizes that high attrition directly weakens downstream conversion and quantifies the scale of the loss.
+
+#### Path 2.2.B [6 points | Stage-to-Hire Conversion Rate]
+
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Calculates `stage_to_hire` = AVG(max_rank=10) for stages with `samples` ≥ 100 and outputs results for comparison stages.
+- Sub-criterion 2.2.B.2 [4 points | Accuracy]: Technical Assessment≈0.0380, Final Interview≈0.2277. Also provides First Interview≈0.0664 and Second Interview≈0.1109 for comparison. Explains calculation steps (aggregate by `stage`, check MAX(rank)).
+- Sub-criterion 2.2.B.3 [1 point | Conclusion]: Points out the leverage that improving the pass rate of bottleneck stages has on the overall hiring rate.
+
+---
+
+## Requirement 3: Low-Efficiency Stage Identification (Up to 6 points)
+
+### Criterion 3.1: Efficiency Index < 1.5
+
+#### Path 3.1.A [6 points | Business Order Efficiency]
+
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Filters for `efficiency_index` < 1.5 from Path 1.2.A metrics (for stages with `samples` ≥ 100).
+- Sub-criterion 3.1.A.2 [4 points | Accuracy]: Outputs Technical Assessment=1.2973 and Final Interview=0.8764. Reference Check=1.4031 is for observation only (`samples`=83).
+- Sub-criterion 3.1.A.3 [1 point | Conclusion]: States that the low-efficiency stages overlap with the bottlenecks and should be prioritized for optimization.
+
+#### Path 3.1.B [6 points | Attribution Efficiency]
+
+- Sub-criterion 3.1.B.1 [1 point | Completeness]: Uses the efficiency index from Path 1.2.C to filter for < 1.5 (for stages with `samples` ≥ 100).
+- Sub-criterion 3.1.B.2 [4 points | Accuracy]: Technical Assessment≈0.0084, Final Interview≈0.0211. Reference Check≈0.3603 (`samples`<100) must be marked for observation. Explains that attribution results are driven by the tags.
+- Sub-criterion 3.1.B.3 [1 point | Conclusion]: Notes that the attribution scope reflects candidate tag outcomes and needs to be interpreted alongside progression metrics.
+
+#### Path 3.1.C [6 points | Closed-Loop Efficiency]
+
+- Sub-criterion 3.1.C.1 [1 point | Completeness]: Recalculates `efficiency_index` within the closed-loop sample and filters for < 1.5.
+- Sub-criterion 3.1.C.2 [4 points | Accuracy]: Technical Assessment≈1.3813 (`samples`=433), Final Interview≈1.4382 (`samples`=106). Explains the calculation and closed-loop selection details.
+- Sub-criterion 3.1.C.3 [1 point | Conclusion]: Points out that even when focusing on concluded opportunities, these two stages remain inefficient.
+
+---
+
+## Requirement 4: In-depth Diagnosis of Bottleneck Stages (Up to 12 points)
+
+### Criterion 4.1: Time-Spent Structure and Long Tail
+
+#### Path 4.1.A [6 points | Time Spent Comparison: Passed vs. Attrited]
+
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: Outputs `avg_days_progressed` and `avg_days_attrited` for both Technical Assessment and Final Interview.
+- Sub-criterion 4.1.A.2 [4 points | Accuracy]: Technical Assessment progressed≈43.48 vs attrited≈44.96; Final Interview progressed≈42.78 vs attrited≈41.99.
+- Sub-criterion 4.1.A.3 [1 point | Conclusion]: Notes that for TA, attrited candidates take longer (process friction), while for FI, the difference is minimal (evaluation criteria are dominant).
+
+#### Path 4.1.B [6 points | Percentiles and Long-Tail Percentage]
+
+- Sub-criterion 4.1.B.1 [1 point | Completeness]: Outputs median, P75, P90, and `share_gt_P75`, `share_gt_P90`.
+- Sub-criterion 4.1.B.2 [4 points | Accuracy]: Technical Assessment median=44, P75=55, P90=70, share_gt_P75≈0.2429, share_gt_P90≈0.0976; Final Interview median=39, P75=50, P90=63, share_gt_P75≈0.2500, share_gt_P90≈0.0848. Explains that percentiles use nearest-rank method and long-tail shares are calculated with conditional counting.
+- Sub-criterion 4.1.B.3 [1 point | Conclusion]: Points out that both stages have a high share of long-tail samples, requiring SLA setting and scheduling optimization.
+
+#### Path 4.1.C [6 points | Attrition Rate by Time-in-Stage Bins]
+
+- Sub-criterion 4.1.C.1 [1 point | Completeness]: Bins time in stage by 0–14, 15–30, 31–45, 46–60, and 61+ days and calculates `attrition`/`drop` rate for each.
+- Sub-criterion 4.1.C.2 [4 points | Accuracy]: Technical Assessment attr≈{0.370,0.407,0.410,0.453,0.451}; Final Interview attr≈{0.600,0.614,0.642,0.585,0.704} (in order of bins). Clarifies the binning logic and `attrited` definition.
+- Sub-criterion 4.1.C.3 [1 point | Conclusion]: States that longer duration correlates with higher attrition, supporting the need to shorten schedules and improve grading speed.
+
+### Criterion 4.2: Attrition Attribution and Team Differences
+
+#### Path 4.2.A [6 points | Top Reasons for Final Attrition]
+
+- Sub-criterion 4.2.A.1 [1 point | Completeness]: Lists the Top 3 `archive_reason` values for opportunities that ended at this stage and did not advance.
+- Sub-criterion 4.2.A.2 [4 points | Accuracy]: Technical Assessment: 'Failed technical assessment'≈314, 'Technical skills insufficient'≈198, 'Coding challenge failed'≈51; Final Interview: 'Cultural fit concerns'≈95, 'Interview performance below expectations'≈35, 'Better candidate selected'≈10.
+- Sub-criterion 4.2.A.3 [1 point | Conclusion]: Summarizes that TA attrition is mainly due to lack of technical ability, while FI focuses on cultural fit/interview performance.
+
+#### Path 4.2.B [6 points | Breakdown by Team Dimension]
+
+- Sub-criterion 4.2.B.1 [1 point | Completeness]: For `job_team` groups with `samples` ≥ 20, outputs `samples`, `avg_days`, `pass_rate`, and `efficiency_index`.
+- Sub-criterion 4.2.B.2 [4 points | Accuracy]: Technical Assessment: Marketing pass≈0.5079/eff≈1.1218, Engineering pass≈0.5482/eff≈1.2561, Data pass≈0.6207/eff≈1.4273, etc.; Final Interview: Data pass≈0.2273/eff≈0.5747, Marketing pass≈0.3056/eff≈0.6748, Sales pass≈0.3158/eff≈0.8016, etc. Explains that aggregation uses `GROUP BY stage, job_team`.
+- Sub-criterion 4.2.B.3 [1 point | Conclusion]: Identifies teams with lower efficiency as priorities, aiding in the creation of targeted optimization plans.
+
+#### Path 4.2.C [6 points | Full Attribution Distribution]
+
+- Sub-criterion 4.2.C.1 [1 point | Completeness]: Lists the Top 3 `archive_reason` values from all records in the bottleneck stages (including non-final ones).
+- Sub-criterion 4.2.C.2 [4 points | Accuracy]: Technical Assessment: 'Failed technical assessment'≈758, 'Technical skills insufficient'≈440, 'Coding challenge failed'≈128; Final Interview: 'Cultural fit concerns'≈148, 'Interview performance below expectations'≈56, 'Better candidate selected'≈17.
+- Sub-criterion 4.2.C.3 [1 point | Conclusion]: States that this full-scope perspective can guide optimizations in question bank tiering, interviewer coaching, and the cultural fit interview process.
+
+---
+
+## Requirement 5: Improvement Recommendations (Up to 6 points)
+
+### Criterion 5.1: Data-Driven Stage Improvement Plan
+
+#### Path 5.1.A [6 points | Differentiated Actions by Stage]
+
+- Sub-criterion 5.1.A.1 [1 point | Completeness]: Proposes ≥3 actionable initiatives for both Technical Assessment and Final Interview (limited to stages with `samples` ≥ 100).
+- Sub-criterion 5.1.A.2 [4 points | Accuracy]: Initiatives must align with data, e.g., For TA (avg_days=44.11, attr=0.4277, share_gt_P75=0.2429) → implement an upfront short technical quiz, create tiered question banks, set a grading SLA of ≤7 days, use auto-reminders/graders, provide candidate preparation guides, with targets of avg_days≤30, pass_rate≥0.62, efficiency≥1.8; For FI (attr=0.6295, 'Cultural fit concerns'=95, share_gt_P90=0.0848) → use structured cultural fit interviews, ensure final decisions within 48h, guarantee panel scheduling, calibrate interviewers, pre-screen salary expectations, with targets of avg_days≤25, pass_rate≥0.45, efficiency≥1.8.
+- Sub-criterion 5.1.A.3 [1 point | Conclusion]: States the expected benefits and monitoring methods (e.g., stage SLA dashboard, closed-loop tracking of `stage_to_hire` and `share_gt_P75` metrics).
+
+#### Path 5.1.B [6 points | Governance and Monitoring Framework]
+
+- Sub-criterion 5.1.B.1 [1 point | Completeness]: Proposes a governance framework covering both TA & FI (SLA setting, capacity planning, candidate experience management, metrics dashboard).
+- Sub-criterion 5.1.B.2 [4 points | Accuracy]: Details specific thresholds: TA test sent ≤24h, submission ≤7 days, grading ≤72h; FI scheduling ≤7 days, decision ≤48h. Recommends continuous monitoring of `avg_days`, `share_gt_P75`, `attrited_cnt`, `stage_to_hire`, and share of 'Cultural fit concerns'.
+- Sub-criterion 5.1.B.3 [1 point | Conclusion]: Describes an implementation timeline (e.g., 6–8 week pilot → quarterly review), a target for the efficiency index (≥1.8), and a continuous iteration mechanism.
+
+---

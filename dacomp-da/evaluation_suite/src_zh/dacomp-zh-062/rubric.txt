@@ -1,0 +1,161 @@
+# [总分 | 30分] 评分标准聚焦“高 direct_network_connections（DNC）的 stakeholders 是否带来更好的项目 outcomes（complexity_risk_score、success_probability）”，采用 需求 → 标准 → 路径 → 小标准 结构。每个小标准分别衡量完备性（1分）、精确性（4分）、结论性（1分）；得分均为整数。
+
+———
+
+## 需求1：数据定位与分析口径设定（最高 6分）
+
+### 标准1.1 [最高 3分]：识别核心数据表并界定可行的关联路径
+
+#### 路径1.1.A [3分]：数据库勘探 + 两表核验 + 间接证据声明
+
+- 标准1.1.A.1 [1分｜完备性]：明确数据位置 `/Users/bytedance/workspace/dacomp-release/dacomp-da/tasks/dacomp-062/dacomp-062.sqlite`，指出仅包含 `jira__stakeholder_engagement_insights`（字段含 `stakeholder_id`、`direct_network_connections`、`engagement_*`、`influence`、`strategic_value_score` 等）与 `jira__project_risk_assessment`（字段含 `project_id`、`complexity_risk_score`、`success_probability`、`total_external_links`、`unique_components`、`unique_issue_types`、`team_stability_percentage`、`value_delivery_percentage` 等）两表。
+- 标准1.1.A.2 [4分｜精确性]：通过 SQL/数据帧计数给出锚点并说明无直接 stakeholder→project 映射：`jira__stakeholder_engagement_insights` 记录数 = 4524，`direct_network_connections` 的 `min=2`、`mean≈15.97`、`max=65`、`P75=21`；`jira__project_risk_assessment` 记录数 = 200，`success_probability` 平均值 ≈0.8259，`complexity_risk_score` 平均值 ≈45.46；核验两表均不存在 `project_id × stakeholder_id` 联结键（未发现同名字段或外键）。容差：计数误差不超过 ±1；均值与分位误差不超过 ±0.01。
+- 标准1.1.A.3 [1分｜结论性]：说明后续分析采用“两段式间接证据链”（Stakeholder 侧画像对比 + Project 侧协作代理检验），并声明无法进行直接因果归因的限制。
+
+#### 路径1.1.B [3分]：假设存在参与映射时的直接证明方案
+
+- 标准1.1.B.1 [1分｜完备性]：描述理想数据结构 `stakeholder_project_map(stakeholder_id, project_id, role, participation_weight)`，需保留 `success_probability`、`complexity_risk_score` 等项目指标。
+- 标准1.1.B.2 [4分｜精确性]：提供可复核 SQL/流程化思路：①以 map 表连结 stakeholder 与 project 并打标“项目是否含 ≥1 名高 DNC 成员”；②对 `success_probability`、`complexity_risk_score` 做项目层分组聚合；③避免重复记录（同一项目多条参与记录需去重或按 `participation_weight` 加权）。
+- 标准1.1.B.3 [1分｜结论性]：说明若能执行该路径，应比较“含 ≥1 名高 DNC vs 不含”的项目结果并做显著性检验；若仍缺乏映射数据，应回退至间接证据链并声明局限。
+
+### 标准1.2 [最高 3分]：高 DNC 群体的构建
+
+#### 路径1.2.A [3分]：P75 分位阈值法（推荐）
+
+- 标准1.2.A.1 [1分｜完备性]：说明以 `direct_network_connections` 上四分位（P75）作为“高 DNC”阈值，高组定义为 `DNC ≥ 阈值`，其余为对照组。
+- 标准1.2.A.2 [4分｜精确性]：复现并校验锚点（容差±1 单位 / ±1%）：P75=21，高组样本数=1231，对照组样本数=3293；同时报告全体分布 `min=2`、`mean≈15.97`、`max=65`。
+- 标准1.2.A.3 [1分｜结论性]：明确写出“高 DNC 阈值=21，将作为后续 Stakeholder 画像与对照分析的基准”。
+
+#### 路径1.2.B [3分]：Top25% 或 Z-score 分组法
+
+- 标准1.2.B.1 [1分｜完备性]：阐明所选方法（如按降序取前 25% 或 Z-score≥0.67），并说明保持样本量平衡的理由。
+- 标准1.2.B.2 [4分｜精确性]：输出阈值与样本量，需与 P75 法同量级（阈值介于 20–22，高组占比 23%–27%）；若采用 Z-score，需给出计算思路与阈值。
+- 标准1.2.B.3 [1分｜结论性]：说明该高 DNC 分组将与对照组在后续分析中并列使用，以验证稳健性。
+
+———
+
+## 需求2：Stakeholder 层的跨职能能力与影响力刻画（最高 6分）
+
+### 标准2.1 [最高 3分]：高 DNC vs 其他的多指标对比
+
+#### 路径2.1.A [3分]：多指标均值对比（推荐）
+
+- 标准2.1.A.1 [1分｜完备性]：覆盖至少 10 项指标且保持“未经清洗”口径：`total_projects_involved`、`cross_functional_projects`、`cross_functional_ratio = cross_functional_projects / total_projects_involved (0→NULL)`、`engagement_impact_score`、`total_engagement_score`、`engagement_quality_score`、`engagement_breadth_score`、`total_outbound_influence`、`total_inbound_influence`、`avg_outbound_influence_strength`、`strategic_value_score`。
+- 标准2.1.A.2 [4分｜精确性]：高组 (n=1231) vs 对照组 (n=3293) 均值需在锚点 ±1% 内：`total_projects_involved 6.505 vs 4.959`；`cross_functional_projects 6.602 vs 3.010`；`cross_functional_ratio ≈1.074 vs ≈0.675`（明确说明 >1 代表多项目计量口径差异）；`engagement_impact_score 74.84 vs 48.70`；`total_engagement_score 55.68 vs 40.29`；`engagement_quality_score 72.83 vs 46.74`；`engagement_breadth_score 36.91 vs 16.37`；`total_outbound_influence 155.14 vs 48.51`；`total_inbound_influence 162.74 vs 50.92`；`avg_outbound_influence_strength 4.83 vs 4.85`；`strategic_value_score 77.09 vs 48.41`。
+- 标准2.1.A.3 [1分｜结论性]：总结“高 DNC 干系人在参与广度、跨职能程度、影响规模、战略价值上显著更高，平均影响强度差异极小，并提示 cross_functional_ratio>1 的数据口径风险”。
+
+#### 路径2.1.B [3分]：标准化综合画像评分
+
+- 标准2.1.B.1 [1分｜完备性]：说明基于至少 5 个协作/影响指标（示例：`total_projects_involved`、`cross_functional_projects`、`engagement_impact_score`、`total_outbound_influence`、`strategic_value_score`）计算 Z-score 并等权求和，形成综合画像分比较高组与对照组。
+- 标准2.1.B.2 [4分｜精确性]：给出计算流程（均值/标准差→Z-score→求和→分组均值），结果须满足高组平均分 ≈4.70，对照组 ≈-1.76，差值≥5（容差±0.5）。
+- 标准2.1.B.3 [1分｜结论性]：说明“综合画像分显著更高，表明高 DNC 的网络覆盖与影响协同提升”。
+
+### 标准2.2 [最高 3分]：DNC 与协作/影响指标的统计关联
+
+#### 路径2.2.A [3分]：Pearson 相关系数法（推荐）
+
+- 标准2.2.A.1 [1分｜完备性]：计算 DNC 与下列指标的 Pearson r：`cross_functional_projects`、`total_projects_involved`、`cross_functional_ratio`、`engagement_impact_score`、`total_engagement_score`、`engagement_quality_score`、`total_outbound_influence`、`total_inbound_influence`、`strategic_value_score`、`avg_outbound_influence_strength`。
+- 标准2.2.A.2 [4分｜精确性]：相关系数需落在锚点 ±0.01 内：`r(DNC, CFP)=0.794`；`r(DNC, TPI)=0.401`；`r(DNC, 比率)=0.496`；`r(DNC, engagement_impact)=0.715`；`r(DNC, total_engagement)=0.679`；`r(DNC, total_outbound)=0.808`；`r(DNC, total_inbound)=0.778`；`r(DNC, engagement_quality)=0.671`；`r(DNC, strategic_value)=0.614`；`r(DNC, avg_outbound_strength)=0.008`。
+- 标准2.2.A.3 [1分｜结论性]：强调“DNC 与协作广度/影响规模呈显著正相关，而与单连结强度几乎无关”。
+
+#### 路径2.2.B [3分]：分位趋势 / 单调性验证
+
+- 标准2.2.B.1 [1分｜完备性]：按 DNC 四分位划分，统计每档的 `cross_functional_projects`、`engagement_impact_score`、`total_outbound_influence`、`engagement_quality_score` 均值。
+- 标准2.2.B.2 [4分｜精确性]：结果需呈现单调递增（容差±1%）：均值约为 `cross_functional_projects 2.19 → 3.29 → 3.86 → 6.81`；`engagement_impact_score 34.73 → 50.70 → 62.40 → 75.42`；`total_outbound_influence 20.94 → 46.07 → 83.75 → 159.34`；`engagement_quality_score 33.33 → 51.87 → 60.09 → 73.38`。
+- 标准2.2.B.3 [1分｜结论性]：说明“随着 DNC 升高，协作与影响指标阶梯式增长，验证强正向的秩趋势”。
+
+———
+
+## 需求3：项目层协作代理与结果的总体关系（最高 6分）
+
+### 标准3.1 [最高 3分]：全量基线与线性相关
+
+#### 路径3.1.A [3分]：Pearson 相关 + 总体均值
+
+- 标准3.1.A.1 [1分｜完备性]：输出项目总体指标：样本量 n=200，`avg_success_probability≈0.8259`，`avg_complexity_risk_score≈45.46`。
+- 标准3.1.A.2 [4分｜精确性]：计算并报告相关系数（容差±0.01）：`r(success, complexity)=-0.0047`；`r(success, total_external_links)=-0.0067`；`r(success, unique_components)=0.0214`；`r(success, unique_issue_types)=-0.0387`；`r(complexity, total_external_links)=0.0966`；`r(complexity, unique_components)=-0.0193`；`r(complexity, unique_issue_types)=0.0575`。
+- 标准3.1.A.3 [1分｜结论性]：指出“数量型协作代理与 success_probability 的线性相关近零，复杂度与成功也近零；total_external_links 与复杂度呈弱正”。
+
+#### 路径3.1.B [3分]：分位/分桶均值对比
+
+- 标准3.1.B.1 [1分｜完备性]：按 `total_external_links` 与 `complexity_risk_score` 各自四分位分组，输出每组样本量与均值。
+- 标准3.1.B.2 [4分｜精确性]：锚点（容差±0.007）：外部链接四分位各 `n≈[64,46,41,49]`，`avg_success ≈ [0.818, 0.837, 0.825, 0.826]`，`avg_complexity ≈ [45.59, 40.02, 43.95, 51.65]`；复杂度四分位 `avg_success ≈ [0.829, 0.812, 0.836, 0.827]`。
+- 标准3.1.B.3 [1分｜结论性]：说明“不同桶的成功率波动小、无单调提升，而外部链接最高桶的复杂度明显更高”。
+
+### 标准3.2 [最高 3分]：不同协作代理的结构性检验
+
+#### 路径3.2.A [3分]：单变量高低组对比
+
+- 标准3.2.A.1 [1分｜完备性]：按阈值 `unique_components≥10`、`unique_issue_types≥12` 构建高/低组，计算 `success_probability` 与 `complexity_risk_score` 均值。
+- 标准3.2.A.2 [4分｜精确性]：结果需匹配锚点（容差±0.01）：组件高组 `n=58`，`avg_success≈0.826`，`avg_complexity≈43.19`；低组 `n=142`，`avg_success≈0.826`，`avg_complexity≈46.39`；议题类型高组 `n=56`，`avg_success≈0.822`，`avg_complexity≈44.32`；低组 `n=144`，`avg_success≈0.827`，`avg_complexity≈45.90`。
+- 标准3.2.A.3 [1分｜结论性]：指出“组件/议题多样性对成功率影响有限，高组复杂度并未显著下降”。
+
+#### 路径3.2.B [3分]：综合协作强度指数（CFI）
+
+- 标准3.2.B.1 [1分｜完备性]：构建 `CFI = z(total_external_links)+z(unique_components)+z(unique_issue_types)`，按三分位分桶。
+- 标准3.2.B.2 [4分｜精确性]：输出三桶锚点（容差±0.01）：低组 `n=67`，`avg_success≈0.835`，`avg_complexity≈43.30`；中组 `n=66`，`avg_success≈0.827`，`avg_complexity≈46.20`；高组 `n=67`，`avg_success≈0.816`，`avg_complexity≈46.90`。
+- 标准3.2.B.3 [1分｜结论性]：指出“CFI 越高成功率反而略低，复杂度上升，说明数量型协作强度未带来收益”。
+
+———
+
+## 需求4：分层/稳健性检验（最高 6分）
+
+### 标准4.1 [最高 3分]：高复杂度场景下的外部链接影响
+
+#### 路径4.1.A [3分]：高复杂度子集的相关与分桶
+
+- 标准4.1.A.1 [1分｜完备性]：设复杂度阈值=62（P75），筛出高复杂度子集 `n=51`，报告 `avg_success≈0.8239`、`avg_total_external_links≈12.90`。
+- 标准4.1.A.2 [4分｜精确性]：在该子集中计算 `r(total_external_links, success_probability)≈-0.1202`（容差±0.02）；按外部链接四分位（样本量约 `[15,12,14,10]`）给出 `avg_success ≈ [0.853, 0.801, 0.815, 0.820]`（容差±0.015）。
+- 标准4.1.A.3 [1分｜结论性]：总结“复杂度高时外部链接越多，成功概率反而下降或呈非单调，协调成本放大”。
+
+#### 路径4.1.B [3分]：控制复杂度的回归/偏相关
+
+- 标准4.1.B.1 [1分｜完备性]：建立线性模型 `success_probability = β0 + β1·complexity_risk_score + β2·total_external_links`，说明拟合方法（OLS）。
+- 标准4.1.B.2 [4分｜精确性]：输出系数（容差±50%）：`β0≈0.8288`，`β1≈-3.1×10⁻⁵`，`β2≈-1.23×10⁻⁴`；模型 `R²≈6.1×10⁻⁵`，解释力极弱。
+- 标准4.1.B.3 [1分｜结论性]：指出“即便控制复杂度，external_links 系数仍为负且接近零，佐证数量型协作无法带来成功提升”。
+
+### 标准4.2 [最高 3分]：复杂度×协作交叉或敏感性分析
+
+#### 路径4.2.A [3分]：复杂度与外链的三分位交叉矩阵
+
+- 标准4.2.A.1 [1分｜完备性]：构建 3×3 交叉表（complexity、external_links 各按三分位划分），输出每格样本量与 success 均值。
+- 标准4.2.A.2 [4分｜精确性]：矩阵需与锚点相符（容差±0.02）：低复杂度×高外链 `n=19`，`avg_success≈0.863`；中复杂度×高外链 `n=19`，`avg_success≈0.791`；高复杂度×高外链 `n=28`，`avg_success≈0.821`；其余示例：低×低 `avg_success≈0.815`，中×低 `≈0.812`，高×低 `≈0.845`。
+- 标准4.2.A.3 [1分｜结论性]：说明“外链在低复杂度下略有正效，但随复杂度升高收益转负，提示需组合治理”。
+
+#### 路径4.2.B [3分]：情境化敏感性 / 蒙特卡洛重加权
+
+- 标准4.2.B.1 [1分｜完备性]：依据 `complexity_risk_score` 分层（<62 为 base、≥62 为 high），对 `total_external_links`、`unique_components`、`unique_issue_types` 构建 Z-score，执行 1000 次蒙特卡洛重加权（权重 = 正态扰动 × (1+0.15·协作指标 Z 总和，截断为非负)），比较重加权平均成功率与基准差异。
+- 标准4.2.B.2 [4分｜精确性]：给出结果区间：base 组基准均值 ≈0.8266，重加权均值变化 `Δmean≈+0.00018`（10%–90% 分位 `≈-0.00060 → +0.00095`）；high 组基准均值 ≈0.8239，重加权均值变化 `Δmean≈-0.00553`（10%–90% 分位 `≈-0.00690 → -0.00415`）。
+- 标准4.2.B.3 [1分｜结论性]：总结“在不同情境下，协作数量扰动对高复杂度项目的成功率影响集中在 0 或负值区间，需关注协作质量与依赖治理”。
+
+———
+
+## 需求5：综合推断、因果边界与行动建议（最高 6分）
+
+### 标准5.1 [最高 3分]：整合证据并界定因果边界
+
+#### 路径5.1.A [3分]：双证据链归纳（实际数据推荐）
+
+- 标准5.1.A.1 [1分｜完备性]：串联两段证据：①高 DNC → 跨职能参与/影响显著提升；②项目侧数量型协作指标对 success_probability 整体近零，高复杂度场景下偏负。
+- 标准5.1.A.2 [4分｜精确性]：引用关键锚点（容差±0.01）：`r(DNC, cross_functional_projects)=0.794`，均值差 `6.60 vs 3.01`；`r(success, total_external_links)=-0.0067`，`r(success, complexity)=-0.0047`；高复杂度子集 `r(extlinks, success)=-0.1202`；补充质量指标：`r(success, team_stability)=-0.0636`（高复杂度 ≈-0.2318），`r(success, value_delivery)=+0.0953`；指出外链最高桶复杂度 ≈51.65，高复杂度高外链成功 ≈0.791。
+- 标准5.1.A.3 [1分｜结论性]：下结论“高 DNC 代表协作潜力，但未直接转化为更高成功率；需警惕因果倒置，并强调缺失 stakeholder→project 映射的数据限制”。
+
+#### 路径5.1.B [3分]：若建立直接映射时的因果检验框架
+
+- 标准5.1.B.1 [1分｜完备性]：提出引入 map 表后的分析方案（如 Propensity Score Matching 或 OLS/Logit：`success ~ high_DNC_presence + complexity + team_stability + value_delivery + 协作代理`），并声明需控制的协变量。
+- 标准5.1.B.2 [4分｜精确性]：给出模型/匹配伪代码：①估计倾向得分 `P(high_DNC_presence | complexity, team_stability, value_delivery, external_links, components, issue_types)`；②按得分匹配项目或在回归中加权；③避免重复计数（项目内多 stakeholder 时按参与权重聚合）。
+- 标准5.1.B.3 [1分｜结论性]：说明若结果仍显示高 DNC 未提高成功率，应回到间接证据并强调质量因子；若未来结果积极，也需配套外部链接治理策略。
+
+### 标准5.2 [最高 3分]：行动建议与数据改进
+
+#### 路径5.2.A [3分]：质量优先的改进方案
+
+- 标准5.2.A.1 [1分｜完备性]：提出不少于 3 条建议，覆盖运营治理与数据建设，例如：①在高复杂度项目设置外部链接预警线（≥18）并由高 DNC 成员担任集成负责人；②构建协作质量指标（响应时效、阻塞解除时间、决策闭环率），将 `engagement_quality_score`、`value_delivery_percentage` 纳入 KPI；③建设 stakeholder–project 参与日志，追踪高 DNC 投入与 success 的关系；④在低复杂度项目试点高 DNC 早期介入的准实验，对比 success 与延误率。
+- 标准5.2.A.2 [4分｜精确性]：建议需与数据洞见对齐并引用锚点：外部链接与成功的负相关 (`r=-0.0067` 整体、高复杂度 `r=-0.1202`)、`team_stability` 弱负 (`r=-0.0636`，高复杂度≈-0.2318)、`value_delivery` 弱正 (`r=+0.0953`)，解释为何要“控数量、提质量、补数据”。
+- 标准5.2.A.3 [1分｜结论性]：总结“应把高 DNC 的网络优势转向质量驱动（依赖治理、节奏控制、价值交付），并通过数据建设与试点验证提升效果”。
+
+#### 路径5.2.B [3分]：建模与监控路线图（可替代）
+
+- 标准5.2.B.1 [1分｜完备性]：规划监控体系（协作质量看板、复杂度×协作热力图、外部链接预警），并提出周期性复盘机制。
+- 标准5.2.B.2 [4分｜精确性]：给出具体指标与阈值：如 `total_external_links>18` 触发治理；`high-complexity×high-links` 成功率 ≈0.791 作为风险基线；利用时间序列叠加 `team_stability`、`value_delivery` 趋势并记录阈值突破。
+- 标准5.2.B.3 [1分｜结论性]：强调“监控重点从协作数量转向质量与依赖管理”，并提出评估高 DNC 试点成效的闭环（目标、责任、频次）。

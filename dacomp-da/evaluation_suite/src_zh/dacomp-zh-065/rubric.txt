@@ -1,0 +1,127 @@
+# [总分 | 34分] 招聘数据分析与偏见诊断评分标准
+
+  目标：评估公司背景（FAANG/Unicorn/BigTech/Other）、教育、经验等因素对技术面表现与录用结果的影响，并识别流程偏见。采用“需求 → 标准 → 路径 → 小标准”结构，每个小标准按完备性（1）| 精确性（4）| 结论性（1）评分。除非另行说明，精确性锚点允许 ±2% 误差或 ±0.02 分。
+
+  ———
+
+  ## 需求1：评估不同公司背景候选人的技术表现差异（最高 10分）
+
+  ### 标准1.1：分析样本构建与背景映射（最高 3分；deterministic）
+
+  #### 路径1.1.A [3分 | 技术面样本治理]
+
+  - 小标准1.1.A.1 [完备性 | 1分] 采用 `greenhouse__interview_enhanced ∩ greenhouse__application_enhanced`，先用 `ROW_NUMBER() OVER (PARTITION BY application_id ORDER BY applied_at DESC NULLS LAST, rowid)` 去重至每个 application_id 最新记录，再筛选 `LOWER(job_stage)='technical interview'` 与 `technical_score IS NOT NULL`，构建 2,512 条“面试级”评分。需说明同一 application_id 汇总后形成 964 条“申请级”样本（按面试均值聚合）。
+  - 小标准1.1.A.2 [精确性 | 1分] 明确公司映射字典并在 SQL/代码中落地：
+      * FAANG = {Google/Alphabet, Meta/Facebook, Amazon, Apple, Netflix}
+      * Unicorn/HighGrowth = {Uber, Airbnb, Stripe, Palantir, Snowflake, Databricks, Coinbase, Robinhood, Revolut, ByteDance, Instacart, Notion, Okta, Twilio, Canva, Nubank, SpaceX, Datadog, MongoDB, Dropbox, Slack, Pinterest, Shopify, Spotify, Square/Block, Lyft, DoorDash, OpenAI, Brex, Figma, Rippling, Discord, Affirm, UiPath, Coupang, Klarna, Peloton, Zoom, Snap, Atlassian}
+      * BigTech (非FAANG) = {Microsoft, Oracle, IBM, Adobe, Salesforce, LinkedIn, Intel, Nvidia, PayPal, Cisco, SAP, Workday, VMware, Dell, HP/HPE, Intuit, Qualcomm}
+      * 其余映射为 Other。复现锚点：面试级记录=2,512，申请级记录=964。
+  - 小标准1.1.A.3 [结论性 | 1分] 汇报两类样本量，并说明申请级聚合（平均技术分/正向推荐率）作为“真实表现”口径：
+      * 面试级：FAANG=340、Unicorn=950、BigTech=272、Other=950；
+      * 申请级：FAANG=125、Unicorn=356、BigTech=116、Other=367；
+      * 申请级指标定义：`avg_technical_score = AVG(technical_score)`，`pos_rec_rate = AVG(overall_recommendation IN ('strong_yes','yes'))`。
+
+  ### 标准1.2：技术表现差异显著性检验（最高 7分；任选其一）
+
+  #### 路径1.2.A [7分 | 参数法：ANOVA + Welch t]
+
+  - 小标准1.2.A.1 [完备性 | 1分] 在申请级 `avg_technical_score` 上执行单因素 ANOVA（四组），再针对 {FAANG vs Other, FAANG vs BigTech, FAANG vs Unicorn, BigTech vs Other, Unicorn vs Other, BigTech vs Unicorn} 运行 Welch t 检验并给出 Cohen's d。需说明实现口径（基于 964×1 聚合结果）。
+  - 小标准1.2.A.2 [精确性 | 4分] 复现锚点（容差 ±0.03 分或统计量 ±10%）：
+      * 组均值：FAANG=7.815、Unicorn=7.445、BigTech=7.430、Other=7.239；
+      * 单因素 ANOVA：F=2.618（p=0.0498）；
+      * Welch 差异（记为“前者−后者”）：FAANG−Other=+0.575 (t=2.773, p=0.0060, d=0.282)、FAANG−BigTech=+0.384 (t=1.529, p=0.128, d=0.197)、FAANG−Unicorn=+0.369 (p=0.071)、BigTech−Other=+0.191 (p=0.367)、Unicorn−Other=+0.206 (p=0.171)、BigTech−Unicorn=−0.015 (p=0.941)。
+  - 小标准1.2.A.3 [结论性 | 1分] 指出 FAANG 申请级平均技术分显著高于 Other（小–中等效应），其余配对差异未达显著整体，ANOVA 边界显著；提醒岗位构成及方差差异可能稀释全局显著性。
+
+  #### 路径1.2.B [7分 | 非参数法：Kruskal-Wallis + Dunn]
+
+  - 小标准1.2.B.1 [完备性 | 1分] 说明因评分分布离散，使用申请级 `avg_technical_score` 运行 Kruskal-Wallis 检验，并在显著后采用 Dunn-Bonferroni 事后比较。
+  - 小标准1.2.B.2 [精确性 | 4分] 复现：Kruskal H=7.198（p=0.0659），Dunn 结果（Bonferroni 调整，z 值容差 ±0.2）：FAANG vs Other z=2.64 (p_adj=0.0498) 为唯一显著对，余组 p_adj≥0.38。需同步引用分位数：FAANG 四分位数 Q1=7、Median=8、Q3=10；其余组 Q1=6、Median=8、Q3=9。
+  - 小标准1.2.B.3 [结论性 | 1分] 指出非参数视角下仅“FAANG > Other”具显著秩差，其余组差异不显著，差异规模随分位数多落在 0–1 分区间。
+
+  #### 路径1.2.C [7分 | 置换/自助法]
+
+  - 小标准1.2.C.1 [完备性 | 1分] 描述：对 FAANG 与 Other 样本重复 ≥10,000 次置换（或分组自助），每次重采样 `avg_technical_score` 并记录均值差，构建经验分布与置信区间。
+  - 小标准1.2.C.2 [精确性 | 4分] 复现锚点（容差 ±0.02）：实测均值差=0.575；双侧置换 p=0.0078；自助 95% CI=[0.167, 0.984]；自助分布均值 ≈0。需给出运行参数（随机种子、迭代次数）。
+  - 小标准1.2.C.3 [结论性 | 1分] 强调即使在随机化检验下，FAANG 技术均分仍显著高于 Other，置信区间完全落在正区间，排除偶然噪声解释。
+
+  ———
+
+  ## 需求2：控制教育/经验后公司背景的独立影响（最高 12分）
+
+  ### 标准2.1：连续技术表现的多变量回归（最高 6分；任选其一）
+
+  #### 路径2.1.A [6分 | OLS + 稳健误差]
+
+  - 小标准2.1.A.1 [完备性 | 1分] 模型：`technical_score ~ C(company_group, reference='BigTech') + C(education_level) + C(university_tier) + gpa + years_of_experience + total_experience_months + skill_count + C(candidate_gender) + C(candidate_race) + C(interviewer_gender) + C(interviewer_level) + interviewer_experience_years + C(interview_difficulty_level) + C(interview_time_of_day) + C(interview_day_of_week)`；样本=2,512，类别频次<25 合并为“Other”，采用 HC3 稳健标准误。
+  - 小标准2.1.A.2 [精确性 | 4分] 复现系数（容差 ±0.03）：C(company_group)[FAANG]=−0.055 (p=0.747)、[Unicorn]=−0.195 (p=0.150)、[Other]=−0.228 (p=0.095)；同时给出显著控制项：C(interviewer_gender)[Male]=−0.419 (p=7.5e-06)、C(interview_day_of_week)[Sunday]=+0.415 (p=0.0046)。模型 R²=0.064（Adj R²=0.047）。
+  - 小标准2.1.A.3 [结论性 | 1分] 解释：控制教培/经验后 BigTech 仍为最高参照组，其他背景系数为中等负偏但未显著，面试官性别与周日安排造成的结构性差异更显著。
+
+  #### 路径2.1.B [6分 | 岗位&地点固定效应]
+
+  - 小标准2.1.B.1 [完备性 | 1分] 在 2.1.A 基础上追加 `C(location) + C(job_title)` 固定效应，其他设定不变。
+  - 小标准2.1.B.2 [精确性 | 4分] 复现 FE 模型：C(company_group)[FAANG]=−0.046 (p=0.808)、[Unicorn]=−0.235 (p=0.100)、[Other]=−0.353 (p=0.014)；R²=0.140、Adj R²=0.105；C(interviewer_gender)[Male]=−0.366 (p=0.00022)。
+  - 小标准2.1.B.3 [结论性 | 1分] 得出：加入岗位/地点 FE 后 R² 提升约 0.076，Other 组对比 BigTech 的负向差异显著，说明岗位/地域分布解释了原始均值差的相当部分。
+
+  ### 标准2.2：录用/Offer 的二元模型（最高 6分；任选其一）
+
+  #### 路径2.2.A [6分 | Logit：stage_hired]
+
+  - 小标准2.2.A.1 [完备性 | 1分] 模型：`stage_hired ~ avg_technical_score + avg_comm_score + avg_problem_solving_score + pos_rec_rate + C(company_group, reference='BigTech') + C(education_level) + C(university_tier) + gpa + years_of_experience + skill_count + C(candidate_gender) + C(candidate_race)`，样本=964（申请级），类别频次<20 合并“Other”。
+  - 小标准2.2.A.2 [精确性 | 4分] 复现：C(company_group)[FAANG]=0.924 (OR=2.52, p=0.060)、[Unicorn]=0.634 (OR=1.89, p=0.142)、[Other]=0.350 (OR=1.42, p=0.425)；`avg_technical_score`=0.105 (OR=1.11, p=0.381)、`avg_comm_score`=0.091 (OR=1.10, p=0.434)；Pseudo-R²=0.0385。
+  - 小标准2.2.A.3 [结论性 | 1分] 指出：在控制真实表现后，FAANG 候选人录用概率约为 BigTech 的 2.5 倍且接近显著，技术/沟通均分在模型中未显著，暗示存在额外偏好因素。
+
+  #### 路径2.2.B [6分 | 同分段录用率]
+
+  - 小标准2.2.B.1 [完备性 | 1分] 申请级 `avg_technical_score` 分箱：≤4、4–6、6–7.5、7.5–8.5、>8.5（每箱样本≥7）；对比各背景的 `stage_hired` 均值并给出两两 z 检验。
+  - 小标准2.2.B.2 [精确性 | 4分] 复现关键段（容差 ±0.03）：
+      * 4–6 箱：BigTech 0.129 (4/31)、FAANG 0.174 (4/23)、Other 0.067 (6/89)、Unicorn 0.108 (8/74)；BigTech vs FAANG z=−0.46 (p=0.646)。
+      * >8.5 箱：BigTech 0.054 (2/37)、FAANG 0.170 (9/53)、Other 0.097 (10/103)、Unicorn 0.145 (16/110)。
+  - 小标准2.2.B.3 [结论性 | 1分] 说明同分段下录用差异存在但不稳定：FAANG 在高分段领先，低分段差异反向；需结合岗位及决策阈值进一步澄清。
+
+  #### 路径2.2.C [6分 | 多层/混合模型]
+- 小标准2.2.C.1 …（若选用，须提供可复现锚点）
+
+  ———
+
+  ## 需求3：识别与量化面试流程偏见（最高 12分）
+
+  ### 标准3.1：阈值/同分判决一致性（最高 4分；任选其一）
+
+  #### 路径3.1.A [4分 | 交互项阈值检验]
+
+  - 小标准3.1.A.1 [完备性 | 1分] 构建面试级 Logit：`pos_rec ~ technical_score + C(company_group, reference='BigTech') + technical_score*C(company_group, reference='BigTech') + C(candidate_gender) + C(candidate_race) + C(interviewer_gender) + C(interviewer_level) + interviewer_experience_years + C(interview_difficulty_level) + C(interview_time_of_day) + C(interview_day_of_week)`，样本=2,512，类别频次<25 合并。
+  - 小标准3.1.A.2 [精确性 | 2分] 复现：`technical_score`=1.775 (OR=5.90, p<1e-14)；`C(company_group)[FAANG]`=−3.846 (p=0.127)；交互 `technical_score:FAANG`=+0.617 (p=0.105)；C(candidate_gender)[Male]=1.837 (OR=6.28, p=0.0041)；C(candidate_gender)[Non-binary]=−0.726 (OR=0.484, p=0.132)。最大离差残差=3.83，Pseudo-R²=0.721。
+  - 小标准3.1.A.3 [结论性 | 1分] 说明未发现显著的“技术分斜率”按公司背景差异，但男性候选人显著更易获正向推荐；模型高度拟合提示存在准完全分离，应配合阈值复核。
+
+  #### 路径3.1.B [4分 | 分箱 + 置信区间]
+
+  - 小标准3.1.B.1 [完备性 | 1分] 同技术面面试级 `technical_score` 分箱（≤4、4–6、6–7.5、7.5–8.5、>8.5），统计 `pos_rec` 率并输出 Wilson 95% CI。
+  - 小标准3.1.B.2 [精确性 | 2分] 复现（容差 ±0.02）：
+      * 4–6 箱：BigTech 0.566 (CI [0.433,0.690])、FAANG 0.367 ([0.269,0.477])、Other 0.448 ([0.379,0.519])、Unicorn 0.380 ([0.317,0.449])；
+      * 6–7.5 箱：BigTech 0.737、FAANG 0.833、Other 0.885、Unicorn 0.947；
+      * 7.5–8.5 箱均≈1.00；>8.5 箱：BigTech 0.971、FAANG 0.992、Other 0.997、Unicorn 0.991。
+  - 小标准3.1.B.3 [结论性 | 1分] 指出低分段 BigTech 的推荐率显著高于 FAANG（差≈0.20，z≈2.25），高分段各组几乎收敛，建议针对低分段设定统一复核阈值。
+
+  ### 标准3.2：流程分配偏差（难度/时段）（最高 4分；任选其一）
+
+  #### 路径3.2.A [4分 | 卡方分布检验]
+
+  - 小标准3.2.A.1 [完备性 | 1分] 构建列联表：company_group × interview_difficulty_level（Easy/Medium/Hard）与 company_group × interview_time_of_day（Morning/Midday/Afternoon/Evening）。
+  - 小标准3.2.A.2 [精确性 | 2分] 复现：
+      * 难度 χ²=19.81（df=6，p=0.00299）；分布（Easy/Hard/Medium）：BigTech 53/56/163，FAANG 69/40/231，Unicorn 196/212/542，Other 200/181/569。
+      * 时段 χ²=12.22（df=9，p=0.201）；时段占比（Afternoon/Evening/Midday/Morning）：BigTech 21.3%/59.2%/6.3%/13.2%，FAANG 14.7%/60.0%/10.9%/14.4%，Unicorn 14.4%/63.7%/8.7%/13.2%，Other 14.8%/62.2%/9.0%/14.0%。
+  - 小标准3.2.A.3 [结论性 | 1分] 结论：难度分配差异显著（Unicorn/Other 更常落入 Hard），时段分配未达显著；建议对难度排程加入公平约束。
+
+  ### 标准3.3：面试官与人群偏差诊断（最高 4分；任选其一）
+
+  #### 路径3.3.A [4分 | 面试级 Logit（评分→推荐）]
+
+  - 小标准3.3.A.1 [完备性 | 1分] 模型：`pos_rec ~ technical_score + communication_score + problem_solving_score + C(candidate_gender) + C(candidate_race) + C(interviewer_gender) + C(interviewer_level) + interviewer_experience_years + C(interview_difficulty_level) + C(interview_day_of_week)`；样本=2,512，类别频次<25 合并。
+  - 小标准3.3.A.2 [精确性 | 2分] 复现（容差系数 ±0.05）：technical_score=1.109 (OR=3.03, p=1.29e-13)，communication_score=1.242 (OR=3.46, p=8.4e-18)，problem_solving_score=0.760 (OR=2.14, p=7.9e-08)；C(candidate_gender)[Male]=2.529 (OR=12.54, p=2.9e-04)、[Non-binary]=−0.864 (OR=0.421, p=0.117)；C(candidate_race)[Native American]=−1.690 (OR=0.184, p=0.0277)；C(interviewer_gender)[Male]=−0.586 (OR=0.556, p=0.0543)；C(interviewer_level)[Director]=−2.697 (OR=0.067, p=1.0e-06)；Pseudo-R²=0.792。
+  - 小标准3.3.A.3 [结论性 | 1分] 指出：技术/沟通/解题分显著正向，但男性候选人获得正向推荐的几率约 12.5 倍，Native American 候选人约 0.18 倍；建议引入双评或盲审，并关注高层面试官的严苛度。提示模型高度拟合，应监测准分离风险。
+
+  #### 路径3.3.C [4分 | 残差公平性/AIR]
+
+  - 小标准3.3.C.1 [完备性 | 1分] 使用 2.2.A Logit 预测值 `p_hat`，计算残差 `stage_hired - p_hat`，并统计各公司背景平均残差，同时计算 `AIR = min(group_hire_rate) / max(group_hire_rate)`。
+  - 小标准3.3.C.2 [精确性 | 2分] 复现：平均残差（FAANG=+2.89e-18、BigTech=−3.04e-17、Unicorn=−1.76e-17、Other=−1.39e-17）接近 0；录用率：FAANG=0.152、BigTech=0.060、Unicorn=0.112、Other=0.087；AIR=0.397 (<0.8)。
+  - 小标准3.3.C.3 [结论性 | 1分] 结论：模型残差未显示系统性误差，但 AIR 低于 0.8，提示 BigTech 背景存在显著不利影响，应纳入录用公平监控与复核流程。

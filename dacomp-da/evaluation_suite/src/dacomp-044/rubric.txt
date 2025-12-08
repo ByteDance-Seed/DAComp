@@ -1,0 +1,153 @@
+# [Total Score | 12 points] The solution process must meet the core requirement:
+- Requirement 1: **Summarize the health education campaign formats and locations for students that are capable of delivering long-term effectiveness and behavioral improvement**.
+
+
+## Requirement 1: Best campaign formats and locations for students that simultaneously achieve long-term effectiveness and behavioral improvement (up to 12 points)
+
+### Standard 1.1 Selecting reference columns and filtering for students (up to 4 points)
+#### Path 1.1.A Optimal single path (4 points)
+- **Sub-criterion 1.1.A.1 (1 point | Completeness)**: Identify the table(s) involved in the analysis and map “Campaign Format”, “Location”, “Long-term effectiveness”, and “Behavioral improvement” to specific fields.
+- **Sub-criterion 1.1.A.2 (1 point | Completeness)**: Filter records where the Population Covered column equals “Student” to form the sample data for analysis.
+- **Sub-criterion 1.1.A.3 (1 point | Accuracy)**: Correctly identify that only the Health Education table is involved in the analysis; field correspondences are:
+  - “Long-term effectiveness” → “Effectiveness Tracking” column
+  - “Behavioral improvement” → “Behavioral Change Assessment” column
+  - “Campaign Format” → “Campaign Format (Poster/Video/Lecture)” column
+  - “Location” → “Key Locations (School/Hospital/Community)” column
+- **Sub-criterion 1.1.A.4 (1 point | Accuracy)**: After filtering the student sample, the total sample size must be 75 rows (must match exactly).
+
+
+### Standard 1.2 Selecting the best formats and locations (up to 5 points)
+#### Path 1.2.A Weighted total score of Format × Location + direct selection (5 points | optimal path)
+- **Sub-criterion 1.2.A.1 (1 point | Completeness)**: Assign ordered codes/scores to “Significant”, “Moderate”, and “Weak”, and compute a weighted total score for each record based on the two columns “Effectiveness Tracking” and “Behavioral Change Assessment”.
+- **Sub-criterion 1.2.A.2 (1 point | Completeness)**: Group by “Campaign Format × Key Locations”, and output each group’s average weighted total score and sample size.
+- **Sub-criterion 1.2.A.3 (1 point | Accuracy)**: The scoring and weight choices must be logically self-consistent and reasonable.
+- **Sub-criterion 1.2.A.4 (1 point | Accuracy)**: Grouped weighted total scores must be computed correctly (see the reference table below).  
+  (Note: Reference scoring uses “Significant = 3 points, Moderate = 2 points, Weak = 1 point”, with weights both 0.5; when the calculation methodology is the same, absolute error ≤ 0.01; if methodologies differ, validate logic using the “Code validation method”.)
+
+| Campaign Format (Poster/Video/Lecture) | Key Locations (School/Hospital/Community) | Average Weighted Total Score | Long-term average score | Behavior average score | Sample Size |
+|----------------------------------------|-------------------------------------------|------------------------------|-------------------------|------------------------|-------------|
+| Poster                                 | Community                                 | 2.5                          | 2.5                     | 2.5                    | 6           |
+| Video                                  | Community                                 | 2.33                         | 1.67                    | 3                      | 3           |
+| Video                                  | School                                    | 2.06                         | 2.06                    | 2.06                   | 16          |
+| Lecture                                | Hospital                                  | 2.04                         | 2.08                    | 2                      | 12          |
+| Poster                                 | Hospital                                  | 2.0                          | 2.0                     | 2.0                    | 2           |
+| Lecture                                | Community                                  | 1.88                         | 1.94                    | 1.82                   | 17          |
+| Poster                                 | School                                     | 1.8                          | 2.0                     | 1.6                    | 5           |
+| Lecture                                | School                                     | 1.75                         | 1.75                    | 1.75                   | 8           |
+| Video                                  | Hospital                                   | 1.75                         | 1.67                    | 1.83                   | 6           |
+
+- **Sub-criterion 1.2.A.5 (1 point | Conclusion)**: Based on the true means, select the Top1–Top3 “Format × Location” combinations and infer the priority format and location.  
+  Reference conclusion: Top 3 combinations are “Poster × Community”, “Video × Community”, “Video × School”; since the top two both include “Community”, “Community” is the most worthwhile priority campaign location.
+
+
+#### Path 1.2.B Format × Location + “simultaneously Significant” counting method (4 points)
+- **Sub-criterion 1.2.B.1 (1 point | Completeness)**: Filter student records where “Effectiveness Tracking = Significant AND Behavioral Change Assessment = Significant”; group by “Format × Location” and count occurrences.
+- **Sub-criterion 1.2.B.2 (2 points | Accuracy)**: The counts must match the reference answers exactly (error = 0 records):
+  - Student sample size = 75; records with both “Significant” = 7.
+  - Format × Location Top: Poster × Community = 2, Video × School = 2, Lecture × Community = 2, Poster × Hospital = 1.
+- **Sub-criterion 1.2.B.3 (1 point | Conclusion)**: State the “Format × Location” Top conclusion (consistent with counts), explain that this methodology is “strict and yields few samples”; reconcile ties using other statistical methods and provide the best combination.  
+  Reference conclusion: The best combination is “Poster × Community”.
+
+
+#### Path 1.2.C Separate tallies for format and location + “simultaneously Significant” counting method (3 points)
+- **Sub-criterion 1.2.C.1 (1 point | Completeness)**: Filter student records where “Effectiveness Tracking = Significant AND Behavioral Change Assessment = Significant”; separately tally “Format Top” and “Location Top”.
+- **Sub-criterion 1.2.C.2 (1 point | Accuracy)**: The tallies must match the reference answers exactly (error = 0 records):
+  - Student sample size = 75; records with both “Significant” = 7.
+  - Format Top: Poster = 3, Video = 2, Lecture = 2.
+  - Location Top: Community = 4, School = 2, Hospital = 1.
+- **Sub-criterion 1.2.C.3 (1 point | Conclusion)**: State the “Format” and “Location” Top conclusions, combine them into the optimal “Format + Location” (consistent with counts), and explain that this methodology is “strict and yields few samples”.  
+  Reference conclusion: The optimal combination is “Poster × Community”.
+
+
+#### Path 1.2.D Marginal weighting — compute weighted averages for “format” and “location” separately and stacked selection (4 points)
+- **Sub-criterion 1.2.D.1 (1 point | Completeness)**: Using the weighting method, group separately by “Campaign Format” and “Key Locations”, compute average weighted total scores and sample sizes; produce two ranking tables.
+- **Sub-criterion 1.2.D.2 (2 points | Accuracy)**: Grouped weighted totals must be computed correctly (see the reference tables below).  
+  (Note: Scoring rules are the same as Path 1.2.A; when the calculation methodology is the same, absolute error ≤ 0.01; if methodologies differ, validate logic using the “Code validation method”.)
+
+  Campaign Format weighted average table:
+  | Campaign Format | Average Weighted Total Score | Long-term average score | Behavior average score |
+  |-----------------|------------------------------|-------------------------|------------------------|
+  | Poster          | 2.15                         | 2.23                    | 2.08                   |
+  | Video           | 2.02                         | 1.92                    | 2.12                   |
+  | Lecture         | 1.90                         | 1.94                    | 1.86                   |
+
+  Key Locations weighted average table:
+  | Key Locations | Average Weighted Total Score | Long-term average score | Behavior average score |
+  |---------------|------------------------------|-------------------------|------------------------|
+  | Hospital      | 1.95                         | 1.95                    | 1.95                   |
+  | School        | 1.93                         | 1.96                    | 1.90                   |
+  | Community     | 2.08                         | 2.04                    | 2.11                   |
+
+- **Sub-criterion 1.2.D.3 (1 point | Conclusion)**: Select the highest “Average Weighted Total Score” item for “format” and “location” to form the best combination, output the final recommendation list, and mark sample size thresholds and tie-handling.  
+  Reference conclusion: The best combination is “Poster × Community”.
+
+#### Path 1.2.E Significant-rate weighting method (5 points | equivalent optional path)
+- **Sub-criterion 1.2.E.1 (1 point | Completeness)**: Binarize “Effectiveness Tracking” and “Behavioral Change Assessment” as Significant = 1, others = 0, and generate two indicator variables for each record.
+- **Sub-criterion 1.2.E.2 (1 point | Completeness)**: Group by “**Campaign Format × Key Locations**”, separately compute the two **Significant rates** (within-group means), and output each group’s **sample size n**.
+- **Sub-criterion 1.2.E.3 (1 point | Accuracy)**: Provide a **composite scoring** methodology (e.g., `Composite = (Long-term Significant rate + Behavior Significant rate) / 2` or custom weights w1, w2 with w1 + w2 = 1), and **correctly compute** grouped composite scores (consistent with the stated formula or code, absolute error ≤ 0.01, or pass the “Code validation method”).
+- **Sub-criterion 1.2.E.4 (1 point | Accuracy)**: Ensure **methodological self-consistency** and explain the rationale (why the “Significant threshold” reflects “simultaneous long-term and behavior”); for **small samples** (e.g., n < 5), include a **threshold/uncertainty note** (e.g., sample threshold, tie-marking, confidence interval, or star notation, any one).
+- **Sub-criterion 1.2.E.5 (1 point | Conclusion)**: Based on the **true ranking**, give the Top1–Top3 “Format × Location” combinations, and accordingly **infer the priority format and key location(s)**; if ties occur, explain how **tie-handling/sample size** affects the conclusions.
+
+### Standard 1.3 Additional effective recommendations (up to 3 points)
+#### Path 1.3.A Provide effective recommendations based on analysis of other fields (3 points | optimal path)
+- **Sub-criterion 1.3.A.1 (1 point | Completeness)**: Analyze other fields in the Health Education table (e.g., “Distribution Quantity”, “Education Frequency”) for their correlation or impact on education outcomes. You must simultaneously cover both variables “Distribution Quantity” and “Education Frequency” and report both the full dataset and the student subset; missing any one variable or either scope scores 0 points.
+- **Sub-criterion 1.3.A.2 (1 point | Accuracy)**: Results must be accurate (see the reference tables below).  
+  (Note: Weighted total score calculation follows Path 1.2.A; when the calculation methodology is the same, absolute error ≤ 0.005; if methodologies differ, validate logic using the “Code validation method”.)
+
+  Correlation analysis: Distribution Quantity vs Weighted Total Score:
+  | Analysis scope | Sample Size | Pearson_r | Pearson_p | Spearman_rho | Spearman_p |
+  |----------------|-------------|-----------|-----------|--------------|------------|
+  | Full dataset   | 400         | 0.0105    | 0.8336    | 0.0111       | 0.8247     |
+  | Student subset | 75          | -0.0786   | 0.5007    | -0.0766      | 0.5118     |
+
+  Correlation analysis: Education Frequency vs Weighted Total Score:
+  | Analysis scope | Sample Size | Pearson_r | Pearson_p | Spearman_rho | Spearman_p |
+  |----------------|-------------|-----------|-----------|--------------|------------|
+  | Full dataset   | 400         | 0.0015    | 0.9769    | 0.0105       | 0.834      |
+  | Student subset | 75          | 0.2439    | 0.0316    | 0.2456       | 0.0304     |
+
+- **Sub-criterion 1.3.A.3 (1 point | Conclusion)**: Based on the above results and the best combinations from Standard 1.2, provide recommendations to improve “long-term effectiveness” and “behavioral improvement”. Recommendations must be consistent with 1.3.A.2’s statistical conclusions: explicitly state “Distribution Quantity has no significant association (do not simply distribute more materials)” and “Education Frequency for the student subset is significantly positively correlated (recommend increasing frequency/contact count)”; if statistics do not support this direction or do not cover both variables and both scopes, score 0 points for this item. (Reference conclusions below).
+
+  ##### Core Judgments
+  - **[No association]**: Distribution Quantity vs Weighted Total Score (both full dataset and student subset are not significant) → Do not recommend simply “distributing more materials”.
+  - **[Positive correlation]**: Education Frequency vs Weighted Total Score (student subset is significant, coefficient ≈ 0.24, p < 0.05) → Increasing “Education Frequency/contact count” is more likely to improve the composite outcome.
+  - **[Strong combination performance]**: Top 3 Format × Location are “Poster @ Community”, “Video @ Community”, “Video @ School” (based on weighted total scores, scoring 3/2/1 with weights 0.5/0.5).
+
+  ##### Priority Recommendations (from strong to weak)
+  1. **Priority combinations** (high performance simultaneously covering long-term and behavior):
+     - Poster @ Community
+     - Video @ Community
+     - Video @ School
+  2. **Strategy focus**:
+     - Frequency first: Within priority combinations, prioritize increasing “Education Frequency” (e.g., higher cadence/repeated exposure), rather than blindly increasing “Distribution Quantity”.
+     - Scenario fit:
+       - Community: Emphasize “passive reach + low barrier”; posters create long-term “background exposure”, suitable for the slower-paced community environment.
+       - School: Emphasize “structured information”; playing videos in classes/activities aids unified messaging and easier implementation.
+       - Lecture: Suitable for centralized community sessions to strengthen behavioral commitment and on-site interaction.
+     - Format mix: Within the same scenario, use a light “Frequency × multi-format” combo (e.g., community primarily posters + short talks as support; school primarily videos + brief poster reminders), emphasizing “frequency continuity” rather than one-off spikes.
+
+  ##### Inefficient directions to avoid
+  - Do not use “Distribution Quantity” as a core KPI: it is not significantly correlated with the weighted total score and can lead to resource waste.
+  - Do not prioritize investment in hospital scenarios: among records with both “Significant”, hospital-related counts are the lowest.
+
+  ##### Implementation and Monitoring (minimum closed loop aligned with results)
+  - KPI: Continuously track the scores of “Effectiveness Tracking” and “Behavioral Change Assessment”, focusing on the student subset.
+  - Pilot sequence (aligned with priority): Poster @ Community → Video @ Community → Video @ School; within each pilot, build a frequency gradient (e.g., gradually increase from current levels) and observe indicator changes.
+  - Boundary of interpretation: Conclusions are about correlations and high-performing combinations, not causality; effects are influenced by sample size, so pilots need controls and continuous validation.
+
+  ##### Summary
+  With equal budgets, prioritizing “increasing Education Frequency” and “validated high-performing Format × Location combinations”, rather than “distributing more materials”, is more conducive to simultaneously improving long-term effectiveness and behavioral improvement.
+
+
+#### Path 1.3.B Simple path (1 point)
+- **Sub-criterion 1.3.B.1 (1 point | Conclusion)**: Based on the best combinations in Standard 1.2, provide concise recommendations to improve “long-term effectiveness” and “behavioral improvement”.
+
+
+## Additional Notes
+### How to use the reference answers
+- If indicator meanings are the same or are mandatory indicators, answers must be close to the reference answers; if indicator meanings differ, the reference is not applicable and you must validate the calculation using the “Code validation method”.
+
+### Code validation method
+Applicable when listing all reference answers is difficult; by default, “code is correct → answer is correct”:
+1. Read all code comments and logic to verify it aligns with the analytical approach.
+2. Validate line by line that each line of code achieves the effect described in its comments.

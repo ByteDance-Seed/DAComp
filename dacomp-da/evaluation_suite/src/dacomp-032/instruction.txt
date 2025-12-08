@@ -1,0 +1,1 @@
+For customers whose `Contact priority` equals 1 in `customer_contact_table`, analyze how effectively service staff serve this segment by examining their complaint records in `complaints_table` and their ticket-handling performance in `service_ticket_table`.

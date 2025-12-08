@@ -1,0 +1,118 @@
+# [Total Score | 60 Points] Scoring Rubric for Quantifying Feature Contribution to Customer Lifecycle Value (CLV) and Identifying "Hidden Value Features"
+---
+## Requirement 1: Data Access and Standardization of Analysis Scope (Up to 18 points)
+### Criterion 1.1: Core Table and Field Mapping (Up to 6 points)
+#### Path 1.1.A [6 points | Four-Table Closed-Loop Mapping]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly define the purpose of fields from four core tables: `pendo__customer_lifecycle_insights` (visitor_id, account_id, last_event_on, comprehensive_customer_value, overall_health_score, sum_events, average_daily_minutes, sum_minutes, usage_intensity), `pendo__visitor_feature` (visitor_id, feature_id, last_click_at, sum_clicks, sum_minutes, count_active_days), `pendo__feature` (feature_id, feature_name, product_area_name, is_core_event), `pendo__feature_daily_metrics` (date_day, feature_id, count_visitors).
+- Sub-criterion 1.1.A.2 [4 points | Accuracy]: Explain the three-step join process as "Feature Definition → Visitor Usage Details → Visitor Value": 1) Join `pendo__visitor_feature` and `pendo__customer_lifecycle_insights` on visitor_id, filtering for last_click_at within the window; 2) Join with `pendo__feature` on feature_id to sync feature name, product area, and core event tag; 3) If daily activity validation is needed, further join with `pendo__feature_daily_metrics` on feature_id to sum count_visitors over 30 days. The entire process should rely only on the specified fields, without row deletion or additional cleaning.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: State that the above mapping forms a closed loop of "Feature-User-Customer Value"; if fields like `predicted_clv_tier`, `account_retention_30d` are empty, they should be kept as NULL, avoiding manual imputation.
+
+#### Path 1.1.B [6 points | Extending to Adoption Profile]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: On top of Path 1.1.A, add `pendo__product_adoption_analytics` (feature_id, total_users_tried, regular_users, avg_minutes_per_user, regular_share) to characterize adoption depth.
+- Sub-criterion 1.1.B.2 [4 points | Accuracy]: Explain the logic of joining the adoption table with visitor_feature on feature_id, and derive the "tried → regular use" conversion rate using SQL steps for `regular_share = regular_users / total_users_tried` and `avg_minutes_per_user`; emphasize maintaining the original data scope without outlier removal or substitution.
+- Sub-criterion 1.1.B.3 [1 point | Conclusion]: Point out how regular_share and avg_minutes_per_user can substantiate the stickiness of hidden value features, e.g., for Shipping Calculator, regular_share=0.719 and avg_minutes=11.78.
+
+### Criterion 1.2: Time Window and Active Sample Construction (Up to 6 points)
+#### Path 1.2.A [6 points | Unified 30-Day Window]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Declare a fixed analysis window of [2025-09-15, 2025-10-14] (inclusive), using MAX(last_event_on)=2025-10-14 as the reference date.
+- Sub-criterion 1.2.A.2 [4 points | Accuracy]: Reproduce the SQL for the 30-day active sample: `WITH active_30 AS (SELECT visitor_id, account_id, comprehensive_customer_value, overall_health_score, sum_events, average_daily_minutes, sum_minutes, usage_intensity FROM pendo__customer_lifecycle_insights WHERE date(last_event_on) BETWEEN '2025-09-15' AND '2025-10-14') SELECT COUNT(*) FROM active_30;` The result should be 7749 (tolerance ±2%), and must retain original values for comprehensive_customer_value and usage_intensity without any cleaning.
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: Emphasize that all subsequent MAU, uplift, stratification, and weighted calculations must reuse the active_30 set to avoid window drift.
+
+#### Path 1.2.B [6 points | Dual 30-Day + 90-Day Windows]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: State that value analysis is still based on the 30-day active set, but treatment labeling can be extended to a 90-day window of [2025-07-17, 2025-10-14].
+- Sub-criterion 1.2.B.2 [4 points | Accuracy]: Describe the construction: 1) 90-day active visitors `COUNT(DISTINCT visitor_id)=8000` (tolerance ±1%); 2) Treatment group = used the feature within 90 days (feature column=1 in `usage90_matrix.parquet`), Control group = active in 30 days but same feature column=0; 3) 30-day MAU and last_click_at are both based on the `pendo__visitor_feature` scope.
+- Sub-criterion 1.2.B.3 [1 point | Conclusion]: Explain that the 90-day window is for stable treatment assignment, while the 30-day window is for MAU and value statistics, ensuring consistent scope alignment between the two.
+
+### Criterion 1.3: MAU and Baseline Validation (Up to 6 points)
+#### Path 1.3.A [6 points | Direct Deduplication from visitor_feature]
+- Sub-criterion 1.3.A.1 [1 point | Completeness]: Define MAU_30d as `COUNT(DISTINCT visitor_id)`, filtering for last_click_at within the 30-day window and grouping by feature_id.
+- Sub-criterion 1.3.A.2 [4 points | Accuracy]: Validate anchor points (tolerance ±2 features): features with MAU<50 = 14, MAU 50–99 = 154, MAU 100–199 = 12, MAU≥200 = 0, for a total of 180 features; also provide the average number of features per visitor in 30 days = 1.74 (`AVG(feature_cnt)`, where feature_cnt is the number of DISTINCT features used by each active visitor in 30 days).
+- Sub-criterion 1.3.A.3 [1 point | Conclusion]: Note that all features have an MAU below 200, indicating overall low adoption and setting the context for screening hidden value features.
+
+#### Path 1.3.B [6 points | Approximate Validation with feature_daily_metrics]
+- Sub-criterion 1.3.B.1 [1 point | Completeness]: Describe approximating MAU by aggregating `SUM(count_visitors)` over 30 days from `pendo__feature_daily_metrics` and dividing by 30, and explain the deviation caused by double-counting across days.
+- Sub-criterion 1.3.B.2 [4 points | Accuracy]: Must show the steps of "sum daily counts → divide by 30 → compare with MAU_30d"; must provide quantiles for the approximation ratio: median ratio ≈1.02, P25≈0.32, P75≈2.59, showing a trend consistent with Path 1.3.A.
+- Sub-criterion 1.3.B.3 [1 point | Conclusion]: State that this approximation is only for extrapolation or when visitor_feature is missing, and the scope from Path 1.3.A should be the standard once visitor_feature is available.
+
+---
+## Requirement 2: Estimating Feature Contribution to CLV (Up to 18 points)
+### Criterion 2.1: Raw Mean Difference Estimation (Up to 6 points)
+#### Path 2.1.A [6 points | 30-Day Active Comparison]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Define the treatment group as active visitors who used a specific feature in the last 30 days, and the control group as active visitors in the same window who did not use that feature.
+- Sub-criterion 2.1.A.2 [4 points | Accuracy]: Reproduce the Welch's t-test mean difference procedure (including sample size, mean, standard error, t-value), and calibrate against anchor points (tolerance ≤1%): Shipping Calculator uplift=254.02, t=2.31; Customer Segmentation uplift=235.61, t=3.23; Two-Factor Auth uplift=177.92, t=2.23.
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: List at least 5 features in descending order of uplift (Shipping Calculator, Customer Segmentation, Two-Factor Auth, Advanced Reporting, Customer Surveys), and note that the mean difference may be influenced by a concentration of high-activity users.
+
+#### Path 2.1.B [6 points | Account-level De-meaning]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Explain the comparison of used/unused differences after de-meaning CLV within each account_id (ccv_centered = CCV − account average).
+- Sub-criterion 2.1.B.2 [4 points | Accuracy]: Output anchor points aligned with Path 2.1.A (tolerance ≤2%): Shipping Calculator uplift_within=255.51, t=2.48; Customer Segmentation uplift_within=226.33, t=3.24; Two-Factor Auth uplift_within=190.14, t=2.55; Advanced Reporting uplift_within=174.32, t=2.16; Customer Surveys uplift_within=129.56, t=2.08.
+- Sub-criterion 2.1.B.3 [1 point | Conclusion]: Explain that the within-account method mitigates bias from the concentration of high-value accounts, and list the features that remain significant (the five mentioned above).
+
+### Criterion 2.2: Stratified and Inverse-Variance Weighted Estimation (Up to 6 points)
+#### Path 2.2.A [6 points | usage_intensity Weighted Difference]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Explain stratification by usage_intensity (Heavy=1992, Light=1963, Moderate=1912, Power User=1882), with weights being the proportion of each stratum in the active_30 set.
+- Sub-criterion 2.2.A.2 [4 points | Accuracy]: Provide the formula for stratified mean difference and weighted sum, and validate anchor points (tolerance ≤1%): Shipping Calculator weighted uplift=268.21; Customer Segmentation=233.57; Two-Factor Auth=175.03; Advanced Reporting=165.46; Quick Actions=142.99.
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]: Compare the weighted results with the raw mean difference, explaining the correction effect on heavy-user bias (e.g., Shipping Calculator 254→268, Two-Factor Auth 178→175).
+
+#### Path 2.2.B [6 points | Inverse-Variance Pooling]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Based on the stratified results, use inverse-variance weights to obtain a global uplift, and calculate the standard error and z-value.
+- Sub-criterion 2.2.B.2 [4 points | Accuracy]: Verify anchor points (tolerance ≤1%): Shipping Calculator uplift=237.52, se=108.57, z=2.19; Customer Segmentation uplift=204.91, se=69.18, z=2.96; Email Campaigns uplift=109.13, se=54.46, z=2.00; Two-Factor Auth z=1.81 (does not cross 1.96).
+- Sub-criterion 2.2.B.3 [1 point | Conclusion]: State that when using z≥1.96 as the significance threshold, focus should be on Shipping Calculator, Customer Segmentation, and Email Campaigns, while also noting that Two-Factor Auth has marginal value but lacks statistical significance.
+
+### Criterion 2.3: Advanced Estimation Paths (Up to 6 points)
+#### Path 2.3.A [6 points | Regression Residuals + Lasso + Robust OLS]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Reproduce the following procedure: ① Fit CCV using overall_health_score, sum_events, average_daily_minutes, sum_minutes (`OLS` control model); ② After creating residuals, perform Frisch–Waugh residualization on the 180 feature indicators; ③ Use LassoCV to select features, then estimate coefficients using HC3 robust standard errors.
+- Sub-criterion 2.3.A.2 [4 points | Accuracy]: Report control model R²=0.605, and R²=0.615 after adding features; list examples of significant coefficients (p<0.05): Advanced Reporting +119.97 (p=0.041), Password Reset −79.94 (p=0.032), Report Builder −93.58 (p=0.017), Support Analytics −84.79 (p=0.018), Security Audit −143.25 (p=0.020).
+- Sub-criterion 2.3.A.3 [1 point | Conclusion]: State that this residualization result cross-validates the mean difference and stratification methods: Advanced Reporting shows as a high-value feature across all three paths, while Security Audit shows a negative contribution in all paths.
+
+#### Path 2.3.B [6 points | Propensity Score Matching or Doubly Robust Estimation]
+- Sub-criterion 2.3.B.1 [1 point | Completeness]: Model usage propensity using overall_health_score, sum_events, average_daily_minutes, sum_minutes, and usage_intensity dummies, then perform nearest-neighbor matching with a 0.05 caliper.
+- Sub-criterion 2.3.B.2 [4 points | Accuracy]: Provide matching quality and effects: For Email Campaigns, max standardized difference drops from 0.261 to 0.103 (n_pairs=113, ATE=+56.68, t=0.89); for Customer Segmentation, from 0.307 to 0.209 (n_pairs=88, ATE=+104.91, t=1.71); for Shipping Calculator, the large baseline difference means it remains at 0.308 after matching (must note this limitation in the conclusion).
+- Sub-criterion 2.3.B.3 [1 point | Conclusion]: Summarize that propensity matching results are directionally consistent with stratification/inverse-variance methods (positive uplift for beneficial features, negative for Security-related features), and note that when matching quality is poor, judgment must be combined with other analytical scopes.
+
+---
+## Requirement 3: "Hidden Value Feature" Screening and Incrementality Calculation (Up to 12 points)
+### Criterion 3.1: Screening Rules and Leaderboard Output (Up to 6 points)
+#### Path 3.1.A [6 points | MAU + Uplift + Significance Test]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Define a hidden value feature as: MAU_30d <200, stratified weighted uplift>0, z_invvar≥1.96, n_treat_30≥40.
+- Sub-criterion 3.1.A.2 [4 points | Accuracy]: List features meeting the criteria (tolerance ≤10%): Shipping Calculator (MAU=49, uplift=268.21, z=2.19), Customer Segmentation (89, 233.57, 2.96), Email Campaigns (116, 115.80, 2.00).
+- Sub-criterion 3.1.A.3 [1 point | Conclusion]: Summarize their common themes (fulfillment/operational efficiency, marketing precision, outbound automation), and explain the business significance of "low MAU but high per-unit value".
+
+#### Path 3.1.B [6 points | Multi-dimensional Scoring or Ranking]
+- Sub-criterion 3.1.B.1 [1 point | Completeness]: Construct a multi-metric score: score = 0.4·Z(uplift_weighted) + 0.3·Z(z_invvar) + 0.2·Z(regular_share) + 0.1·Z(avg_minutes_per_user).
+- Sub-criterion 3.1.B.2 [4 points | Accuracy]: Calculate scores and rank (tolerance ≤1e-3): Customer Segmentation=0.880 > Shipping Calculator=0.658 > Email Campaigns=0.029; the top results should be consistent with Path 3.1.A.
+- Sub-criterion 3.1.B.3 [1 point | Conclusion]: Explain that multi-dimensional scoring helps identify features that are significant but have low regular usage rates, and helps filter out those with an insufficient adoption base.
+
+### Criterion 3.2: Potential Gains and Risk Comparison (Up to 6 points)
+#### Path 3.2.A [6 points | Scenario: Increasing MAU to 200]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Define `potential_gain_to_200 = (200 − MAU_30d) × uplift_weighted_usage`, with no compensation for features with MAU≥200.
+- Sub-criterion 3.2.A.2 [4 points | Accuracy]: Provide calculation results (tolerance ±15%): Shipping Calculator≈40,499; Customer Segmentation≈25,926; Two-Factor Auth≈23,103; Advanced Reporting≈21,841; Cloud Storage≈10,528; Email Campaigns≈9,727. Aggregated by product_area: E-commerce≈40,499, CRM & Sales≈25,926, Marketing≈9,727.
+- Sub-criterion 3.2.A.3 [1 point | Conclusion]: Recommend prioritizing investment in fulfillment (Shipping Calculator) and customer insights (Customer Segmentation), and emphasize the need to gradually increase MAU to validate marginal effects.
+
+#### Path 3.2.B [6 points | Scenario: 10% Conversion of Non-users + Governance of Negative-Impact Features]
+- Sub-criterion 3.2.B.1 [1 point | Completeness]: Define `potential_gain_10pct = 0.10 × number_of_non_users × uplift_within`, based on the 30-day window.
+- Sub-criterion 3.2.B.2 [4 points | Accuracy]: Output examples (tolerance ±15%): Shipping Calculator≈196,822; Customer Segmentation≈173,389; Two-Factor Auth≈146,120; Advanced Reporting≈133,910; Customer Surveys≈99,296; Kanban Board≈89,374. List at least two negative uplift features: Security Audit≈−101,982 (uplift_weighted=−130.19, z=−11.18); Report Builder≈−99,658 (−132.80, z=−8.86).
+- Sub-criterion 3.2.B.3 [1 point | Conclusion]: Propose a dual strategy of "accelerate promotion vs. careful governance" based on the positive/negative lists, and note that negative-impact features must have their experience improved before wider diffusion.
+
+---
+## Requirement 4: Domain Insights, Strategy, and Experiment Planning (Up to 12 points)
+### Criterion 4.1: Domain-level Aggregation and Correlation Analysis (Up to 6 points)
+#### Path 4.1.A [6 points | Domain Potential Aggregation]
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: Aggregate hidden value features by product_area_name, calculating their count, average MAU, average uplift, and total potential gain.
+- Sub-criterion 4.1.A.2 [4 points | Accuracy]: Validate anchor points (tolerance ±15%): E-commerce potential gain≈40,499; CRM & Sales≈25,926; Marketing≈9,727.
+- Sub-criterion 4.1.A.3 [1 point | Conclusion]: Identify priority investment domains (fulfillment, e-commerce conversion, marketing automation) and link them to corresponding business scenarios.
+
+#### Path 4.1.B [6 points | Correlation and Sensitivity]
+- Sub-criterion 4.1.B.1 [1 point | Completeness]: Calculate the Pearson correlation between MAU and uplift, reporting sample coverage (n_treat_30 ≥5).
+- Sub-criterion 4.1.B.2 [4 points | Accuracy]: Provide the correlation coefficient ≈0.120 (tolerance ±0.02), and state that recalculating uplift with 90-day treatment labels results in a median difference of 0 compared to the 30-day scope (absolute difference <5% for typical features).
+- Sub-criterion 4.1.B.3 [1 point | Conclusion]: Summarize a "weak correlation between scale and value," advising a balance between activating hidden value and expanding foundational features.
+
+### Criterion 4.2: Strategy Implementation and Risk Boundaries (Up to 6 points)
+#### Path 4.2.A [6 points | Activation Strategies + Experiment Plan]
+- Sub-criterion 4.2.A.1 [1 point | Completeness]: Propose at least 3 activation strategies matching the top features, e.g., for Shipping Calculator (MAU=49), launch a fulfillment wizard and default pop-up; for Customer Segmentation (MAU=89), embed industry templates and marketing funnel recommendations; for Email Campaigns (MAU=116), provide one-click template reuse and cross-channel automation.
+- Sub-criterion 4.2.A.2 [4 points | Accuracy]: Link the strategies to uplift data and provide an experiment design: e.g., for Shipping Calculator uplift=268 → set up a fulfillment path experiment, with primary metric=CLV uplift, secondary metric=fulfillment conversion rate, observation period≥30 days, stratified randomization (by usage intensity).
+- Sub-criterion 4.2.A.3 [1 point | Conclusion]: Set quantitative goals for the next quarter (e.g., MAU for the above features increases by ≥+50 each, total CLV increment ≥200k), and emphasize the need to validate causality through experiments.
+
+#### Path 4.2.B [6 points | Governance of Negative-Impact Features and Risk Advisory]
+- Sub-criterion 4.2.B.1 [1 point | Completeness]: Formulate a governance path for negative uplift features (experience research, limited exposure, canary releases for fixes).
+- Sub-criterion 4.2.B.2 [4 points | Accuracy]: Justify with data: Security Audit uplift_weighted=−130.19 (z=−11.18), Report Builder=−132.80 (z=−8.86), Document Templates=−131.21 (z=−5.10); propose targeted A/B tests or workflow redesigns, and monitor issue rates, health scores, and CLV.
+- Sub-criterion 4.2.B.3 [1 point | Conclusion]: Summarize risk boundaries (correlation ≠ causation, diminishing marginal returns, overlapping cross-usage), and require establishing a continuous monitoring cadence (e.g., monthly review + quarterly regression analysis).

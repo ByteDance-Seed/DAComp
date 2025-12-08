@@ -1,0 +1,1 @@
+import{u as s}from"./useQuery-BM2-aT6w.js";import{u as n,a as o}from"./use-config-CFnQGZ56.js";import{O as r}from"./open-hands-DIyP2mgJ.js";const i=()=>{const{data:a}=n(),e=o();return s({queryKey:["user","balance"],queryFn:r.getBalance,enabled:!e&&a?.APP_MODE==="saas"&&a?.FEATURE_FLAGS.ENABLE_BILLING})};export{i as u};

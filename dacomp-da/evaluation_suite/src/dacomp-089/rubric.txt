@@ -1,0 +1,136 @@
+# [Total Score | 38 Points] Scoring Rubric for Contact Configuration Risk Monitoring of Top 20% Accounts by Annual Revenue
+---
+## Requirement 1: Identification of Top 20% Accounts and Construction of Three Key Metrics (10 Points)
+### Standard 1.1: Filtering and Definition of Top 20% Accounts (4 Points)
+#### Path 1.1.A [4 Points | Window Function Method]
+- Sub-criterion 1.1.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Must use `salesforce__customer_360_view`, first filter out `annual_revenue IS NULL` (leaving 7037 accounts), then use a descending sort on revenue combined with `ROW_NUMBER()` or `NTILE(5)=1` to select the Top 20%, ensuring `account_id` is unique and no accounts are missed.
+- Sub-criterion 1.1.A.2 (Precision) Must reproduce the Top 20% account count = 1408 (7037 × 0.2 rounded up), and output the 80th percentile revenue threshold = 79,621,808 (±1% allowed). The result must be consistent with the window function output.
+- Sub-criterion 1.1.A.3 (Conclusion) Must explain the industry/size coverage of the filtered sample: The top five industries in the Top group are Pharmaceuticals (87), Hospitality (85), Retail (84), Technology (79), and Financial Services (78). The size (`company_size_category`) breakdown is Mid-Market (1174) and Enterprise (234). It should also be noted that 2963 accounts with missing revenue will be excluded, posing a risk of underestimating high-value accounts.
+
+#### Path 1.1.B [3 Points | Percentile Threshold Method]
+- Sub-criterion 1.1.B.1 (Completeness 1 | Precision 4 | Conclusion 1) May use equivalent percentile methods like `PERCENT_RANK` or `ORDER BY annual_revenue DESC LIMIT CAST(total*0.2)`. Must explicitly state that null revenues are removed beforehand and explain the handling of ties (all records at or above the threshold are included).
+- Sub-criterion 1.1.B.2 (Precision) Must output the same threshold of 79,621,808 (±1%) and account count of 1408 (±1), verifying consistency with the window function method.
+- Sub-criterion 1.1.B.3 (Conclusion) Must discuss the sensitivity of the threshold method: when there is a dense cluster of tied values at the tail end of the Top group, all accounts with revenue ≥ threshold are selected. If fluctuations in extreme revenue values cause the Top sample to vary, a cross-check with the window function method is required.
+
+### Standard 1.2: Mapping of Core Fields and Definition of Metrics (3 Points)
+#### Path 1.2.A [3 Points | Direct Field Mapping]
+- Sub-criterion 1.2.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Must explain how `account_id` is used to join the two tables (Top sample LEFT JOIN `salesforce__contact_enhanced`, with the condition `is_deleted=0`), and provide the formulas for the three metrics: Density = `contact_count / number_of_employees * 1000` (returns NULL if number of employees ≤ 0), Decision-Maker Ratio = `decision_contact_count / contact_count` (returns 0 for accounts with 0 contacts), Coverage = `SUM(has_Sales…has_HR)` (a count of the five departments).
+- Sub-criterion 1.2.A.2 (Precision) Must list the keywords for identifying C/VP levels: `\bchief\b`, `\bceo\b`, `\bcfo\b`, `\bcoo\b`, `\bcio\b`, `\bcto\b`, `\bcmo\b`, `\bciso\b`, `\bchro\b`, `\bcpo\b`, `vice[ -]?president`, `(^|\b)(a|s|e)?vp(\b|$)`, `\bpresident\b` (excluding those containing `vice president`). Department keywords: Sales; Finance/Financial/Account*/Acct*; Operations/Operation/Ops/Supply/Logistics; IT/Information Technology/Technology/Engineering; HR/Human Resources/People. Original fields must not be altered.
+- Sub-criterion 1.2.A.3 (Conclusion) Must explain the impact of definitions: failing to filter out deleted flags or misinterpreting `cto` fragments will overestimate the decision-maker ratio; the high number of nulls in `department` (1428) could lead to an inflated coverage score if not handled as a separate category.
+
+#### Path 1.2.B [3 Points | Gap Monitoring Extension]
+- Sub-criterion 1.2.B.1 (Completeness 1 | Precision 4 | Conclusion 1) Must quantify the impact of missing key fields: 290 accounts with missing employee counts make density incalculable; 1428 contacts with unknown departments prevent coverage assessment; 108 accounts in the Top sample have 0 contacts, resulting in a decision-maker ratio and coverage of 0.
+- Sub-criterion 1.2.B.2 (Precision) Should provide a data quality control strategy: for null `department` values, keep the original record but add a `dept_unknown_flag`; flag missing `number_of_employees` as a data risk (not to be imputed); if a `title` is unidentifiable, it contributes 0 to the decision-maker count.
+- Sub-criterion 1.2.B.3 (Conclusion) Must propose gap monitoring recommendations: establish two dashboards for "Missing Employee Count List" and "Unknown Department Percentage," to be reviewed weekly as a prerequisite for subsequent threshold setting and risk assessment.
+
+### Standard 1.3: Aggregation of Three Metrics and Baseline Output (3 Points)
+#### Path 1.3.A [3 Points | Full Sample Calculation of Three Metrics]
+- Sub-criterion 1.3.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Must aggregate the three metrics for the Top 20% sample and state how missing values are handled: NULL `number_of_employees` → NULL density (flagged as a risk); 0 contacts → decision-maker ratio fixed at 0; coverage counted based on whether the five keyword groups are matched.
+- Sub-criterion 1.3.A.2 (Precision) Must reproduce the overall averages (±1% allowed): `avg_density ≈ 186.41`, `avg_decision_ratio ≈ 0.01056 (1.06%)`, `avg_dept_cov ≈ 0.882`, and report `zero_contact_accounts = 108`, `employees_missing = 290`.
+- Sub-criterion 1.3.A.3 (Conclusion) Must point out the shortcomings: the decision-maker ratio of only 1.06% indicates extremely low C/VP coverage; an average coverage of less than 1 suggests most accounts have coverage in ≤1 department, which will hinder future expansion efforts.
+
+#### Path 1.3.B [3 Points | Structural Overview Method]
+- Sub-criterion 1.3.B.1 (Completeness 1 | Precision 4 | Conclusion 1) Can output the distribution structure: Density distribution (P25≈18.9, P75≈211.9), Coverage distribution (0: 541 accounts, 1: 555 accounts, 2: 255 accounts, 3: 51 accounts, 4: 6 accounts, 5: 0 accounts), Decision-Maker Ratio (95th percentile ≈ 13.3%).
+- Sub-criterion 1.3.B.2 (Precision) Must explain the calculation chain: `Top Sample → Field Mapping → Aggregation`, and provide SQL/pseudocode for verification (including `CASE WHEN` for mapping and `GROUP BY account_id`).
+- Sub-criterion 1.3.B.3 (Conclusion) Must summarize sources of deviation: extremely small employee counts (e.g., <3) lead to inflated density scores; lack of department labels causes coverage to be underestimated and should be listed as a data governance priority.
+
+---
+## Requirement 2: Development of Differentiated Thresholds and a Benchmark System (8 Points)
+### Standard 2.1: Industry × Size Threshold Setting (4 Points)
+#### Path 2.1.A [4 Points | P25th Percentile Threshold Method]
+- Sub-criterion 2.1.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Density threshold = `max(5, P25_density(industry, company_size_category))`, decision-maker ratio is uniformly 15%, coverage threshold = `max(size_baseline, P25_coverage)`. The size baselines are: Enterprise=5, Mid-Market=4, Others=3.
+- Sub-criterion 2.1.A.2 (Precision) The P25 density for Mid-Market must be provided and is allowed a ±1% tolerance: Real Estate 21.67, Insurance 14.18, Education 12.80, Hospitality 12.30, Financial Services 10.32, Media 10.05, Technology 8.03, Consulting 7.26, Energy 7.21, Retail 7.80. The corresponding P25 coverage for all these is 0, so the threshold defaults to 4.
+- Sub-criterion 2.1.A.3 (Conclusion) Must explain the significance of the percentile threshold: it can identify relatively underperforming accounts (e.g., a Technology Mid-Market account with density below 8.03 is deemed insufficient) and adapts to differences in employee bases (the threshold for accounts with a large base rises with the percentile).
+
+#### Path 2.1.B [4 Points | Mean/Median Scaling Method]
+- Sub-criterion 2.1.B.1 (Completeness 1 | Precision 4 | Conclusion 1) If using a scaling method, must declare `threshold = max(baseline, α × group_median)`. A recommended α is 0.6. Coverage should still use the size-based baseline.
+- Sub-criterion 2.1.B.2 (Precision) Must show at least three industry examples (Mid-Market): Real Estate median density 63.89 → threshold ≈ 38.34; Financial Services median 58.28 → threshold ≈ 34.97; Technology median 36.04 → threshold ≈ 21.62. Must also explain the difference from the P25 method (the scaling method is stricter and more sensitive to high-value accounts).
+- Sub-criterion 2.1.B.3 (Conclusion) Must discuss applicable scenarios: P25 is preferred for long-tail distributions or those with many zero values; scaling can be used to control for volatility in the top end, with a stated fallback strategy.
+
+### Standard 2.2: Global Benchmark and Dual-Track Implementation (4 Points)
+#### Path 2.2.A [4 Points | Dual-Track Rule Method]
+- Sub-criterion 2.2.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Must clearly define the global benchmarks: Density ≥5, Decision-Maker Ratio ≥15%, Coverage (Enterprise ≥5, Mid-Market ≥4, Others ≥3). Missing employee count or department information is concurrently flagged as a "Quality Risk."
+- Sub-criterion 2.2.A.2 (Precision) Risk assessment logic: at the account level, both global and industry × size thresholds must be checked. Failing both → High Risk; failing only one track → Secondary Risk. Based on current calculations: Low Density accounts = 757, Low Decision-Maker Ratio accounts = 1371, Low Coverage accounts = 1402. Total high-risk accounts = 737 (Enterprise 227, Mid-Market 510).
+- Sub-criterion 2.2.A.3 (Conclusion) Must explain the advantage of the dual-track system: it ensures both horizontal (cross-industry) and vertical (within-group) comparisons. When a group sample size is <10 or a threshold is missing, it must fall back to the global benchmark and log an alert.
+
+#### Path 2.2.B [4 Points | Industry-Specific Mandatory Department Rules]
+- Sub-criterion 2.2.B.1 (Completeness 1 | Precision 4 | Conclusion 1) Must list mandatory departments for certain industries: Finance/Insurance/Healthcare/Government must have Finance+IT; Retail/Hospitality must have Operations+HR; Manufacturing/Energy must have Operations; Technology must have IT.
+- Sub-criterion 2.2.B.2 (Precision) Must provide the assessment process: Map departments → Check for missing mandatory departments industry by industry → Combine with the size-based threshold (flag as red if either condition is not met).
+- Sub-criterion 2.2.B.3 (Conclusion) Must explain how this strategy addresses pain points: for example, financial services accounts often lack IT contacts, and mandating this coverage can shorten compliance assessment cycles.
+
+---
+## Requirement 3: Risk Scoring, Gap Quantification, and List Output (12 Points)
+### Standard 3.1: Risk Scoring and Tiering (6 Points)
+#### Path 3.1.A [6 Points | 0.4/0.4/0.2 Weighted Scoring]
+- Sub-criterion 3.1.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Scoring formula: `risk_score = 0.4*low_density + 0.4*low_decision + 0.2*low_coverage`. A high-risk threshold of ≥0.8 is set.
+- Sub-criterion 3.1.A.2 (Precision) Must output key counts (±1% allowed): low_density=757, low_decision=1371, low_coverage=1402, high_risk=737 (Enterprise 227, Mid-Market 510).
+- Sub-criterion 3.1.A.3 (Conclusion) Must explain the rationale for the weights: the decision-maker ratio and coverage are the main gaps (over 90% of accounts are failing), which have the greatest impact on advancing high-level relationships and multi-departmental collaboration.
+
+#### Path 3.1.B [6 Points | Standardized Gap Method]
+- Sub-criterion 3.1.B.1 (Completeness 1 | Precision 4 | Conclusion 1) If choosing the standardized gap method, must use `gap = max(0, (threshold - actual) / threshold)` and set a high-risk threshold of ≥0.6 or ≥P75.
+- Sub-criterion 3.1.B.2 (Precision) Must provide the calculation steps: Get threshold → Calculate the three types of gaps → Sum them using 0.4/0.4/0.2 weights → Tier the accounts. Must also verify that the average gap for density is ≈0.37, the average decision-maker gap is ≈0.86, and the average coverage gap is ≈0.79 (for the Top sample).
+- Sub-criterion 3.1.B.3 (Conclusion) Must explain that this method can measure the "effort needed for improvement" and is suitable for setting tiered performance indicators. However, when a threshold is extremely low (e.g., P25 of coverage = 0), it must forcibly fall back to the size-based baseline.
+
+### Standard 3.2: Gap Quantification and Fulfillment Workload (4 Points)
+#### Path 3.2.A [4 Points | Absolute Gap Method]
+- Sub-criterion 3.2.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Must quantify the tasks required to fill the gaps (±1% allowed): for high-risk accounts with known employee counts, ≈6,384 new contacts need to be added; ≈368 C/VP contacts need to be added. Employee count is missing for 290 accounts, and 108 accounts have zero contacts.
+- Sub-criterion 3.2.A.2 (Precision) Formulas: `target_contacts = ceil(density_threshold_group * employees / 1000)`, `contact_gap = max(0, target - current)`. The decision-maker gap is calculated similarly using `ceil(0.15 * contact_count)`.
+- Sub-criterion 3.2.A.3 (Conclusion) Must explain the significance of the workload: the 454 quantifiable high-risk accounts require an average of ≈14 new contacts and ≈0.81 C/VP contacts each. This can be used to plan resources for BD, Marketing, and executive outreach.
+
+#### Path 3.2.B [4 Points | Standardized Gap Profiling]
+- Sub-criterion 3.2.B.1 (Completeness 1 | Precision 4 | Conclusion 1) Must output the average gap and risk rate by industry × size (Example for Mid-Market, ±1% allowed): Government density gap ≈ 0.257, decision-maker gap ≈ 0.984, coverage gap ≈ 0.795, with risk rates (density/decision/coverage) of ≈0.508/0.984/0.984. Manufacturing ≈ 0.234/0.979/0.818, with risk rates ≈0.417/0.979/0.979. Hospitality ≈ 0.162/0.973/0.807, with risk rates ≈0.405/0.973/1.000.
+- Sub-criterion 3.2.B.2 (Precision) Must provide the grouping SQL/pseudocode (including `GROUP BY industry, size`, averages, and boolean averages) and verify the sample sizes (Government=61, Manufacturing=48, Hospitality=74).
+- Sub-criterion 3.2.B.3 (Conclusion) Must summarize the differences: Government/Manufacturing have prominent density shortcomings and should be prioritized. Hospitality's 100% coverage gap indicates a scarcity of multi-department touchpoints, so Operations/HR contacts can be added first.
+
+### Standard 3.3: High-Risk List and Evidence (2 Points)
+#### Path 3.3.A [2 Points | Detailed List Method]
+- Sub-criterion 3.3.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Must list at least 10 high-risk accounts with the following fields: account_id, industry, size, annual revenue, employees, contacts, density, decision-maker ratio, coverage, missing departments, risk score. Examples (all verifiable):
+  - Shaw Inc (001iUgdbaZxgvVz, FS/Mid): employees 3, contacts 0, density 0, decision 0%, coverage 0/5, missing Sales/Finance/Operations/IT/HR, risk=1.0
+  - Valencia-Myers (001wsyKDDxqTviU, FS/Ent): employees 4147, contacts 6, density 1.45, decision 0%, coverage 3/5 (missing Ops/HR), risk=1.0
+  - Holmes, Banks and Morgan (0017NGHJFHvszAT, Edu/Mid): employees missing, contacts 3, coverage 1/5, missing Sales/Finance/IT/HR, risk=1.0
+  - Davidson, Walker and Taylor (001Vhs8zaZFZGcQ, Retail/Ent): employees 5480, contacts 2, density 0.36, decision 0%, coverage 1/5, missing Sales/Finance/IT/HR, risk=1.0
+  - Banks Inc (001RiaT9t8374bZ, Consulting/Mid): employees missing, contacts 1, coverage 1/5, missing Sales/Finance/Ops/IT, risk=1.0
+  - Clayton-Reyes (0013dmNE5ZY68TI, Consulting/Mid): employees missing, contacts 3, coverage 2/5 (missing Sales/IT/HR), risk=1.0
+  - Gonzalez Inc (001y8D5RpH0hrM1, Tech/Mid): employees 723, contacts 0, density 0, coverage 0/5, missing Sales/Finance/Ops/IT/HR, risk=1.0
+  - George, Davis and Hill (0012HCDSfgqqD4n, FS/Ent): employees 7736, contacts 0, density 0, coverage 0/5, risk=1.0
+  - Rodriguez, Boyd and Benitez (001kp8LQU25OcVG, Edu/Ent): employees 8562, contacts 1, density 0.12, coverage 1/5, missing Sales/Finance/IT/HR, risk=1.0
+  - Lopez-Ward (001YpncsRz8tPAa, FS/Mid): employees 585, contacts 4, density 6.84, decision 0%, coverage 2/5 (missing Ops/IT/HR), risk=1.0
+- Sub-criterion 3.3.A.2 (Precision) The list must be consistent with the scoring results. Field values can have a ±1% float (due to rounding). Missing departments must be derived from the five keyword groups.
+- Sub-criterion 3.3.A.3 (Conclusion) Must summarize common themes: zero/extremely few contacts, missing C/VPs, low coverage, and frequent missing employee counts, indicating that data completion and high-level outreach should be prioritized.
+
+#### Path 3.3.B [2 Points | Prioritization Method]
+- Sub-criterion 3.3.B.1 (Completeness 1 | Precision 4 | Conclusion 1) Prioritization rules: `risk_score DESC → annual_revenue DESC → company_size_category (Enterprise first) → (decision_gap_ratio DESC, coverage_gap_ratio DESC)`.
+- Sub-criterion 3.3.B.2 (Precision) Must show the potential benefits of different priority queues after sorting, e.g., high-risk Enterprise accounts are prioritized for GM resources, while Mid-Market accounts with high gaps are assigned to Inside Sales/Marketing for a joint effort.
+
+---
+## Requirement 4: Action Plan and Industry-Specific Strategies (6 Points)
+### Standard 4.1: Contact Optimization Action Plan (4 Points)
+#### Path 4.1.A [4 Points | SLA-Driven Method]
+- Sub-criterion 4.1.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Must define SLAs: Within T+7 days, complete data entry for the 290 accounts with missing employee counts and create initial records for the 108 zero-contact accounts. Within T+14 days, achieve ≥3/5 department coverage and add ≥1 C/VP contact for each account. Within T+30 days, 80% of high-risk accounts must meet the density ≥5 / decision-maker ≥15% / coverage-by-size benchmarks. Within T+60 days, all high-risk accounts must meet the dual-track benchmarks and close all data gaps.
+- Sub-criterion 4.1.A.2 (Precision) Must assign clear responsibilities: AEs are responsible for the top 50 Enterprise accounts; CS/BD are responsible for the long tail of Mid-Market accounts; Marketing provides materials for executive outreach; the data team is responsible for field validation and automated alerts.
+- Sub-criterion 4.1.A.3 (Conclusion) Must state the expected improvement in win rate/renewal rate from the SLAs (e.g., adding C/VP contacts improves decision-making efficiency) and require a weekly review of SLA completion rate at ≥90%.
+
+#### Path 4.1.B [4 Points | Phased Milestone Method]
+- Sub-criterion 4.1.B.1 (Completeness 1 | Precision 4 | Conclusion 1) Plan 30/60/90-day goals: Within 30 days, reduce the proportion of high-risk accounts to ≤60%. Within 60 days, reduce the number of accounts with risk_score > 0.8 to ≤200. Within 90 days, ensure all accounts have a risk_score ≤ 0.6 and raise the average density to ≥200.
+- Sub-criterion 4.1.B.2 (Precision) Must be paired with actions: Within 30 days, host executive roundtables + bi-weekly reviews. Within 60 days, develop playbooks for accounts with missing departments and add cross-departmental contacts. Within 90 days, import multi-channel leads (webinars, consultant referrals) to maintain coverage.
+- Sub-criterion 4.1.B.3 (Conclusion) Must explain that a phased approach creates a closed loop: Phase Review → Strategy Adjustment → Knowledge Accumulation.
+
+### Standard 4.2: Differentiated Strategies and Role Mapping (2 Points)
+#### Path 4.2.A [2 Points | Industry Strategy Cards]
+- Sub-criterion 4.2.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Set specific targets for industries with high density thresholds: e.g., Real Estate Mid-Market ≥21.7, Insurance ≥14.2, Education ≥12.8, Hospitality ≥12.3, Financial Services ≥10.3, with coverage ≥4/5. Provide an outreach playbook (high-level value prop → parallel outreach to Finance/IT, supplemented by Ops/HR).
+- Sub-criterion 4.2.A.2 (Conclusion) Must state the expected outcome: achieving multi-departmental outreach in high-threshold industries can reduce project stall rates and accelerate deal closures.
+
+#### Path 4.2.B [2 Points | Size-First Layout]
+- Sub-criterion 4.2.B.1 (Completeness 1 | Precision 4 | Conclusion 1) Differentiated requirements by size: Enterprise accounts should have at least 3 decision-makers with 5/5 coverage; Mid-Market should have at least 1-2 decision-makers with ≥4/5 coverage; Small/Other should have ≥1 decision-maker with ≥3/5 coverage.
+- Sub-criterion 4.2.B.2 (Conclusion) Must clarify the difference in pace: Enterprise requires in-person consultants and industry experts working in alignment; Mid-Market should prioritize digital touchpoints and remote guidance; and must explain the resource allocation logic.
+
+---
+## Requirement 5: Data Quality and Monitoring Governance (2 Points)
+### Standard 5.1: Monitoring Metrics and Alerting Mechanism (2 Points)
+#### Path 5.1.A [2 Points | Dashboard + Alerts]
+- Sub-criterion 5.1.A.1 (Completeness 1 | Precision 4 | Conclusion 1) Must define dashboard metrics: Density/Decision/Coverage compliance rates, number of zero-contact accounts (currently 108), number of accounts with missing employees (290), number of `dept_unknown` contacts (1428), count of accounts with risk_score ≥ 0.8 (737). To be updated weekly.
+- Sub-criterion 5.1.A.2 (Precision) Alert triggers: If the density compliance rate is <80% or the decision-maker compliance rate is <20% for two consecutive weeks, automatically notify the AE manager. If new zero-contact accounts or >5 new accounts with missing employee data appear, they must be handled within 24 hours by an assigned owner.
+
+#### Path 5.1.B [2 Points | Data Quality Governance]
+- Sub-criterion 5.1.B.1 (Completeness 1 | Precision 4 | Conclusion 1) Must list a governance plan: the 290 accounts with missing employees, 108 zero-contact accounts, and 1428 contacts with unknown departments are all to be included in a monthly governance list.
+- Sub-criterion 5.1.B.2 (Conclusion) Must propose actions: mandatory field validation, external data enrichment, standardized dictionaries for Title/Department, and setting a quarterly OKR for reducing `dept_unknown` (e.g., to ≤5%). Must explain how improved accuracy directly benefits risk assessment (by preventing incorrect threshold application).

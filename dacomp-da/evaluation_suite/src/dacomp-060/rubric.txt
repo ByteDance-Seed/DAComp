@@ -1,0 +1,95 @@
+# [Total Score | 30 Points] The solution must satisfy the following four core requirements:
+
+- Requirement 1: Identify high-CTR, low-CVR ad groups using the criteria "CTR ≥ P75 and CVR ≤ P25".
+- Requirement 2: Construct an Intent Match Ratio (IMR = Actual CVR / Expected CVR) and identify mismatched segments.
+- Requirement 3: Analyze the traffic quality and common characteristics of the high-CTR, low-CVR ad groups.
+- Requirement 4: Propose coordinated optimization suggestions for keywords, audience, and landing pages, including a monitoring loop.
+
+==============================
+I. Requirement 1: Data Preparation and Identification of "High CTR × Low CVR" Ad Groups (Max 9 Points for this requirement)
+==============================
+### Standard 1.1 [Max 3 Points]: Data Scoping, Metric Definition, and Sample Cleaning
+#### Path 1.1.A [3 Points]
+- Standard 1.1.A.1 [1 Point | Completeness]: Explicitly use the `google_ads__ad_group_report` table from `/Users/bytedance/workspace/dacomp-release/dacomp-da/tasks/dacomp-060/dacomp-060.sqlite`. The fields must cover at least `date_day/ad_group_id/ad_group_name/campaign_id/impressions/clicks/conversions/spend/view_through_conversions`. Aggregate over the entire history (2021-01-01 to 2024-12-30) by `ad_group_id`, retaining only records from the original detailed data where `impressions>0 AND clicks>0`.
+- Standard 1.1.A.2 [1 Point | Accuracy]: Declare the processing order: ① `WHERE impressions>0 AND clicks>0`; ② `GROUP BY ad_group_id`, `SUM(impressions/clicks/conversions/spend/view_through_conversions)` and calculate `active_days = COUNT(DISTINCT CASE WHEN impressions>0 THEN substr(date_day,1,10) END)`; ③ Derive metrics `CTR = clicks/impressions`, `CVR = conversions/clicks`, `CPC = spend/clicks`, `CPA = spend/conversions` (return NULL for division by zero).
+- Standard 1.1.A.3 [1 Point | Conclusion]: State that the number of ad groups after aggregation is `4324` and confirm that this unified definition will be consistently used for all subsequent metrics and percentile calculations.
+
+### Standard 1.2 [Max 4 Points]: Calculation of CTR/CVR Percentile Thresholds and Filtering of Problem Groups
+#### Path 1.2.A [4 Points]
+- Standard 1.2.A.1 [1 Point | Completeness]: Calculate `CTR` and `CVR` on the aggregated results. Zero values must be retained to reflect true performance (e.g., `conversions=0` ⇒ `CVR=0`).
+- Standard 1.2.A.2 [2 Points | Accuracy]: Use an exact percentile function to obtain `CTR_P75 = 0.035876 ± 0.0002` and `CVR_P25 = 0.038462 ± 0.0002`. If the error exceeds the tolerance, explain the reason and provide evidence for recalculation.
+- Standard 1.2.A.3 [1 Point | Conclusion]: Filter for ad groups that satisfy `CTR ≥ 0.035876` and `CVR ≤ 0.038462`. Confirm the size of the problem group is `274` (representing `6.34% ±0.1pp` of the total). Provide its weighted metrics: `wCTR = 0.04079 ± 0.0005`, `wCVR = 0.02533 ± 0.0005`, `CPC = 2.8517 ± 0.01`, `CPA = 112.60 ± 0.5`.
+
+### Standard 1.3 [Max 2 Points]: Segmentation of Problem and Control Groups
+#### Path 1.3.A [2 Points]
+- Standard 1.3.A.1 [1 Point | Completeness]: Within the set where `CTR ≥ 0.035876`, segment into a problem group (`CVR ≤ 0.038462`) and a control group: Problem group has `274` ad groups (total clicks `16738`, total conversions `423.9`), and the control group has `807` ad groups (total clicks `52464`, total conversions `3379.2`).
+- Standard 1.3.A.2 [1 Point | Accuracy]: Validate the weighted metrics: Problem group `wCTR = 0.04079`, `wCVR = 0.02533`, `weighted CPA = 112.60`; Control group `wCTR = 0.04054`, `wCVR = 0.06441`, `weighted CPA = 43.41`. Tolerance is `±0.0005` for rates and `±0.3` for monetary values.
+
+==============================
+II. Requirement 2: Intent Match Ratio Construction and Mismatch Segmentation (Max 9 Points for this requirement)
+==============================
+### Standard 2.1 [Max 6 Points]: Construction of Expected CVR
+#### Path 2.1.A [6 Points]
+- Standard 2.1.A.1 [1 Point | Completeness]: Use `advertising_channel_type × ad_group_type × keyword_match_type` as the segmentation dimension (categorize as `UNKNOWN` if `advertising_channel_type` is missing). Combine `google_ads__keyword_report` (`clicks>0`) with the previously aggregated ad group table.
+- Standard 2.1.A.2 [4 Points | Accuracy]: Use Empirical Bayes (EB) smoothing to calculate `expected_cvr = (conv + α) / (click + α + β)`, where `global_cvr = 0.05475246`, `α = 2.73762`, and `β = 47.26238` (using a prior weight of 50). Must list at least three anchor points:
+  - `DISPLAY × SEARCH_STANDARD × BROAD` ⇒ `expected_cvr = 0.05636 ± 0.0005`
+  - `SEARCH × SEARCH_STANDARD × EXACT` ⇒ `expected_cvr = 0.05267 ± 0.0005`
+  - `SHOPPING × SEARCH_STANDARD × PHRASE` ⇒ `expected_cvr = 0.05758 ± 0.0005`
+  Also, explain that if an ad group is missing the keyword dimension, the calculation should fall back to `(channel × ad_group_type)`, and if that is also missing, fall back to `global_cvr`.
+- Standard 2.1.A.3 [1 Point | Conclusion]: Based on `IMR = actual_cvr / expected_cvr_final`, report the distribution: Mean `1.0110`, Median `1.0060`, P25 `0.7019`, P75 `1.3163`. Set a mismatch threshold of `IMR<0.7` and state that it covers `24.88%` of ad groups.
+
+### Standard 2.2 [Max 3 Points]: IMR-driven Segmentation and Prioritization
+#### Path 2.2.A [3 Points]
+- Standard 2.2.A.1 [1 Point | Completeness]: Summarize the number of ad groups, clicks, and spend across three tiers: `IMR<0.5`, `0.5≤IMR<0.9`, and `IMR≥0.9`.
+- Standard 2.2.A.2 [1 Point | Accuracy]: Validate the metrics for each tier: The `<0.5` tier has `548` groups, accounting for `9.83% ±0.2pp` of clicks and `10.26% ±0.2pp` of spend; the `0.5-0.9` tier has `1178` groups (`29.17%` of clicks); the `≥0.9` tier has `2598` groups (`61.00%` of clicks).
+- Standard 2.2.A.3 [1 Point | Conclusion]: Point out that the `IMR<0.5` tier contributes to `65%` of the problem groups (the problem group's average IMR is `0.4595`, P25 is `0.3332`) and should be the top priority for optimization.
+
+==============================
+III. Requirement 3: Traffic Quality and Common Characteristics Analysis (Max 7 Points for this requirement)
+==============================
+### Standard 3.1 [Max 4 Points]: Keyword and Search Term Profiling
+#### Path 3.1.A [4 Points]
+- Standard 3.1.A.1 [1 Point | Completeness]: For the problem group vs. other groups, provide a four-part comparison: `keyword_match_type`, `search_term_match_type`, term length (`short≤2`, `medium=3-4`, `long≥5`), and intent (using this dictionary: Transactional `{buy,price,order,discount,trial,demo,cheap,quote,subscribe,plan,package,pricing}`, Informational `{how,what,why,guide,tips,ideas,learn,tutorial,definition,meaning,examples,strategy,strategies,improve,help,support}`, Brand `{brand,official,company,enterprise,corporate,agency,inc,llc,ltd,solutions,services,global,international}`, Competitor `{alternative,alternatives,vs,compare,comparison,competitor,competitors,review,reviews,replacement,instead}`, with the rest categorized as `other`).
+- Standard 3.1.A.2 [2 Points | Accuracy]: Provide weighted metrics (share of clicks & CVR) with a tolerance of `±0.5pp`:
+  - Keywords: Problem group `BROAD 23.07%/CVR 5.83%`, `BMM 26.64%/5.13%`, `EXACT 23.81%/5.36%`, `PHRASE 26.48%/6.07%`; Other groups corresponding values `24.87%/5.40%`, `24.46%/5.59%`, `25.15%/5.36%`, `25.53%/5.47%`.
+  - Search Terms: Problem group `BROAD 16.47%/CVR 6.09%`, `EXACT 20.96%/6.07%`, `NEAR_EXACT 20.66%/5.34%`, `NEAR_PHRASE 18.11%/5.11%`, `PHRASE 23.80%/5.04%`; Other groups `18.73%/5.29%`, `21.32%/5.54%`, `19.39%/5.63%`, `20.60%/5.73%`, `19.95%/5.64%`.
+  - Term Length: Problem group `short 83.09%`, `medium 16.91%`, `long 0%`; Other groups `short 85.60%`, `medium 14.40%`.
+  - Intent: Problem group `transactional 21.11%`, `brand 18.25%`, `informational 12.27%`, `other 48.37%`; Other groups `transactional 14.35%`, `brand 15.45%`, `informational 14.15%`, `other 56.05%`.
+  - Search Term Uniqueness: Problem group `25.67` terms/100 clicks, Other groups `23.25` terms/100 clicks, tolerance `±0.3`.
+- Standard 3.1.A.3 [1 Point | Conclusion]: Conclude that the problem group relies more on broad match and transactional terms, and its scattered intent leads to a lower CVR and higher search term uniqueness.
+
+### Standard 3.2 [Max 3 Points]: Traffic Source and Landing Page Quality
+#### Path 3.2.A [2 Points]
+- Standard 3.2.A.1 [1 Point | Completeness]: Compare the performance of `advertising_channel_type` for the problem group vs. other groups across clicks, spend, CVR, CPC, and CPA.
+- Standard 3.2.A.2 [1 Point | Accuracy]: Validate metrics (tolerance `±0.01` for monetary, `±0.5pp` for shares): Problem group `SHOPPING 25.45% clicks / CVR 2.65% / CPC 2.43 / CPA 91.92`, `MULTI_CHANNEL 17.15% / CVR 2.31% / CPC 3.30 / CPA 143.13`, `VIDEO 21.29% / CVR 2.50% / CPC 2.95 / CPA 117.89`. For other groups, CPC and CPA are concentrated around `2.72~2.80` and `46~48`, respectively.
+#### Path 3.2.B [1 Point]
+- Standard 3.2.B.1 [1 Point | Conclusion]: State that `google_ads__url_report` contains only 2 records (both with `url_host='unknown'`, `url_path='unknown'`, and 0 conversions), and that these records cover 100% of non-problem groups → Therefore, the landing page analysis must be marked as "data missing," and a plan for data backfilling or log collection should be proposed.
+
+### Standard 3.3 [Max 3 Points]: Impact Ranking
+#### Path 3.3.A [3 Points]
+- Standard 3.3.A.1 [1 Point | Completeness]: Define `Impact = click_share_problem × (CVR_control - CVR_segment)` and provide `CVR_control = 0.06441` and `CVR_problem = 0.02533`.
+- Standard 3.3.A.2 [1 Point | Accuracy]: List the TOP 3 impacting segments (tolerance `±0.00005`):
+  1. `Shopping Remarketing - Spring 2023`: `click_share_problem = 2.838%`, `CVR_segment = 0.02168`, `impact = 0.001032`, `waste_cost = 1,665.21`.
+  2. `Search Broad - Q2 2023`: `click_share_problem = 2.396%`, `CVR_segment = 0.01671`, `impact = 0.000990`, `waste_cost = 588.75`.
+  3. `Shopping Broad - Q3 2023`: `click_share_problem = 2.055%`, `CVR_segment = 0.01628`, `impact = 0.000858`, `waste_cost = 1,078.49`.
+- Standard 3.3.A.3 [1 Point | Conclusion]: Clearly state the priority order for action—first address remarketing shopping and broad search campaigns, followed by multi-channel audience campaigns, to cover ~30% of problematic clicks.
+
+==============================
+IV. Requirement 4: Optimization Suggestions and Monitoring Loop (Max 5 Points for this requirement)
+==============================
+### Standard 4.1 [Max 4 Points]: The Trifecta of Keyword/Audience/Landing Page Optimizations
+#### Path 4.1.A [4 Points]
+- Standard 4.1.A.1 [1 Point | Completeness]: Suggestions must cover at least three actions: keyword management, audience/bidding, and landing pages, with each action linked back to specific issues identified in the data.
+- Standard 4.1.A.2 [2 Points | Accuracy]: Recommendations must be quantitative:
+  - Keywords: Reduce the `BMM` click share in the problem group from `26.64%` to `≤22%` (supplemented by adding negative keywords from the transactional dictionary); increase `Exact/Phrase` match share by ≥3pp; perform weekly cleanups of ad groups with search term uniqueness > 30 terms/100 clicks.
+  - Audience/Bidding: Reduce bids by 20% for problem groups in `Multi-channel/Video` (current CPA `≥117`); prioritize shifting budget to groups within `Shopping` that have an IMR≥0.9; set up an automated rule to reduce bids by 15% for groups with `IMR<0.6`.
+  - Landing Page: Due to the data gap, implement tracking for host/path and launch experimental LPs. The goal is to collect real landing page data for ≥90% of problem groups within 2 weeks. Subsequently, direct traffic from transactional terms to dedicated pages and validate the form submission rate.
+  Simultaneously, provide quantitative goals: increase the problem group `IMR` from `0.46` to `≥0.75`, lift `CVR` by 30%, and decrease `CPA` by 20%.
+- Standard 4.1.A.3 [1 Point | Conclusion]: Prioritize actions: `Add negative keywords & tighten match types → Downgrade high-CPA audiences/channels → Validate new landing pages`. The phased goal is to reduce the problem group's spend share from `8.77%` to `<5%` and increase the share of high-intent groups (IMR≥0.75) to `≥70%`.
+
+### Standard 4.2 [Max 1 Point]: Monitoring and Alerting Loop
+#### Path 4.2.A [1 Point]
+- Standard 4.2.A.1 [1 Point | Completeness + Accuracy + Conclusion]: Design a monitoring dashboard:
+  - KQI: List of problem ad groups, IMR distribution, CTR/CVR/CPA, `BMM` click share, transactional term share, channel click share, search term uniqueness.
+  - Alerting Thresholds: `CTR≥0.0359 AND CVR≤0.0385 AND clicks≥150 for 7 consecutive days`; `IMR<0.6 AND clicks≥300`; `BMM click share > 26.5% AND CVR week-over-week decrease > 20%`.
+  - Refresh Frequency: KPIs refreshed daily, structural analysis reviewed weekly, with a closed-loop process (Identify → Assign → Execute → Review).

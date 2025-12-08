@@ -1,0 +1,182 @@
+==============================
+I. Scoring Overview (dacomp-068 Live Test Version)
+==============================
+# [Total Score | 36 points] Q4 $5,000,000 Budget Reallocation Among 8 Apps (ROI≥25%) Scoring Rubric
+
+Note: Scoring follows the hierarchy 'Requirement → Standard → Path → Sub-standard'. Unless restricted by the prompt, paths are mutually exclusive alternatives. Each sub-standard must be assessed for "Completeness[1] | Precision[4] | Conclusion[1]". All precision anchors are derived from /tasks/dacomp-068/dacomp-068.sqlite (verified against a 90-day window). Tolerances are specified in the main text.
+
+---
+
+## Requirement 1: Data Preparation and Identification of Two Market Types (Max 18 points)
+
+### Standard 1.1: Data Table Structure and Field Mapping (Max 6 points)
+
+#### Path 1.1.A | SQLite Direct Query Path (Recommended)
+- Sub-standard 1.1.A.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Must list and explain the 3 core tables:
+  • `google_play__comprehensive_performance_dashboard` (Daily app details, containing `date_day`, `package_name`, `daily_net_revenue`, `store_visitors`, `store_acquisitions`, `store_conversion_rate`, etc., used for 90-day aggregation)
+  • `google_play__geo_market_analysis` (Country market view, containing `avg_daily_revenue`, `store_visitors_30d`, `store_installs_30d`, `store_conversion_rate`, `weekly_growth_rate`, etc., used for A/B market filtering and capacity estimation)
+  • `google_play__product_portfolio_analysis` (App profile, containing `bcg_matrix_category`, `investment_priority`, `revenue_score`, `engagement_score`, etc., used for segmentation and prioritization)
+  [Precision[4]] Must provide `PRAGMA table_info(<table>)` or equivalent SQL to verify field existence; `store_conversion_rate` in the geo table is stored as a percentage (e.g., UK `com.app.musicplayer`=16.03), `avg_daily_revenue` is in USD and is considered the market-level proxy for `daily_net_revenue`; the relationship between `avg_daily_revenue` ↔ `daily_net_revenue` and `store_visitors` / `store_installs` must be explained.
+  [Conclusion[1]] Declare explicitly: Subsequent 90-day window calculations will be derived from the dashboard table, market filtering and capacity modeling from the geo table, and prioritization and segmentation from the portfolio table, with all derivations adhering to these field definitions.
+
+### Standard 1.2: Constructing the Last 90-Day Time Window (Max 6 points)
+
+#### Path 1.2.A | Strict Daily Cutoff Method (Preferred)
+- Sub-standard 1.2.A.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Explain that by taking `MAX(date_day)=2024-12-31` and looking back 89 days, the `start_date` is `2024-10-03`, and only data within this inclusive interval is retained; verify that all 8 apps are present within this window.
+  [Precision[4]] Provide a reproducible SQL query:
+  ```sql
+  WITH window AS (
+    SELECT *
+    FROM google_play__comprehensive_performance_dashboard
+    WHERE date_day BETWEEN '2024-10-03' AND '2024-12-31'
+  )
+  SELECT package_name,
+         ROUND(SUM(daily_net_revenue),2)  AS revenue_90d,
+         ROUND(SUM(store_visitors),0)     AS visitors_90d,
+         ROUND(SUM(store_acquisitions),0) AS installs_90d,
+         ROUND(SUM(store_acquisitions)*1.0/SUM(store_visitors)*100,2) AS cvr_pct
+  FROM window
+  GROUP BY package_name;
+  ```
+  Verification anchors (tolerance ≤±1%): `com.app.musicplayer` 90-day revenue 1,209.56, visitors 342,606, installs 51,823, CVR=15.13%; `com.example.gameapp` revenue 1,498.48, visitors 332,965, installs 23,569, CVR=7.08%.
+  [Conclusion[1]] State clearly that the above 90-day metrics will be used for RPV/RPI, ROI, and baseline revenue modeling to ensure a consistent time frame for the entire analysis.
+
+### Standard 1.3: Identification and Validation of Two Target Market Types (Max 6 points)
+
+#### Path 1.3.A | Threshold Filtering + App Coverage Table (Recommended)
+- Sub-standard 1.3.A.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Define Type A: `store_conversion_rate>15` AND `avg_daily_revenue<5`; Type B: `avg_daily_revenue>7` AND `store_conversion_rate<10`; must count the number of matching markets for each app.
+  [Precision[4]] Example SQL:
+  ```sql
+  SELECT package_name,
+         SUM(CASE WHEN store_conversion_rate>15 AND avg_daily_revenue<5 THEN 1 ELSE 0 END) AS a_markets,
+         SUM(CASE WHEN avg_daily_revenue>7 AND store_conversion_rate<10 THEN 1 ELSE 0 END) AS b_markets
+  FROM google_play__geo_market_analysis
+  GROUP BY package_name;
+  ```
+  Tolerance ≤±1 market. Live test results: Type A hits `com.app.musicplayer`=2 (FR/GB), `com.sample.productivity`=2 (DE/CA), `com.test.fitness`=1 (BR), `com.trial.education`=1 (IN); Type B hits `com.example.gameapp`=2 (CN/US), `com.studio.videostreaming`=1 (JP).
+  [Conclusion[1]] Summarize in one sentence: Type A are 'high conversion, low revenue' markets, suitable for monetization optimization; Type B are 'high revenue, low conversion' markets, suitable for creative/conversion improvements and are the priority for the subsequent budget.
+
+---
+
+## Requirement 2: ROI Model and Price Caps (Max 12 points)
+
+### Standard 2.1: Methodology for Measuring ROI ≥ 25% (Max 6 points)
+
+#### Path 2.1.B | Unit Economics (LTV / CPI) Method
+- Sub-standard 2.1.B.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Derive: `RPI_90d = SUM(daily_net_revenue)/SUM(store_acquisitions)`; `CPI_max = RPI_90d / 1.25`; introduce a 20% safety discount to get `CPI_target = 0.8 × CPI_max`; concurrently, provide `CPV_target = 0.8 × (RPV_90d / 1.25)` to match the visitor metric.
+  [Precision[4]] Must list key anchors (tolerance ≤±0.0005):
+  • `com.example.gameapp`: RPI_90d=0.063578 ⇒ CPI_max=0.050862 ⇒ CPI_target=0.040690; RPV_90d=0.004500 ⇒ CPV_target=0.002880.
+  • `com.studio.videostreaming`: RPI_90d=0.021276 ⇒ CPI_target=0.013616; RPV_90d=0.003617 ⇒ CPV_target=0.002315.
+  • Type A baselines: `com.app.musicplayer` CPI_target=0.014938, CPV_target=0.002260; `com.sample.productivity` CPI_target=0.050793, CPV_target=0.004101; `com.test.fitness` CPI_target=0.032415; `com.trial.education` CPI_target=0.017264.
+  [Conclusion[1]] Emphasize that the model guarantees ROI≥25% only when the expected bid is ≤ CPI/CPV_target; otherwise, the market should not be included in the investment pool.
+
+### Standard 2.2: Price Caps and Investable Capacity (Max 6 points)
+
+#### Path 2.2.A | CPV/CPI Cap × Visitors/Installs (Recommended)
+- Sub-standard 2.2.A.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Explain the Q4 investable cap: `Q4_cap = MIN(CPV_target × store_visitors_30d × 3, CPI_target × store_installs_30d × 3)`, and must provide a breakdown for Type A/B markets.
+  [Precision[4]] Key market anchors (tolerance ≤±1%):
+  • Type B: `com.example.gameapp` CN=14,257, US=8,468; `com.studio.videostreaming` JP=4,003.
+  • Type A: `com.app.musicplayer` GB=5,287, FR=4,881; `com.sample.productivity` DE=10,459, CA=7,629; `com.test.fitness` BR=14,484; `com.trial.education` IN=19,422.
+  Also summarize: Total Type A cap=62,162, Total Type B cap=26,729, combined total 88,891 (total cap for all markets=121,036).
+  [Conclusion[1]] Point out that 'high conversion, low revenue' markets have limited capacity, while Type B markets are the main absorbers of budget; additionally, note that the ROI constraint means only $108,932 (after a 10% buffer) of the $5,000,000 budget can be deployed immediately.
+
+---
+
+## Requirement 3: Capacity Integration and Budget Algorithm (Max 12 points)
+
+### Standard 3.1: Opportunity Scoring / Weighting Mechanism Design (Max 6 points)
+
+#### Path 3.1.B | Base + Growth Model
+- Sub-standard 3.1.B.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Define a 20% base allocation + 80% growth allocation:
+  • Base Allocation = `deployable_budget × 20%`, distributed equally among the 8 apps.
+  • Growth Allocation is based on `growth_weight_i = Σ(Q4_cap_m × (1 + weekly_growth_rate_m))` (if no A/B markets exist, this degenerates to `0.9×total_cap_i × revenue_score_i/100 × priority_factor`, where High=1.1, Medium=1.0, Low=0.9).
+  [Precision[4]] Must recalculate:
+  • Live test `deployable_budget = Σ(0.9×total_cap_i)=108,932.26` ⇒ Base Allocation=21,786.45 ⇒ Base Budget per App=2,723.31.
+  • Growth Allocation=87,145.81; core `growth_weight` values: IN (`com.trial.education`)=26,220, CN (`com.example.gameapp`)=16,824, BR (`com.test.fitness`)=17,671, DE (`com.sample.productivity`)=10,982, etc.
+  • After iterative allocation, the growth portion for all apps hits the ceiling of `0.9×total_cap_i`, with a residual of 0.
+  [Conclusion[1]] Explain that this algorithm achieves 'baseline coverage + growth-weighted investment' and automatically respects the ROI caps; to increase capacity, LTV must first be improved or the ROI target relaxed.
+
+### Standard 3.2: Budget Allocation Result Output (Max 6 points)
+
+#### Path 3.2.A | App × Market Detail Prioritized (Revised by Actual Capacity)
+- Sub-standard 3.2.A.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Output the budget for each app with a breakdown of at least 2–3 key markets, which must cover:
+    • Type B: `com.example.gameapp` (CN 12,832 | US 7,621), `com.studio.videostreaming` (JP 3,603; US 7,189 as a baseline market fill-in).
+    • Type A: `com.app.musicplayer` (GB 4,759 | FR 4,392), `com.sample.productivity` (DE 9,413 | CA 6,866), `com.test.fitness` (BR 13,036), `com.trial.education` (IN 17,480).
+    • Others: `com.demo.socialmedia` (CN 8,457 | US 6,973), `com.dev.photoeditor` (KR 6,312).
+  [Precision[4]] Verify:
+  • Total budget per app (USD) = `com.example.gameapp` 20,452.76; `com.trial.education` 17,480.06; `com.sample.productivity` 16,278.81; `com.demo.socialmedia` 15,430.06; `com.test.fitness` 13,036.04; `com.studio.videostreaming` 10,791.46; `com.app.musicplayer` 9,150.98; `com.dev.photoeditor` 6,312.09.
+  • ΣBudget = 108,932.26 (tolerance ±50), which is exactly 0.9× the investable cap.
+  • Expected ROI = 56.25% (=1.5625 × spend), with a combined expected revenue of 170,206.66.
+  [Conclusion[1]] State that under the ROI≥25% constraint, only 2.18% (≈$108,932) of the budget is immediately deployable, with the remaining $4,891,067.74 needing to be included in an 'ROI Improvement/Reserve' plan (see Requirement 5).
+
+---
+
+## Requirement 4: Execution Cadence, Segmentation Strategy, and Risk Control (Max 12 points)
+
+### Standard 4.1: A/B Market Strategy and Test Investment Cadence (Max 6 points)
+
+#### Path 4.1.A | 'B Before A' Segmentation Strategy
+- Sub-standard 4.1.A.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Segmentation strategy:
+  • Type B (CN/US for gameapp, JP for videostreaming): Heavily invest in conversion optimization, paid-user creatives, and bid ≤ `{CPV_target, CPI_target}`, while concurrently running landing page tests;
+  • Type A (FR/GB, DE/CA, BR, IN): Focus on ARPU improvement (subscriptions, IAP, ad fill) + low-cost channels, leveraging the high CVR to amplify retention.
+  [Precision[4]] Must reference thresholds (tolerance ≤±0.0001):
+  • JP (`com.studio.videostreaming`) `CPV_target=0.002315`, `CPI_target=0.013616`;
+  • CN (`com.example.gameapp`) `CPV_target=0.002880`, `CPI_target=0.040690`;
+  • FR (`com.app.musicplayer`) `CPV_target=0.002260`; DE (`com.sample.productivity`) `CPV_target=0.004101`; BR (`com.test.fitness`) `CPV_target=0.003330`; IN (`com.trial.education`) `CPV_target=0.003149`.
+  Also, point out the growth rate differences: Type B weekly growth of 18% (CN), 8% (US), 6% (JP) is significantly higher than the typical 5%~9% for Type A.
+  [Conclusion[1]] Provide the rationale for the 'B before A' execution order: Type B markets have both high revenue and higher growth, making them the main drivers for absorbing budget; additional volume should be added to Type A markets after their ROI is synchronized and ARPU has been improved.
+
+### Standard 4.2: Monitoring and Risk Control Mechanism (Max 6 points)
+
+#### Path 4.2.A | Weekly Roll-up + Trigger Thresholds
+- Sub-standard 4.2.A.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Must list core monitoring KPIs: 7-day ROI, CPI/CPV, retention, refund rate, creative fatigue; define actions: if ROI < 25%, pause spend/downgrade tier; if ROI > 1.6, weekly increment ≤ 10%.
+  [Precision[4]] Incorporate live-test thresholds:
+  • Per-app CPI must not exceed the `CPI_target` from table 2.1.B;
+  • If retention or refund data deteriorates by 3pp (can reference `day_7_retention_rate`, `refund_rate` fields in the dashboard), the ROI forecast must be discounted by an equivalent amount.
+  Provide pseudocode:
+  ```pseudo
+  if ROI_7d < 0.25: pause_campaign()
+  elif ROI_7d between 0.25 and 0.4: hold_bid()
+  elif ROI_7d > 0.4 and spend/share < cap: increase_bid(max 10%)
+  ensure CPI <= CPI_target and CPV <= CPV_target at all times
+  ```
+  [Conclusion[1]] Explain that the above closed loop enables 'rapid loss mitigation + gradual scaling' while operating above the ROI floor.
+
+---
+
+## Requirement 5: Plan Finalization and Sensitivity Disclosure (Max 12 points)
+
+### Standard 5.1: Result Verification and Reconciliation (Max 6 points)
+
+#### Path 5.1.A | Structured Output and Gap Explanation
+- Sub-standard 5.1.A.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] A final budget table (at app level + key market level) is required, listing the portfolio ROI/ROAS and core assumptions.
+  [Precision[4]] Must verify:
+  • ΣBudget = 108,932.26 (±50);
+  • All market bids are ≤ CPV/CPI_target, with an ROI of 56.25%;
+  • The remaining budget gap = $4,891,067.74, and its disposition must be explained (e.g., reserved pending ROI improvement, or recommend clawback to finance).
+  [Conclusion[1]] State clearly: The gapped portion will not be executed for now; release will be requested after ARPU/conversion improvements are realized in A/B markets. If ROI cannot be improved in the short term, the difference should be clawed back.
+
+### Standard 5.2: Assumptions, Sensitivity, and Risk Disclosure (Max 6 points)
+
+#### Path 5.2.A | Assumption Transparency + Sensitivity Analysis
+- Sub-standard 5.2.A.1 (Completeness[1] | Precision[4] | Conclusion[1])
+  [Completeness[1]] Disclose core assumptions:
+  • 90-day window = 2024-10-03~2024-12-31;
+  • 30-day metrics from the geo table ×3 are an approximation for Q4;
+  • `avg_daily_revenue` is a direct proxy for market `daily_net_revenue`;
+  • Bidding safety factor = 0.8, to hedge against seasonality/refund volatility.
+  [Precision[4]] Complete at least one set of sensitivity analyses (can be cited directly):
+  • If CPI/CPV caps are tightened by 10% ⇒ deployable_budget = 98,039, portfolio ROI remains 56.25%;
+  • If relaxed by 10% ⇒ deployable_budget = 119,825, but ROI must still be ≥25%, and the ability to spend the additional budget must be justified (by citing weekly growth rates and remaining cap).
+  Also, list potential sources of deviation: seasonal peaks, insufficient channel inventory, declining retention, currency fluctuations, etc.
+  [Conclusion[1]] Provide response strategies: e.g., if ROI drops below 25%, prioritize bid reduction/pausing; if the gapped budget needs to be released, a proposal must be made after completing conversion rate improvement or ARPU experiments; if targets are not met, funds should be migrated or returned.

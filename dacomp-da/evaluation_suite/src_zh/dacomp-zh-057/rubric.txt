@@ -1,0 +1,83 @@
+# [总分 | 36分] Google Ads 获客效率衰减识别、分层诊断与策略建议评分标准
+---
+## 需求1：识别运行≥120天且“近30天CAC↑>25% & LTV/CAC↓>20%”的广告系列（最高12分）
+### 标准1.1：跨表对齐与时间窗口设定（最高6分）
+#### 路径1.1.A［6分｜账户×渠道加权法］
+- 小标准1.1.A.1［1分｜完备性］：说明使用 `google_ads__campaign_report` 计算 `run_days = COUNT(DISTINCT date(substr(date_day,1,10)))`，筛选 run_days≥120；再以 `account_id + advertising_channel_type + date(substr(date_day,1,10))` 将 `google_ads__customer_acquisition_analysis` 聚合到账户×渠道×日，窗口截取按全局最大日期 2024-12-31：近30天=[2024-12-03,2024-12-31]，前30天=[2024-11-03,2024-12-02]，不得做任何数据清洗，只保留日期。 
+- 小标准1.1.A.2［4分｜精确性］：阐述完整流程：①先计算窗口内 `Σspend`、`Σconversions`（two 30-day windows）用于 `CAC = Σspend/Σconversions`；②以 `AVG(ltv_cac_ratio)` 生成 `LTV/CAC`；③关联回同账户中 run_days≥120 的 campaign。需给出计算要点：近窗 `CAC_last30`=86.4645、前窗 `CAC_prev30`=62.1654（ACC_FIN_001×SHOPPING），`LTV/CAC_last30`=36.7776、`LTV/CAC_prev30`=46.6671；ACC_ECOM_002×SEARCH 的 `CAC_last30`=52.9152、`CAC_prev30`=40.2757，`LTV/CAC_last30`=9.4892、`LTV/CAC_prev30`=12.8598。 
+- 小标准1.1.A.3［1分｜结论性］：指出该账户×渠道近似可覆盖 `google_ads__customer_acquisition_analysis` 缺少 `campaign_id` 的场景，需在结果中标注“指标以账户×渠道共享，若合并后存在多对一，按日期去重维持准确聚合”。
+
+### 标准1.2：窗口指标计算与衰减样本筛选（最高6分）
+#### 路径1.2.A［6分｜固定全局窗口 + 指标清单］
+- 小标准1.2.A.1［1分｜完备性］：列出必须产出的字段：`CAC_last30/prev30`、`CAC增长率`、`LTV/CAC_last30/prev30`、`LTV/CAC下降率`、`CPC_last30/prev30`、`CPC变化`、`CTR_last30/prev30`、`CTR变化`、`run_days`、`spend_last30/prev30`、`acquisition_sophistication_score`、`cac_efficiency_percentile`、`channel_diversity_count`、`retention_risk`、`scale_opportunity`。 
+- 小标准1.2.A.2［4分｜精确性］：给出三条必选广告系列及数值（允许误差±0.5%）：①CMP_ACC_FIN_001_007——`CAC_last30`=86.4645、`CAC_prev30`=62.1654、`CAC增长率`=(86.4645−62.1654)/62.1654=0.3909；`LTV/CAC_last30`=36.7776、`LTV/CAC_prev30`=46.6671、`下降率`=0.2119；`CPC`：1.5603→1.5269（+0.0333）；`CTR`：0.034831→0.030720（+0.00411）；`run_days`=125；`spend_last30`=18,019.67；`acquisition_sophistication_score`=58.30→55.23；`cac_efficiency_percentile`=5.89→29.72；`channel_diversity_count`=6.14→7.00；`retention_risk`=0；`scale_opportunity`=0。②CMP_ACC_FIN_001_008——同账户数值一致，但 `CPC` 2.5317→1.3006（+1.2311）、`CTR` 0.035012→0.032598（+0.00241）、`run_days`=136、`spend_last30`=9,433.18。③CMP_ACC_ECOM_002_004——`CAC_last30`=52.9152、`CAC_prev30`=40.2757、`增长率`=0.3138；`LTV/CAC_last30`=9.4892、`LTV/CAC_prev30`=12.8598、`下降率`=0.2621；`CPC`：2.3298→1.9827（+0.3471）；`CTR`：0.039783→0.033277（+0.00651）；`run_days`=125；`spend_last30`=25,399.79；`acquisition_sophistication_score`=43.87→58.34；`cac_efficiency_percentile`=23.81→51.23；`channel_diversity_count`=3.20→3.71；`retention_risk`=1；`scale_opportunity`=1。 
+- 小标准1.2.A.3［1分｜结论性］：要求输出清单注明“三条满足阈值的 campaign，分别来自 ACC_FIN_001×SHOPPING 与 ACC_ECOM_002×SEARCH”，并阐明其 `CAC` 与 `LTV/CAC` 走势支撑后续诊断。
+
+---
+## 需求2：多维诊断（生命周期×渠道、成熟度、战略细分等）识别衰减模式（最高12分）
+### 标准2.1：生命周期×渠道组合的衰减特征（最高6分）
+#### 路径2.1.A［6分｜旗标 vs 基线对比法］
+- 小标准2.1.A.1［1分｜完备性］：说明需分层统计“被标记集合（3条）”与“全体 run_days≥120 基线（30条）”在 `campaign_lifecycle_stage × advertising_channel_type` 维度上的均值：`CAC增长率`、`LTV/CAC下降率`、`CPC/CTR变化`、`acquisition_sophistication_score`、`cac_efficiency_percentile`、`channel_diversity_count`、`scale_opportunity`、`retention_risk`。 
+- 小标准2.1.A.2［4分｜精确性］：列出求得的关键值（允许误差±5%）：旗标平均 `CAC增长率`=36.52%、`LTV/CAC下降率`=22.86%、`CPC变化`=+0.537、`CTR变化`=+0.00434；基线平均 `CAC增长率`=14.37%、`LTV/CAC下降率`=−40.68%（即回升）、`CPC变化`=+0.3665、`CTR变化`=+0.00026、`acquisition_sophistication_score`=59.998、`cac_efficiency_percentile`=54.34、`channel_diversity_count`=4.36。 
+- 小标准2.1.A.3［1分｜结论性］：需指出显著模式：`Decline×SHOPPING`（两条） `CAC增长`≈39.09%、`LTV/CAC下降`≈21.19%、`CPC` 激增 +0.632；`Revival×SEARCH`（一条）`CAC增长`≈31.38%、`LTV/CAC下降`≈26.21%、`CTR` 收窄但仍+0.0065，同时说明旗标 `acquisition_sophistication_score`、`cac_efficiency_percentile` 均低于基线，提示渠道失效与投放能力下行的双重风险。
+
+### 标准2.2：客户/账户成熟度与战略细分对衰减的影响（最高6分）
+#### 路径2.2.A［6分｜客户成熟度 × 账户成熟度交叉分析］
+- 小标准2.2.A.1［1分｜完备性］：分别输出旗标与基线在 `customer_maturity_stage × account_maturity_stage` 上的样本量、`CAC增长率` 与 `LTV/CAC下降率` 均值。 
+- 小标准2.2.A.2［4分｜精确性］：旗标中：`VIP Customer × Mature Account`（2条）`CAC增长`=39.09%、`LTV/CAC下降`=21.19%；`Growing Customer × Growing Account`（1条）`CAC增长`=31.38%、`LTV/CAC下降`=26.21%。基线对应组合需给出：`VIP×Mature`（5条）平均 `CAC增长`≈11.67%、`LTV/CAC下降`≈−10.37%；`Growing×Growing`（3条）平均 `CAC增长`≈9.67%、`LTV/CAC下降`≈−22.73%。 
+- 小标准2.2.A.3［1分｜结论性］：指出“成熟账户服务 VIP 客户时效率坍塌，成长型账户抢量导致客质稀释”，明确提醒预算策略需要差异化。 
+
+#### 路径2.2.B［6分｜战略客户分段分析］
+- 小标准2.2.B.1［1分｜完备性］：按 `strategic_customer_segment` 汇总旗标样本的占比与关键指标。 
+- 小标准2.2.B.2［4分｜精确性］：给出结果：`High Value B2B`（2/3）`CAC增长`=39.09%、`LTV/CAC下降`=21.19%、`CPC变化`=+0.632、`retention_risk`=0、`scale_opportunity`=0；`Bargain Hunters`（1/3）`CAC增长`=31.38%、`LTV/CAC下降`=26.21%、`CPC变化`=+0.347、`retention_risk`=1、`scale_opportunity`=1。 
+- 小标准2.2.B.3［1分｜结论性］：总结：高价值客群出现成本陡增而机会度为0，应立即降本调结构；“价格敏感”客群虽有扩量机会但伴随高保留风险，需设更严控损机制。
+
+---
+## 需求3：构建综合衰减风险评估模型并设定阈值（最高12分）
+### 标准3.1：风险评分模型设计与实现（最高6分）
+#### 路径3.1.A［6分｜归一化加权评分法］
+- 小标准3.1.A.1［1分｜完备性］：明确评分公式：`Risk = 0.28·n(CAC增长) + 0.28·n(LTV/CAC下降) + 0.14·n(CPC增长) + 0.14·n(CTR下降) + 0.08·n(低获客成熟度) + 0.04·n(低效率分位) + 0.04·n(低渠道多样性)`；其中 n(·) 为 run_days≥120 样本的 min-max 归一化，CTR 取下降量(`ctr_decline = max(0,-ΔCTR)`)，低值指标采用 `1 − n(x)`。 
+- 小标准3.1.A.2［4分｜精确性］：陈列关键得分（允许误差±0.01）：`CMP_ACC_FIN_001_008`=0.7620、`CMP_ACC_ECOM_002_004`=0.7440、`CMP_ACC_FIN_001_007`=0.6799；run_days≥120 样本的中位数=0.4049。 
+- 小标准3.1.A.3［1分｜结论性］：要求给出高风险名单及驱动项说明：如 CMP_ACC_FIN_001_008 的高风险源于 `CAC +39.09% + CPC +1.2311`；CMP_ACC_ECOM_002_004 源于 `CAC +31.38% + LTV/CAC -26.21% + RetentionRisk=1`。 
+
+#### 路径3.1.B［6分｜规则旗标累积分法（选做加分）］
+- 小标准3.1.B.1［1分｜完备性］：若采用规则法，需列明至少 6 条阈值（示例：`CAC增长>30%`、`LTV/CAC下降>20%`、`CPC增长>0.3`、`CTR下降>0`、`cac_efficiency_percentile<30`、`channel_diversity_count<4`）并定义权重。 
+- 小标准3.1.B.2［4分｜精确性］：验证上述 3 条 campaign 至少命中 4 条规则且总分高于“高风险阈值”；其余 campaign 平均命中数显著更低。 
+- 小标准3.1.B.3［1分｜结论性］：需把每条旗标映射到运营动作（如“CAC 与 CPC 双高 → 先降出价 + 梳理结构”）。
+
+### 标准3.2：风险阈值划分与敏感性分析（最高6分）
+#### 路径3.2.A［6分｜分位阈值 + 波动检验］
+- 小标准3.2.A.1［1分｜完备性］：给出风险分层：P90=0.7311 为“红灯”、P80=0.6703 为“橙灯”、P50=0.4049 为“黄灯”以下。 
+- 小标准3.2.A.2［4分｜精确性］：进行±5分位敏感性检验并说明三条旗标在扰动下仍落在高风险层（0.67以上），其余 campaign 排位变动不影响高风险名单。 
+- 小标准3.2.A.3［1分｜结论性］：展示各风险层行动：高风险立即调结构，中风险加强监控，低风险保留潜力；阐释高阈值有助于集中处理成本抬升。 
+
+#### 路径3.2.B［6分｜预算联动矩阵］
+- 小标准3.2.B.1［1分｜完备性］：构建“风险得分 × 近30天 spend 占比”矩阵，建议阈值：`Risk>0.67 & spend share>3% → 立即降配`，`Risk>0.67 & share≤3% → 结构重构+严控`。 
+- 小标准3.2.B.2［4分｜精确性］：验证：CMP_ACC_ECOM_002_004 风险0.744、share=5.06% → “立即降配”；CMP_ACC_FIN_001_007 风险0.680、share=3.59% → “降配+复盘”；CMP_ACC_FIN_001_008 风险0.762、share=1.88% → “限额 + 精细化审查”。需同时列出风险加权支出：7.19k、18.90k、12.25k。 
+- 小标准3.2.B.3［1分｜结论性］：输出预算动作清单（削减幅度、复盘节点），并强调“高风险占全部 spend 的10.5%，及时处理可释放近38.3k 预算”。
+
+---
+## 需求4：差异化优化建议与预算/监控方案（最高12分）
+### 标准4.1：按生命周期×渠道提供策略建议（最高6分）
+#### 路径4.1.A［6分｜阶段化修复 + 扩量护栏］
+- 小标准4.1.A.1［1分｜完备性］：覆盖 `Decline×SHOPPING`、`Revival×SEARCH` 两大组合，并列出出价、受众、创意、结构/频控、渠道多样化的具体动作。 
+- 小标准4.1.A.2［4分｜精确性］：建议需对应数据：①`Decline×SHOPPING`（两条）`CPC` 上升 0.632/1.231、`acq_soph` 仅58.3、`cac_eff` 降至5.89 → 要求压价+剔除低质 Listing+恢复否词与高毛利优先；②`Revival×SEARCH`（一条）`CAC` +31.38%、`LTV/CAC` −26.21%、`retention_risk`=1 → 建议价值出价+一方数据分层，提高再营销质量护栏；③沿用 `scale_opportunity` 值（SHOPPING=0、SEARCH=1）设扩量上限。 
+- 小标准4.1.A.3［1分｜结论性］：提供执行节奏（立即行动/2周复盘/4周滚动）及 KPI（目标：30天内 `CAC` 回落≥20%，`LTV/CAC` 回升≥10%，`CPC` 降幅≥0.3，`CTR` 不低于现有水平）。 
+
+#### 路径4.1.B［6分｜受众旅程策略矩阵（可选）］
+- 小标准4.1.B.1［1分｜完备性］：若进一步展开，应将 “Growing→VIP” 旅程与 SEARCH/SHOPPING 策略对应。 
+- 小标准4.1.B.2［4分｜精确性］：举例：`Growing×SEARCH` 需要新客白名单+ROAS 护栏；`VIP×SHOPPING` 强化高毛利组合与库存同步；`Growing×SHOPPING` 暂缓扩量，转向精细补量。 
+- 小标准4.1.B.3［1分｜结论性］：明确旅程各阶段 KPI（如 CAC≤60、LTV/CAC≥1.4），确保策略可检验。 
+
+### 标准4.2：预算重分配与监控预警（最高6分）
+#### 路径4.2.A［6分｜预算迁移 + 高价值客群优先法］
+- 小标准4.2.A.1［1分｜完备性］：制定量化迁移方案（示例：对 CMP_ACC_ECOM_002_004 降配40%；对 CMP_ACC_FIN_001_007/008 分别压缩30%/20%；同时预留 10% 预算给低风险且 `scale_opportunity=1` 的 campaign）。 
+- 小标准4.2.A.2［4分｜精确性］：举证接收方：如 `CMP_ACC_ECOM_002_003`（risk=0.276、`CPC` -0.508、`scale_opportunity`=1）或 `CMP_ACC_EDU_001_005`（风险0.305、`CAC` 仅40.62）等可承接预算的低风险资产。 
+- 小标准4.2.A.3［1分｜结论性］：输出优先级列表（高风险 3 条预计释放 38.3k 预算；首选投放到 `CMP_ACC_ECOM_002_003`、`CMP_ACC_EDU_001_005` 等共计≥30k 的扩量位），并强调需与高价值客户策略协同。 
+
+#### 路径4.2.B［6分｜监控指标与预警机制］
+- 小标准4.2.B.1［1分｜完备性］：定义周度监控指标：`CAC增长`、`LTV/CAC变化`、`CPC变化`、`CTR变化`、`risk_score`、`retention_risk`、`scale_opportunity`；设置红旗阈值（如 `CAC增长≥50%` 或 `LTV/CAC下降≥30%`）。 
+- 小标准4.2.B.2［4分｜精确性］：示例：现有三条均超阈；若阈值下调至 30%/15%，新增告警量需给出（例如增加 2 条风险得分≈0.56 的 campaign），并分析对误报率的影响。 
+- 小标准4.2.B.3［1分｜结论性］：提供“告警→行动→复盘”闭环（责任人、48h 响应、30天复盘、指标回归线），并说明评估指标（告警命中率、预算节省、ROI 改善）。
+
+---

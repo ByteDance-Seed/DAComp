@@ -1,0 +1,128 @@
+# [Total Score | 30 Points] Scoring Rubric for Customer Investment Strategy Mismatch Identification and Mechanism Diagnosis
+---
+## Requirement 1: Construct a Controlled Analysis Base Table and Identify Mismatched Customers (Max 6 points for this requirement)
+### Standard 1.1 [Max 6 Points]: Building the Data Foundation for Mismatch Identification
+#### Path 1.1.A [6 Points | Email Join + Standardization + Percentile Filtering]
+- Sub-standard 1.1.A.1 [1 Point | Completeness]: States that `customer360__customer_value_analysis` is used as the primary table, joining with `customer360__customer` on `LOWER(primary_email)=LOWER(email)` to merge `total_sales_amount` (covering 5,001/5,001 rows), and filtering down to 3,361 records where the three key metrics are complete.
+- Sub-standard 1.1.A.2 [4 Points | Accuracy]: Provides reproducible pseudo-code and validates anchor points:
+  ```sql
+  total_sales_clamped = clamp(total_sales_amount, 151.62, 3,564,026.72)
+  sales_norm   = (total_sales_clamped - 151.62) / (3,564,026.72 - 151.62)
+  adopt_norm   = (product_adoption_rate - 0.302) / (1.0 - 0.302)
+  support_norm = (support_resolution_efficiency - 0.2978) / (0.98 - 0.2978)
+  composite    = 0.40*sales_norm + 0.35*adopt_norm + 0.25*support_norm
+  ```
+  And sets thresholds based on `CUME_DIST≥0.7` for `investment_priority_score` and `CUME_DIST≥0.5` for `composite`; must verify: `ip_cutoff = 1.63 ±0.01`, `perf_cutoff = 0.40408 ±0.0005`, `top30_count = 1,013 ±3`, `flagged_count = 494 ±2`, mismatch rate `≈0.4877`.
+- Sub-standard 1.1.A.3 [1 Point | Conclusion]: Summarizes that the email-based path achieves 100% coverage, stably producing 3,361 analyzable samples, and points out that approximately 48.8% of top 30% investment customers are identified as mismatched, establishing a consistent base table for subsequent analysis.
+
+#### Path 1.1.B [6 Points | Multi-ID Prioritized Mapping + Organization Aggregation]
+- Sub-standard 1.1.B.1 [1 Point | Completeness]: Declares the introduction of `customer360__mapping` for matching, using a priority of `zendesk_user_id → marketo_lead_id → stripe_customer_id`. If multiple rows exist for the same entry, the one with `is_organization_header=1` is chosen first, otherwise the one with the lexicographically smallest `customer360_id` is taken. Aggregation at the `customer360_id` level is completed before joining with `customer360__customer`.
+- Sub-standard 1.1.B.2 [4 Points | Accuracy]: Verifies key metrics: `resolved_rows = 5,001`, `distinct customer360_id = 4,787 ±5`, `valid_rows = 3,361`. Using the same normalization process, obtains `ip_cutoff = 1.63 ±0.01`, `perf_cutoff = 0.40258 ±0.0005`; `top30_count = 1,013 ±3`, `flagged_count = 496 ±2`, interim mismatch rate `≈0.4896`.
+- Sub-standard 1.1.B.3 [1 Point | Conclusion]: Notes that multi-ID mapping can link 4,787 unique customer identities across systems. While the size of the Top 30% group remains unchanged, the number of mismatches increases to 496 (approx. 48.9%), revealing a slight bias caused by organization-level duplicates.
+
+#### Path 1.1.C [6 Points | Domain Fallback + Organization Header Fill-in]
+- Sub-standard 1.1.C.1 [1 Point | Completeness]: Explains the extraction of 10 valid email domains as a fallback key, associating `primary_organization` with `customer360__mapping.customer360_organization_id`. When missing, the same-domain aggregated `total_sales_amount` is used (covering all 5,001/5,001 rows).
+- Sub-standard 1.1.C.2 [4 Points | Accuracy]: After aggregating at the domain level, reuses the normalization process from Path A and verifies: all backfilled samples still result in `valid_rows = 3,361`, `flagged_count = 494 ±2`, with thresholds remaining `ip_cutoff ≈1.63`, `perf_cutoff ≈0.4041`, demonstrating that this soft constraint does not disrupt the filtering results.
+- Sub-standard 1.1.C.3 [1 Point | Conclusion]: Emphasizes that the domain/organization header fallback ensures no customers are lost due to email aliases, yielding a mismatch scale equivalent to Paths A/B, and can serve as a backup strategy for the email-based path.
+
+---
+## Requirement 2: ROI Quantification and Lifecycle Distribution Analysis (Max 6 points for this requirement)
+### Standard 2.1 [Max 6 Points]: ROI Profiling of Mismatched Customers
+#### Path 2.1.A [6 Points | Winsorize + Lifecycle Stratification]
+- Sub-standard 2.1.A.1 [1 Point | Completeness]: States that within the 494 mismatched customers from Path 1.1.A, calculate `ROI = CLV / acquisition_cost`. Set ROI to NULL for `acquisition_cost ≤0` (no such cases in this sample), and apply P1/P99 Winsorization to the ROI values.
+- Sub-standard 2.1.A.2 [4 Points | Accuracy]: Outputs key statistics: `p1 = 1.2297 ±0.02`, `median = 6.768 ±0.05`, `p99 = 39.724 ±0.5`, `mean = 8.738 ±0.05`, percentage with `ROI>1 = 99.60% ±0.1pp`. Lifecycle distribution `{Maturity:208, Retention:132, Growth:131, Activation:17, Dormant:6}`, with corresponding mean ROIs `{9.145, 8.161, 8.428, 9.089, 13.124}`.
+- Sub-standard 2.1.A.3 [1 Point | Conclusion]: Points out that 92% of mismatched customers are concentrated in the Maturity/Retention/Growth stages. Although their overall ROI is above 1, it is 1.93 points lower than the mean of the matched group, reflecting a disconnect between investment priority and output.
+
+#### Path 2.1.B [6 Points | Log ROI + ANOVA Test]
+- Sub-standard 2.1.B.1 [1 Point | Completeness]: Explains the use of `log_roi = ln(ROI)` on the Winsorized ROI, and limits the sample to the `{Growth, Maturity, Retention}` stages from the mismatched set in Path 1.1.A.
+- Sub-standard 2.1.B.2 [4 Points | Accuracy]: Reports `mean(log_roi) = 1.913 ±0.01`, `std = 0.715 ±0.01`. Performs a one-way ANOVA yielding `F = 1.98`, `p = 0.139` (>0.05, not significant), and lists mean differences between stages: `Growth` is `0.106` lower than `Maturity` and `0.042` higher than `Retention`.
+- Sub-standard 2.1.B.3 [1 Point | Conclusion]: States that the difference in log ROI across lifecycle stages is not statistically significant, suggesting that other profiling features are needed to explain ROI volatility.
+
+#### Path 2.1.C [6 Points | ROI Quantile Bins × Lifecycle Matrix]
+- Sub-standard 2.1.C.1 [1 Point | Completeness]: Based on the mismatched set, constructs `Q1/Q2/Q3` for ROI (thresholds `4.84`, `9.22`) and combines this with lifecycle stage to form at least a 3×3 matrix.
+- Sub-standard 2.1.C.2 [4 Points | Accuracy]: The matrix must list the sample size and median for each cell, e.g., for `Growth`: `{Q1:53, median 3.90}`, `{Q2:35, median 6.58}`, `{Q3:43, median 12.82}`. Provides corresponding data for `Maturity`, `Retention`, `Activation`, and `Dormant`. Also notes that the mismatch rate for each stage is consistent with Path 1.1 results (e.g., `Growth ≈0.5325`, `Maturity ≈0.4674`, etc.).
+- Sub-standard 2.1.C.3 [1 Point | Conclusion]: Highlights that even in the high ROI quantile (Q3), mismatches are prevalent (e.g., 77/208 in Maturity Q3), proving the current priority model fails to filter out lifecycle risks.
+
+---
+## Requirement 3: Root Cause Decomposition by Industry × Size (Max 6 points for this requirement)
+### Standard 3.1 [Max 6 Points]: Diagnosis of High-Mismatch Combinations
+#### Path 3.1.A [6 Points | Two-Dimensional Mean Comparison]
+- Sub-standard 3.1.A.1 [1 Point | Completeness]: Within the Top 30% investment customers (1,013), outputs the mismatch rate and the means of the three performance metrics for flagged vs. non-flagged groups, broken down by `industry_vertical × company_size_tier` (for combos with sample size ≥20).
+- Sub-standard 3.1.A.2 [4 Points | Accuracy]: Lists at least five high-risk combinations:
+  - `Education+Small (n=23)`: Mismatch rate `0.826`, adoption rate diff `-0.195`, support efficiency diff `-0.144`, sales `17.1k vs 32.8k`.
+  - `Technology+Startup (n=25)`: Mismatch rate `0.800`, adoption rate diff `-0.184`, support diff `-0.178`, sales `15.7k vs 9.3k`.
+  - `Retail+Small (n=32)`: Mismatch rate `0.781`, adoption rate diff `-0.139`, support diff `-0.143`, sales `23.2k vs 17.0k`.
+  - `Technology+Small (n=79)`: Mismatch rate `0.620`, adoption rate diff `-0.137`, support diff `-0.172`, sales `15.9k vs 2.35M`.
+  - `Healthcare+Small (n=53)`: Mismatch rate `0.566`, adoption rate diff `-0.141`, support diff `-0.131`, sales `23.9k vs 282.8k`.
+- Sub-standard 3.1.A.3 [1 Point | Conclusion]: Identifies that "Small/Startup + Education/Technology/Retail" are high-mismatch zones, with weaknesses concentrated in adoption rate and support efficiency. Large sales differences further elevate the risk.
+
+#### Path 3.1.B [6 Points | Relative Risk and Confidence Intervals]
+- Sub-standard 3.1.B.1 [1 Point | Completeness]: Declares the overall mismatch rate `global_rate = 0.48766` and calculates Relative Risk (RR) and its 95% CI for combinations with sample size ≥20.
+- Sub-standard 3.1.B.2 [4 Points | Accuracy]: Lists combinations with RR > 1.5:
+  - `Education+Small`: `RR = 1.72`, `CI [1.41, 2.10]`.
+  - `Technology+Startup`: `RR = 1.67`, `CI [1.36, 2.05]`.
+  - `Retail+Small`: `RR = 1.63`, `CI [1.35, 1.99]`.
+  States that other combinations have RR ≤ 1.30 (e.g., `Technology+Medium RR ≈0.99`).
+- Sub-standard 3.1.B.3 [1 Point | Conclusion]: Identifies the three groups above as priority targets for remediation, referencing low-risk control groups (e.g., `Technology+Medium` RR≈0.99, `Healthcare+Medium` RR≈0.96).
+
+#### Path 3.1.C [6 Points | Metric Contribution Decomposition]
+- Sub-standard 3.1.C.1 [1 Point | Completeness]: Provides the contribution formula for the composite score gap: `ΔComposite = 0.40·Δsales_norm + 0.35·Δadopt_norm + 0.25·Δsupport_norm`, and outputs the contribution percentages.
+- Sub-standard 3.1.C.2 [4 Points | Accuracy]: Shows at least three combinations:
+  - `Education+Small`: Contribution `{adopt≈64%, support≈35%, sales≈1%}`.
+  - `Technology+Startup`: `{adopt≈59%, support≈42%, sales≈-0.5%}`.
+  - `Technology+Small`: `{sales≈34%, adopt≈34%, support≈31%}`. Can use `Retail+Small`, `Healthcare+Small` for the other two.
+- Sub-standard 3.1.C.3 [1 Point | Conclusion]: Pinpoints the dominant weakness for each combination (e.g., Education industry's primary gap is adoption rate, while small tech clients are dragged down by both sales and service), providing a quantitative basis for differentiated remedies.
+
+---
+## Requirement 4: Behavioral Mechanism Validation (Max 6 points for this requirement)
+### Standard 4.1 [Max 6 Points]: Onboarding Quality, Team Structure, and Effect Linkage
+#### Path 4.1.A [6 Points | Grouped Correlation + Significance]
+- Sub-standard 4.1.A.1 [1 Point | Completeness]: Calculates `corr(onboarding_score, product_adoption_rate)` separately for the mismatched group (494) and non-mismatched group (519).
+- Sub-standard 4.1.A.2 [4 Points | Accuracy]: Reports `r_flagged = 0.293`, `t = 6.79`, `p = 3.31e-11`; `r_nonflag = 0.287`, `t = 6.81`, `p = 2.79e-11`.
+- Sub-standard 4.1.A.3 [1 Point | Conclusion]: Notes a significant positive correlation in both groups, suggesting mismatched customers are more sensitive to onboarding quality, which should be a primary lever for remediation.
+
+#### Path 4.1.B [6 Points | Bin-based Comparison]
+- Sub-standard 4.1.B.1 [1 Point | Completeness]: Bins customers by `customer_onboarding_score` into `<2.5 / 2.5-3.5 / ≥3.5`, and calculates adoption rate and ROI for mismatched and non-mismatched groups in each bin.
+- Sub-standard 4.1.B.2 [4 Points | Accuracy]: Outputs mean differences: Mismatched group avg onboarding `2.806`, adoption `0.666`, ROI `8.80`; Non-mismatched group `3.187`, `0.852`, `10.73`. Example for bins:
+  - Mismatched `<2.5`: `n=157`, adoption `0.628`, ROI `7.99`.
+  - Mismatched `≥3.5`: `n=64`, adoption `0.696`, ROI `9.30`.
+  - Non-mismatched `2.5-3.5`: `n=296`, adoption `0.845`, ROI `11.21`, etc.
+- Sub-standard 4.1.B.3 [1 Point | Conclusion]: States that the higher the onboarding score, the smaller the gap between mismatched and non-mismatched groups, and recommends making onboarding quality a minimum threshold for entering the high-investment pool.
+
+#### Path 4.1.C [6 Points | Team Size × Decision-maker Level]
+- Sub-standard 4.1.C.1 [1 Point | Completeness]: Creates team size bins `Small ≤10 / Medium 11-50` and combines with `Exec/NonExec` level (for combos with sample ≥15).
+- Sub-standard 4.1.C.2 [4 Points | Accuracy]: Provides ROI values:
+  - `Small+Exec`: Mismatched `7.66` vs Non-mismatched `8.66`.
+  - `Small+NonExec`: `8.55` vs `9.67`.
+  - `Medium+Exec`: `14.63` vs `14.96`.
+  - `Medium+NonExec`: `14.11` vs `13.65`. Also reports `corr(team_size, ROI)`: Mismatched `0.317`, Non-mismatched `0.276`.
+- Sub-standard 4.1.C.3 [1 Point | Conclusion]: Points out that for small teams, executive involvement improves ROI but is insufficient to eliminate the mismatch. Medium-sized teams perform best. Recommends adding an interaction term for team size and decision-maker level to the priority model.
+
+---
+## Requirement 5: Diagnose Investment Decision Biases and Propose Optimization Solutions (Max 6 points for this requirement)
+### Standard 5.1 [Max 6 Points]: Bias Identification and Improvement Paths
+#### Path 5.1.A [6 Points | Bias Diagnosis + Evidence Chain]
+- Sub-standard 5.1.A.1 [1 Point | Completeness]: Covers three diagnostic points: `corr(investment_priority, composite) = 0.0319`, `corr(investment_priority, ROI) = 0.0090`, and mismatch rates for key profiles (e.g., `Growth 0.533`, `Dormant 0.750`, `Education+Small 0.826`, `Technology+Startup 0.800`).
+- Sub-standard 5.1.A.2 [4 Points | Accuracy]: Provides mean composite scores for investment priority tertiles `{T1:0.4047, T2:0.4006, T3:0.4135}` (showing non-monotonicity), and references RR or stage-level mismatch rates for high-mismatch combinations, quantifying model error and the mean ROI gap `ΔROI = 1.93` (Matched 10.73 vs Mismatched 8.80).
+- Sub-standard 5.1.A.3 [1 Point | Conclusion]: Concludes that the current model over-relies on static profiles and neglects lifecycle stage, onboarding quality, and team structure, requiring a systematic overhaul.
+
+#### Path 5.1.B [6 Points | Feature Alignment and Penalty Mechanism]
+- Sub-standard 5.1.B.1 [1 Point | Completeness]: Defines `alignment = corr(feature, investment_priority) × corr(feature, composite)` and screens for features with negative alignment.
+- Sub-standard 5.1.B.2 [4 Points | Accuracy]: Provides examples:
+  - `customer_onboarding_score`: `corr_ip = -0.017`, `corr_perf = 0.314`, alignment `≈-0.0053`.
+  - `team_size`: `corr_ip = 0.018`, `corr_perf = 0.316`, alignment `≈0.0057`.
+  - `decision_maker_level (Exec=1)`: `corr_ip = 0.0265`, `corr_perf = -0.138`, alignment `≈-0.0037`. Proposes a corresponding weighting/penalty formula (e.g., add penalty factors for negative-alignment features, give positive weight to `team_size`).
+- Sub-standard 5.1.B.3 [1 Point | Conclusion]: Points out that negatively aligned features (low onboarding score, executive signal) cause systemic mismatches, and it's necessary to introduce penalty terms or linked thresholds (e.g., "An Exec signal must be accompanied by `adoption_rate ≥ 0.80`").
+
+#### Path 5.1.C [6 Points | Dual-Track Operations + Model Recommendations (≥6)]
+- Sub-standard 5.1.C.1 [1 Point | Completeness]: Proposes at least 6 recommendations covering model calibration, stage-based thresholds, industry differentiation, onboarding/support processes, and monitoring.
+- Sub-standard 5.1.C.2 [4 Points | Accuracy]: Each recommendation is tied to a quantitative target, for example:
+  1. "For Education/Tech Startup customers, raise the onboarding score to ≥3.0, expected to reduce the mismatch rate from 0.8 to ≤0.55."
+  2. "Incorporate a priority gate of `adoption≥0.75` for the Growth stage, expected to decrease mismatch rate by ≥8pp."
+  3. "Introduce an ROI floor: Top 30% customers must have a median ROI ≥9, or be automatically downgraded."
+  4. "For customers with `team_size≤10` and `Exec=1`, apply a -0.1 weight to balance over-allocation."
+  5. "Set a support efficiency KPI of ≥0.82 for industry teams, prioritizing remediation for Retail/Healthcare small customers."
+  6. "Launch a quarterly mismatch monitoring dashboard; if any stage mismatch rate >0.5, automatically trigger a special optimization for onboarding/support."
+- Sub-standard 5.1.C.3 [1 Point | Conclusion]: Forms a roadmap: First model calibration → then differentiated operations → finally continuous monitoring, and sets closed-loop KPIs (e.g., reduce mismatch rate by ≥30%, increase ROI of mismatched customers by ≥15%, converge RR of high-risk combos to ≤1.2).
+
+---

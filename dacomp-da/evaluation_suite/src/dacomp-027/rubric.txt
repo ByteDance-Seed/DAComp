@@ -1,0 +1,146 @@
+# [Total Score | 30 points]  The solution must satisfy the following three core requirements:
+- Requirement 1: Graded quantitative analysis of sustained negative impacts
+- Requirement 2: Graded recommendations (SOP) with executable triggers
+- Requirement 3: Monitoring dashboard and reusable delivery (SOP visualization and data pipeline)
+
+---
+## Requirement 1: Graded quantitative analysis of sustained negative impacts (maximum 13 points for this requirement)
+### 1.1 Data scope and level mapping (3 points, AND) (each path's score must be an integer) 
+- **1.1.A Field mapping + level definitions + reproducibility information (3 points)** 
+ - *1.1.A.1 Completeness (1 point)*: Provide original→analysis field mapping (including the key fields above), and state the time range and sample size N (≥10 sampled records to cross-check the mapping); 
+ **Passing threshold**: All key fields appear; time range and N are explicit. 
+ - *1.1.A.2 Precision (1 point)*: Specify mutually exclusive definitions for L1–L5 (from any source or custom, but boundaries must not overlap), and be able to classify samples accordingly; 
+ **Passing threshold**: L1–L5 are covered, mutually exclusive, and classifiable. 
+ - *1.1.A.3 Reproducibility and cleaning log (1 point)*: Record handling of missing/anomalies/units, provide exclusion ratio, reasons, and final N; mark code version/time/input md5. 
+### 1.2 Metric computation and anomaly handling (3 points, must score according to path 1.2.A or 1.2.B; do not create new paths) (each path's score must be an integer)
+- **1.2.A Threshold method + Winsorization (3 points)** 
+ - *1.2.A.1 Formulas (1 point)*: 
+ `share_high_disease(Lk) = count(Disease Risk='High'|level=k)/N_k` 
+ `share_mh_low(Lk) = count(mh_access<10 per 10,000|level=k)/N_k` 
+ `share_wq_low(Lk) = count(Water Quality Index<50|level=k)/N_k` (annotate units and red thresholds); 
+ `mean(co2_te|level=k)` etc. 
+ - *1.2.A.2 Anomaly handling (1 point)*: For continuous variables (`WQI, co2_te, mh_access`) `winsorize 1%/99%`; keep raw values for categories/proportions, remove missing values from the denominator and report N_k; output winsor intervals/exclusion ratio/final N_k. 
+ - *1.2.A.3 Level × metric table (1 point)*: Must provide the complete table for **L1–L5 × (share_high_disease, share_wq_low, mean of mh_access, recycling rate, mean of co2_te, mean of displaced)** (include units). 
+- **1.2.B Binning + Bootstrap CI (3 points)** (**equivalent to satisfying** 1.2.A): 
+ Compute mean/median/95% CI (bootstrap ≥1000) per level and report the CI. 
+### 1.3 Cross-level differences and significance (4 points, must score according to path 1.3.A; do not create new paths) (each path's score must be an integer)
+- **1.3.A Tests + effect size + robustness + conclusions (4 points)** 
+ - *1.3.A.1 Significance testing (2 points)*: 
+ **Choose one**: 
+ - Normal/variance homogeneous: `ANOVA + Tukey` (provide F, df, p, η²); 
+ - Otherwise: `Kruskal–Wallis + Dunn–Bonferroni` (provide H, df, p, ε²); 
+ - **Equivalent**: `permutation test` or **non-overlapping 95% CI** also acceptable (must specify effect size such as Cliff’s δ, Hedges g, or η²/ε²). 
+ Cover at least 2 core metrics (e.g., `share_wq_low`, `mh_access`, `mean(displaced)`, `mean(co2_te)`). 
+ - *1.3.A.2 Robustness (1 point)*: Report whether median ranking and mean ranking are consistent; if inconsistent, provide a ≤80-word explanation of “skew/heavy tail.” 
+ - *1.3.A.3 Conclusiveness (1 point)*: Hit at least 1 item from the following **conclusion set**, and **annotate evidence** (specific numerical values such as p/CI/means): 
+ - L5 worst for people: `mean(displaced)(L5) ≥ L4 and both > other levels, p<0.05`; 
+ - L4 carbon-emission peak: `mean(co2_te)(L4)` highest, `p<0.05`; 
+ - L1–L2 basic environmental shortfalls: `share_wq_low (L1 or L2) ≥ 30%`, with significant difference vs `L3–L4`; 
+ - Mental-health gap largest at L5: `share_mh_low(L5)` highest, `p<0.05`; 
+ - Moderate bottleneck (L3): `Supply blockage rate (L3)` highest, `p<0.05` (if such a metric exists). 
+### 1.4 Visualization and outlier/heavy-tail identification (3 points, AND) (each path's score must be an integer)
+- *1.4.A.1 Charts (1 point)*: At least **3** (**functional equivalence acceptable**): 
+ ① L1–L5 metric comparison (grouped bars or radar); ② `WQI` boxplot or violin (by level); ③ `co2_te` histogram (specify bin width). Charts must have complete **titles/axis units/legends**. 
+- *1.4.A.2 Outlier identification (1 point)*: Identify outliers for continuous variables per level using the **IQR rule**, export **outlier list** (`Disaster Event ID, level, metric, upper/lower bounds`). Spot-check 3 records and provide a manual-consistency note (concise acceptable). 
+- *1.4.A.3 Distribution diagnosis (1 point)*: Hit any of the following and provide the corresponding proportion/value: 
+ - Right-skew/heavy tail: `mean>median` and upper-bound outliers ≥2%; 
+ - Left-skew: `mean<median` and lower-bound outliers ≥2%; 
+ - Approximately symmetric: `|mean-median|/std≤0.1` and two-tailed outliers <1%. 
+
+---
+## Requirement 2: Graded recommendations (SOP) with executable triggers (maximum 13 points for this requirement)
+### 2.1 Risk–action matrix **or** risk scorecard (4 points, must score according to path 2.1.A or 2.1.B; do not create new paths) (each path's score must be an integer) 
+- **2.1.A Level × population × environment matrix (4 points)** 
+ - *2.1.A.1 Matrix completeness (1 point)*: Output a **5×(≥6)** table (per level ≥ **3 population items**: health coverage accessibility, mental-health reach, migration/resettlement; **3 environment items**: water quality, recycling, carbon emissions). Each cell includes **action/responsible/deadline**. 
+ - *2.1.A.2 Thresholds and triggers (2 points)*: Write at least **5 thresholds** and **bind** them to actions; allowed to adopt default thresholds directly (health coverage ≥60/50–60/<50; mental health ≥15/10–15/<10; WQI ≥55/50–55/<50; recycling ≥50/40–50/<40; per-unit resettlement carbon emissions ≤120/120–150/>150; Supply blockage rate <60/60–70/>70; Stockout rate <5/5–10/>10). 
+ - *2.1.A.3 Priority rules (1 point)*: Provide `priority = argmax{life-saving → maximum benefit (pop_affected × ΔKPI) → equity (Gini of coverage)}` with **1 allocation example** (≤80 words, concrete). 
+- **2.1.B.1 Risk scorecard (4 points, equivalent)** 
+ Define `R = 0.4·z(displaced) + 0.3·z(WQI<50) + 0.2·z(mh_access<10) + 0.1·z(co2_te)`; provide **score → action** mapping (e.g., `R≥2` triggers “green channel + mental-health task force + low-carbon reconstruction package”). 
+
+### 2.2 Executable recommendations and landing checklist (4 points, AND) (each path's score must be an integer) 
+- *2.2.A.1 Action = trigger + target + deadline (2 points)*: At least **6** (cover L1–L5 and include both “people/environment” categories), each containing: **trigger condition (threshold) → action (quantity/frequency/location/responsible) → target value (numeric KPI) → time limit**. 
+- *2.2.A.2 Resources and dependencies (2 points)*: For each action, list **resource inventory** (personnel/vehicles/equipment/budget range) and **external dependencies** (passes, cross-region coordination, data interfaces). Missing 1 element deducts 1 point. 
+### 2.3 Feasibility and sensitivity checks (3 points, AND) (each path's score must be an integer)
+- *2.3.A.1 Constraint check (1 point)*: Provide estimates for **transport capacity/budget/staff** constraints and **Coverage Rate = available resources / action demand**; include at least 2 actions with **calculation examples and numeric values**. 
+- *2.3.A.2 Sensitivity (±20%) (1 point)*: Apply **±20%** swings to key thresholds (e.g., Supply blockage rate 70%, mental health 10 per 10,000, carbon emissions 150), report **trigger changes** and **changes in target attainability** (table or bullet points). 
+- *2.3.A.3 Trade-off statement (1 point)*: From the three dimensions “**life-saving/maximum benefit/equity**,” provide this batch’s **priority ranking** with **1 rule-based justification**. 
+### 2.4 Complete conclusions and evidence alignment (2 points, AND) (each path's score must be an integer)
+- *2.4.A.1 Four content blocks (1 point) (full and correct answers score 1 point, otherwise 0)*: 
+ ① **Level-difference summary** (hit 1.3.A.3 item, with p/CI/mean); 
+ ② **Population-first** (one sentence each for health/mental/migration with thresholds and target numbers); 
+ ③ **Environment-first** (one sentence each for water quality/recycling/carbon with thresholds and target numbers); 
+ ④ **Supply and resources** (one sentence each for blockage/stockouts with thresholds and target numbers). 
+- *2.4.A.2 Evidence alignment (1 point)*: Annotate **evidence** for each conclusion (e.g., “L3 Supply blockage rate highest 72.9%, K–W p=0.01; target <60% (4 weeks)”). No score without numbers. 
+ 
+---
+## Requirement 3: Monitoring dashboard and reusable delivery (SOP visualization and data pipeline) (maximum 4 points for this requirement)
+### Standard 3.1【maximum 2 points, must score according to path 3.1.A or 3.1.B or 3.1.C; do not create new paths】: command dashboard prototype and field definitions (OR) (the dashboard must be mentioned; if not mentioned this path scores 0)
+#### Path 3.1.A【2 points | static prototype + field dictionary】
+- Substandard 3.1.A.1【1 point｜completeness】 modules and layout
+  - Submit a “one-page dashboard” prototype (low-fidelity acceptable), containing at least 4 modules:
+    - ① KPI overview (health coverage accessibility, mental-health reach, share of WQI<50, recycling rate, per-unit carbon emissions, Supply blockage rate, Stockout rate, resettled population);
+    - ② Heatmap (supply breakpoints/water-quality low-value locations/mental-health high-risk communities);
+    - ③ Trigger alert zone (red/yellow/green thresholds and last 7 days’ trajectory);
+    - ④ Action closed loop (issue → responsible unit → measure → deadline → status).
+  - Passing threshold: Four modules are complete and each has a data placeholder.
+- Substandard 3.1.A.2【1 point｜precision】 fields and calculation definitions
+  - Must provide a field dictionary (field name/type/unit/definition/refresh frequency/source):
+    - Example: `health_coverage` (float, %, population receiving basic diagnosis within 10 days ÷ affected population ×100, daily, Health Bureau report);
+    - `mh_reach_per_10k` (float, persons per 10,000, people reached by mental health services ÷ population ×10000, weekly, mental-health task force);
+    - `wqi_low_share` (float, %, points with WQI<50 ÷ monitoring points ×100, weekly, Water Authority);
+    - `recycling_rate` (float, %, recycled volume ÷ total solid waste volume ×100, daily, City Management);
+    - `co2_per_household` (float, kgCO2e/household·month, reconstruction-period emissions ÷ resettled households, monthly, contractors/power utility);
+    - `supply_block_rate` (float, %, failed key nodes ÷ total nodes ×100, daily, Transport/Warehouse & Distribution).
+  - Passing threshold: At least 6 fields with complete definitions and refresh frequency.
+
+#### Path 3.1.B【2 points | executable SQL/pseudo-SQL metric generation】
+- Example (can be adopted directly):
+  ```sql
+  -- Share of WQI<50 (weekly)
+  SELECT level, week,
+  SUM(CASE WHEN wqi < 50 THEN 1 ELSE 0 END)*1.0/COUNT(*) AS wqi_low_share
+  FROM water_quality
+  WHERE sample_time BETWEEN :week_start AND :week_end
+  GROUP BY level, week;
+
+  -- Mental-health reach (per 10,000)
+  SELECT region,
+  SUM(psych_service_people)*10000.0 / MAX(population) AS mh_reach_per_10k
+  FROM mh_services
+  WHERE date BETWEEN :d1 AND :d2
+  GROUP BY region;
+  ```
+- Passing threshold: Provide at least 2 segments of runnable or directly adaptable SQL/pseudo-SQL, and specify input time window and grouping keys.
+#### Path 3.1.C【2 points | dashboard contents + update frequency + key KPIs】
+- Substandard 3.1.C.1【1 point｜completeness】: Describe dashboard contents, update frequency, key KPIs
+- Substandard 3.1.C.2【1 point｜precision】: Provide PPI-driven numeric values
+### Standard 3.2【maximum 2 points】: data pipeline and trigger automation (OR) (each path's score must be an integer)
+#### Path 3.2.A【2 points | triggers and task flow (pseudo algorithm)】
+- Substandard 3.2.A.1【1 point｜precision】 trigger definitions
+  - Must bind thresholds → actions; examples below (can be used directly):
+    ```
+    IF wqi_low_share >= 0.30 FOR 2 consecutive weeks THEN
+    Create task [Four-week rapid water environment remediation], responsible = Water Authority/City Management; target: within 4 weeks wqi_low_share < 0.20
+    IF supply_block_rate > 0.70 FOR 3 days THEN
+    Create task [Green channel + multimodal transport], responsible = Transport/Military Police; target: within 14 days < 0.60
+    IF mh_reach_per_10k < 10 AND displaced > 50000 THEN
+    Create task [Mental-health task-force], responsible = Health/Education/NGO; target: within 30 days ≥ 15
+    IF co2_per_household > 150 THEN
+    Create task [Low-carbon reconstruction compliance audit], responsible = Housing/Contractors; target: within 90 days ≤ 120
+    ```
+  - Passing threshold: At least 4 triggers, including threshold + duration + action + target + time limit.
+- Substandard 3.2.A.2【1 point｜completeness】 task flow and dependencies
+  - Use text or a flowchart to describe the chain collecting → computing → alerting → ticketing → execution → review, annotate responsible units and SLA (e.g., after alert triggers: dispatch within 2h, acknowledgment within 24h, review within 7d).
+  - Passing threshold: All six stages appear, and each stage specifies at least one responsible entity and time limit.
+
+#### Path 3.2.B【2 points | lightweight scheduling script (pseudo code)】
+- Example (Python pseudo code):
+  ```python
+  run_daily('06:00', tasks=[
+  compute_kpis(), # Aggregate KPIs
+  check_thresholds(), # Compare against red/yellow/green
+  create_tickets_if_needed(), # Create tasks and push to command system
+  update_dashboard() # Refresh visualization
+  ])
+  ```
+- Passing threshold: Includes scheduled time, task sequence, failure retry/alerts (e.g., retry 3 times → SMS notify duty manager).

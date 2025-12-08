@@ -1,0 +1,114 @@
+# [Total Score | 30 Points] Scoring Rubric for In-depth Analysis and Optimization of Asana Teams with High Health but Low Completion Rates
+
+==============================
+I. Demand 1: Target Team Identification and Data Foundation (Max 7 Points)
+==============================
+## Criterion 1.1 [Max 7 Points]: Filtering and Description of High-Score, Low-Completion-Rate Teams
+### Path 1.1.A [7 Points | Definitive Filtering Path]
+- Sub-criterion 1.1.A.1 [1 Point | Completeness]: Provides the filtering conditions — `collaboration_efficiency_score ≥ 8`, `resource_optimization_score ≥ 8`, `avg_completion_rate < 70`, `is_valid_record = 1` — and lists the `team_id`, `team_name`, `avg_completion_rate`, `collaboration_efficiency_score`, and `resource_optimization_score` for a total of 37 teams.
+- Sub-criterion 1.1.A.2 [4 Points | Accuracy]: The results must match the following anchor points (tolerance ±0.05pp / ±0.01pp): Number of teams = 37, total valid records = 50; average completion rate of the filtered sample is 49.33%; minimum completion rate is 33.77%, maximum is 63.00%; no samples have a completion rate ≥ 70%.
+- Sub-criterion 1.1.A.3 [1 Point | Conclusiveness]: Clearly states the sample characteristic that "teams with collaboration/resource scores ≥ 8 generally have a low completion rate (mean ≈ 49.33%)."
+- Sub-criterion 1.1.A.4 [1 Point | Conclusiveness]: Adds key distribution information (tolerance ±0.3pp / ±0.1pp): completion rate P25 ≈ 42.45%, P75 ≈ 57.00%, standard deviation ≈ 8.67pp, indicating significant variance within the sample.
+
+### Path 1.1.B [7 Points | Validation-based Filtering Path]
+- Sub-criterion 1.1.B.1 [1 Point | Completeness]: First uses `MIN/MAX(avg_completion_rate)` to confirm the scale is [33.77, 82.58] (percentage-based), then performs the filtering.
+- Sub-criterion 1.1.B.2 [4 Points | Accuracy]: The filtered results match the anchor points, and at least 3 teams are sampled to verify the three metrics (error ≤ ±0.5pp / ±0.5 points).
+- Sub-criterion 1.1.B.3 [1 Point | Conclusiveness]: Explains the necessity of confirming the scale and the verification process.
+- Sub-criterion 1.1.B.4 [1 Point | Conclusiveness]: Emphasizes that the filtered sample constitutes a ratio of 37/50 of the total valid records, ensuring consistent interpretation.
+
+==============================
+II. Demand 2: Multi-dimensional Feature Analysis and Root Cause Investigation (Max 15 Points)
+==============================
+## Criterion 2.1 [Max 4 Points]: Project Size Structure Analysis
+### Path 2.1.A [6 Points | Structural Profiling Path]
+- Sub-criterion 2.1.A.1 [1 Point | Completeness]: Defines size proportions: `enterprise_share = enterprise_projects / total_projects`, similarly for `large_share`, `medium_share`, `small_share`; `heavy_share = enterprise_share + large_share`; and calculates the average total number of projects.
+- Sub-criterion 2.1.A.2 [4 Points | Accuracy]: Anchor points (tolerance ±0.005 / ±0.1): `heavy_share≈0.5186`, `enterprise_share≈0.1605`, `large_share≈0.3581`, `medium_share≈0.2534`, `small_share≈0.2281`, average number of projects ≈ 10.32.
+- Sub-criterion 2.1.A.3 [1 Point | Conclusiveness]: Points out the structural feature that heavy projects (enterprise+large) account for >50% of the total.
+
+### Path 2.1.B [6 Points | Binning and Comparison Path]
+- Sub-criterion 2.1.B.1 [1 Point | Completeness]: Defines `heavy_flag = (large_share ≥ 0.4) OR (enterprise_share ≥ 0.2)` and divides teams into `heavy`(n=20) and `not_heavy`(n=17) groups.
+- Sub-criterion 2.1.B.2 [4 Points | Accuracy]: Anchor points (tolerance ±0.05pp / ±0.003): for `heavy` group, completion rate is 55.15%, on-schedule rate is 50.38%, overdue task rate is 0.123; for `not_heavy` group, completion rate is 42.49%, on-schedule rate is 34.30%, overdue task rate is 0.202.
+- Sub-criterion 2.1.B.3 [1 Point | Conclusiveness]: Highlights the finding that "a higher proportion of well-managed heavy projects leads to a higher completion rate."
+
+### Path 2.1.C [6 Points | Quantile Structure Path]
+- Sub-criterion 2.1.C.1 [1 Point | Completeness]: Divides teams into Q1 (≤42.45%) and Q4 (≥57.00%) based on `avg_completion_rate` quartiles.
+- Sub-criterion 2.1.C.2 [4 Points | Accuracy]: Anchor points (tolerance ±0.01 / ±0.3): for Q1, `heavy_share≈0.3570`, `small_share≈0.3364`, average projects ≈ 11.20; for Q4, `heavy_share≈0.6013`, `small_share≈0.1032`, average projects ≈ 10.20.
+- Sub-criterion 2.1.C.3 [1 Point | Conclusiveness]: Points out that high-completion-rate teams focus on heavy projects and reduce fragmented tasks.
+
+## Criterion 2.2 [Max 3 Points]: Workload Analysis
+### Path 2.2.A [6 Points | High-Workload Binning Path]
+- Sub-criterion 2.2.A.1 [1 Point | Completeness]: Calculates `high_workload_ratio = high_workload_members / unique_team_members` and divides teams into `high_workload`(n=22) and `balanced`(n=15) groups based on a threshold of ≥0.4.
+- Sub-criterion 2.2.A.2 [4 Points | Accuracy]: Anchor points (tolerance ±0.5pp / ±0.5): for `high_workload` group, completion rate is 52.70%, on-schedule rate is 47.03%, tasks per member is 38.62; for `balanced` group, completion rate is 44.39%, on-schedule rate is 37.06%, tasks per member is 33.78.
+- Sub-criterion 2.2.A.3 [1 Point | Conclusiveness]: States that "a concentrated workload model yields higher efficiency but requires risk monitoring."
+
+### Path 2.2.B [6 Points | Tasks per Member Quartile Path]
+- Sub-criterion 2.2.B.1 [1 Point | Completeness]: Segments teams based on `avg_tasks_per_member` quartiles (Q1≤33.77, Q4≥40.26).
+- Sub-criterion 2.2.B.2 [4 Points | Accuracy]: Anchor points (tolerance ±1pp / ±0.01): for Q1, completion rate ≈ 42.32%, on-schedule rate ≈ 35.59%, overdue task rate ≈ 0.196; for Q4, completion rate ≈ 53.97%, on-schedule rate ≈ 46.81%, overdue task rate ≈ 0.125.
+- Sub-criterion 2.2.B.3 [1 Point | Conclusiveness]: Points out that low-workload teams lack momentum, while high-workload teams require accompanying risk management.
+
+## Criterion 2.3 [Max 4 Points]: Identification of Key Driving Factors
+### Path 2.3.A [6 Points | Correlation Analysis Path]
+- Sub-criterion 2.3.A.1 [1 Point | Completeness]: Calculates Pearson correlation coefficients between `avg_completion_rate` and `on_schedule_rate_pct`, `overdue_share`, `heavy_share`, `avg_project_velocity`, `high_workload_ratio`, where `overdue_share = overdue_team_tasks / total_team_tasks`.
+- Sub-criterion 2.3.A.2 [4 Points | Accuracy]: Anchor points (tolerance ±0.02): Correlation coefficients are ≈0.962, -0.896, 0.659, 0.593, 0.577, respectively.
+- Sub-criterion 2.3.A.3 [1 Point | Conclusiveness]: Clearly prioritizes the drivers: schedule discipline > project structure > velocity/workload.
+
+### Path 2.3.B [6 Points | Quartile Extreme Value Path]
+- Sub-criterion 2.3.B.1 [1 Point | Completeness]: Compares `on_schedule_rate_pct` and `overdue_share` between the Q1 and Q4 completion rate groups.
+- Sub-criterion 2.3.B.2 [4 Points | Accuracy]: Anchor points (tolerance ±1pp / ±0.01): for Q1, completion rate ≈ 38.26%, on-schedule rate ≈ 29.92%, overdue task rate ≈ 0.228; for Q4, completion rate ≈ 60.20%, on-schedule rate ≈ 55.97%, overdue task rate ≈ 0.098.
+- Sub-criterion 2.3.B.3 [1 Point | Conclusiveness]: Attributes the extreme differences to schedule management capabilities.
+
+### Path 2.3.C [6 Points | Standardized Regression Path]
+- Sub-criterion 2.3.C.1 [1 Point | Completeness]: Builds a standardized linear regression: applies Z-score transformation to `on_schedule_rate_pct`, `overdue_share`, `heavy_share`, `avg_project_velocity`, and `high_workload_ratio`; `avg_completion_rate` is also standardized.
+- Sub-criterion 2.3.C.2 [4 Points | Accuracy]: Pseudocode must include the generation of `X_std` and `y_std` and `beta = OLS(X_std, y_std)`; the direction of standardized coefficients must be consistent with the correlations. Anchor points (tolerance ±0.02): `beta_on_schedule≈0.635`, `beta_overdue≈-0.272`, `beta_heavy≈0.026`, `beta_velocity≈0.077`, `beta_high_workload≈0.048`; model R² ≥ 0.94.
+- Sub-criterion 2.3.C.3 [1 Point | Conclusiveness]: Reconfirms the priority of drivers based on the ranking of standardized coefficients.
+
+## Criterion 2.4 [Max 4 Points]: Estimation Bias and Plan Execution Analysis
+### Path 2.4.A [6 Points | Estimation Bias Index Path]
+- Sub-criterion 2.4.A.1 [1 Point | Completeness]: Defines `est_bias_index = avg_estimated_completion_days / (avg_project_velocity + 0.01)` and divides teams into `low/mid/high` tertiles.
+- Sub-criterion 2.4.A.2 [4 Points | Accuracy]: Anchor points (tolerance ±2pp / ±5): for `low` group, completion rate ≈ 49.69%, on-schedule rate ≈ 43.84%, index ≈ 100.73; for `mid` group, completion rate ≈ 52.25%, on-schedule rate ≈ 47.12%, index ≈ 144.49; for `high` group, completion rate ≈ 45.81%, on-schedule rate ≈ 37.67%, index ≈ 192.39.
+- Sub-criterion 2.4.A.3 [1 Point | Conclusiveness]: Forms the causal chain: "overly optimistic estimation → loss of schedule control → decreased completion rate."
+
+### Path 2.4.B [6 Points | Target vs. Other Groups Comparison Path]
+- Sub-criterion 2.4.B.1 [1 Point | Completeness]: Compares key metrics of the target group against other valid teams (the remaining 13).
+- Sub-criterion 2.4.B.2 [4 Points | Accuracy]: Anchor points (tolerance ±1pp / ±0.02): completion rate 49.33% vs 43.82%; heavy project share 0.519 vs 0.279; estimated days 71.32 vs 58.31; risk rate 28.84% vs 20.23%.
+- Sub-criterion 2.4.B.3 [1 Point | Conclusiveness]: Points out the structural contradiction in the target group: "high complexity + weak execution."
+
+### Path 2.4.C [6 Points | Schedule Slippage Stratification Path]
+- Sub-criterion 2.4.C.1 [1 Point | Completeness]: Calculates `slippage_gap = avg_completion_rate - on_schedule_rate_pct` and divides into `tight`, `moderate`, and `loose` groups based on intervals `(-∞,4]`, `(4,8]`, `(8,∞)`.
+- Sub-criterion 2.4.C.2 [4 Points | Accuracy]: Anchor points (tolerance ±0.5pp / ±0.01): for `tight` group, completion rate ≈ 55.53%, on-schedule rate ≈ 54.32%, overdue task rate ≈ 0.113, `gap≈1.21`; for `moderate` group, completion rate ≈ 50.57%, on-schedule rate ≈ 43.99%, overdue task rate ≈ 0.153, `gap≈6.59`; for `loose` group, completion rate ≈ 39.88%, on-schedule rate ≈ 29.05%, overdue task rate ≈ 0.221, `gap≈10.83`.
+- Sub-criterion 2.4.C.3 [1 Point | Conclusiveness]: States that the larger the schedule slippage, the harder it is to improve the completion rate.
+
+==============================
+III. Demand 3: Root Cause Synthesis and Management Optimization Recommendations (Max 8 Points)
+==============================
+## Criterion 3.1 [Max 3 Points]: Systematic Root Cause Synthesis
+### Path 3.1.A [6 Points | Evidence Chain Attribution Path]
+- Sub-criterion 3.1.A.1 [1 Point | Completeness]: Constructs a causal chain covering scoring limitations → schedule discipline → WIP/workload → estimation bias.
+- Sub-criterion 3.1.A.2 [4 Points | Accuracy]: Each link in the chain is supported by quantitative evidence (e.g., correlation coefficients 0.962/-0.896; completion rate difference between `heavy` vs `not_heavy` ≈ 12.66pp; estimation bias index from 100.73 to 192.39 across tertiles; completion rate difference between `tight` vs `loose` slippage groups ≈ 15.65pp).
+- Sub-criterion 3.1.A.3 [1 Point | Conclusiveness]: Forms a systematic diagnosis of the "score-delivery mismatch."
+
+### Path 3.1.B [6 Points | Comparative Attribution Path]
+- Sub-criterion 3.1.B.1 [1 Point | Completeness]: Synthesizes causes from three perspectives: comparison with a control group (other teams), completion rate quantiles, and estimation bias.
+- Sub-criterion 3.1.B.2 [4 Points | Accuracy]: Supports conclusions by referencing anchor points (49.33% vs 43.82%; on-schedule rate difference between Q1/Q4 ≈ 26.05pp; difference in bias index between high/low groups ≈ 91.66).
+- Sub-criterion 3.1.B.3 [1 Point | Conclusiveness]: Integrates the three perspectives to conclude that complexity and schedule discipline jointly cause the mismatch.
+
+## Criterion 3.2 [Max 5 Points]: Differentiated Optimization Strategies
+### Path 3.2.A [6 Points | Four-Dimensional Governance Plan Path]
+- Sub-criterion 3.2.A.1 [1 Point | Completeness]: Covers four main areas: schedule discipline, WIP control, workload balancing, and estimation calibration.
+- Sub-criterion 3.2.A.2 [4 Points | Accuracy]: Recommended quantitative targets must align with anchor points: increase on-schedule rate to ≈60% (current mean +10pp), reduce overdue task rate to ≤0.12, benchmark completion rate against Q4 ≈60%; references current data (e.g., on-schedule rate for `heavy` is 50.38%, overdue rate for `loose` is 0.221).
+- Sub-criterion 3.2.A.3 [1 Point | Conclusiveness]: Explains the priorities and expected outcomes.
+
+### Path 3.2.B [6 Points | Scoring Model Iteration Path]
+- Sub-criterion 3.2.B.1 [1 Point | Completeness]: Proposes adding outcome-based dimensions like `on_schedule_rate_pct`, `avg_completion_rate`, `overdue_penalty`, and complexity (e.g., `heavy_share`) to the existing health score.
+- Sub-criterion 3.2.B.2 [4 Points | Accuracy]: Provides a pseudocode example: `health_new = w1*collaboration + w2*resource + w3*on_time + w4*completion - w5*overdue_penalty`, with weights ranked according to correlation (0.962 > 0.659 > 0.593 > 0.577); specifies backtesting requirement of R²≥0.94 or error ≤5pp.
+- Sub-criterion 3.2.B.3 [1 Point | Conclusiveness]: Articulates how model iteration can mitigate the "high score, low completion rate" issue.
+
+### Path 3.2.C [6 Points | Monitoring Loop and Pilot Program Path]
+- Sub-criterion 3.2.C.1 [1 Point | Completeness]: Designs monitoring metrics (on-schedule rate, overdue task rate, estimation bias index, WIP utilization) and plans a 2-quarter pilot with 2–3 teams.
+- Sub-criterion 3.2.C.2 [4 Points | Accuracy]: Defines frequency and trigger thresholds: weekly WIP check against `avg_tasks_per_member`≤40; monthly bias review (triggered if index > 130); freeze new tasks if on-schedule rate < 40%; break down projects if bias index > 180.
+- Sub-criterion 3.2.C.3 [1 Point | Conclusiveness]: Presents a closed-loop strategy of "pilot → validate → roll out."
+
+### Path 3.2.D [6 Points | Organizational Capability Optimization Path]
+- Sub-criterion 3.2.D.1 [1 Point | Completeness]: Proposes initiatives such as improving team maturity, creating guardrails for key talent, forming cross-functional task forces, and knowledge codification.
+- Sub-criterion 3.2.D.2 [4 Points | Accuracy]: Sets intervention targets by referencing data anchor points (e.g., `team_maturity_level` shows `emerging` accounts for ≈76%, high-workload members have ≈38.62 tasks on average, mean `slippage_gap` is ≈6.58).
+- Sub-criterion 3.2.D.3 [1 Point | Conclusiveness]: Explains how capability building can reduce the "high health-low completion" gap in the long term.

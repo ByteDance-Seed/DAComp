@@ -1,0 +1,6 @@
+We've observed a peculiar phenomenon in our company's project management: some seemingly healthy projects (overall_health_score > 80) end up with unsatisfactory ROI, while other projects with lower health scores generate significant business value. Based on the `asana__project_analytics` table, please conduct an in-depth analysis of this "health-value inversion" phenomenon.
+
+Requirements:
+1.  Calculate the average `roi_efficiency_ratio`, average `completion_percentage`, and the proportion of projects that exceed their `planned_duration_days` by more than 20% for each health grade (A/B/C/D/F).
+2.  Independently explore key factor dimensions influencing this inversion (e.g., team size, project complexity, management priority, collaboration efficiency). Identify which combinations of project characteristics tend to produce abnormal situations like "High Health, Low Value" (HHLV) or "Low Health, High Value" (LHHV).
+3.  Based on your data insights, propose recommendations for optimizing the project evaluation system.

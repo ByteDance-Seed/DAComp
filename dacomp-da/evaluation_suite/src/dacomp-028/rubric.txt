@@ -1,0 +1,77 @@
+# [Total Score | 15 points] The solution must meet the following two core requirements:
+- Requirement 1: Analyze the month-over-month price growth trends for each Product Category across different Markets
+- Requirement 2: Analyze the impact of price volatility on supply
+---
+## Requirement 1: Analyze the month-over-month price growth trends for each Product Category across different Markets (maximum 8 points)
+### Criterion 1.1: Calculation of the month-over-month growth rate of Average Price
+#### Path 1.1.A [4 points | Group-and-aggregate method: Based on price data, compute the month-over-month growth rate of Average Price for each Product Category in each Market, and aggregate grouped by Category and Market]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Ensure the month-over-month price growth rate is computed for every Product Category in every Market.
+- Sub-criterion 1.1.A.2 [3 points | Accuracy]: The month-over-month growth rate is computed correctly; verify against the following baseline values (verification tolerance within 0.5%).
+  Note: Grain Total, Fruit Total, and Vegetable Total may be omitted, but if reported they must be broadly consistent with the table below.
+  Formula check: Price month-over-month growth rate = (Average Price − Previous Period Average Price) / Previous Period Average Price.
+  Reference data:
+  | Product Category   | Market Name                      | Mean of df["MoM Growth Rate"]                                       |
+  | ---------- | ----------------------------- | -------------------------------------------------------------- |
+  | Grain       | Beijing Xinfadi Agricultural Products Wholesale Market      | -2.17%                                                         |
+  | Grain       | Chengdu Agricultural Products Center Wholesale Market        | 2.13%                                                          |
+  | Grain       | Jiangnan Fruit and Vegetable Wholesale Market, Guangzhou          | -0.12%                                                         |
+  | Grain       | Shanghai Jiangqiao Wholesale Market              | -0.12%                                                         |
+  | Grain Total  | -                             | -0.08%                                                         |
+  | Fruit       | Beijing Xinfadi Agricultural Products Wholesale Market      | 2.26%                                                          |
+  | Fruit       | Chengdu Agricultural Products Center Wholesale Market        | 1.85%                                                          |
+  | Fruit       | Jiangnan Fruit and Vegetable Wholesale Market, Guangzhou          | 2.82%                                                          |
+  | Fruit       | Shanghai Jiangqiao Wholesale Market              | 7.51%                                                          |
+  | Fruit Total  | -                             | 3.60%                                                          |
+  | Vegetable       | Beijing Xinfadi Agricultural Products Wholesale Market      | 9.66%                                                          |
+  | Vegetable       | Chengdu Agricultural Products Center Wholesale Market        | 10.62%                                                          |
+  | Vegetable       | Jiangnan Fruit and Vegetable Wholesale Market, Guangzhou          | 10.23%                                                          |
+  | Vegetable       | Shanghai Jiangqiao Wholesale Market              | 9.30%                                                          |
+  | Vegetable Total  | -                             | 9.95%                                                          |
+
+### Criterion 1.2: Analyze price trends by Product Category
+#### Path 1.2.A [4 points | Trend analysis: Based on the computed results, provide a detailed analysis of the month-over-month price growth trends for each category]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: For each Product Category (Vegetable, Fruit, Grain), perform a price trend analysis and provide conclusions.
+- Sub-criterion 1.2.A.2 [2 points | Accuracy]: State that Fruit and Vegetable show overall positive price growth across Markets, while Grain shows overall negative growth, with only the Chengdu Agricultural Products Center Wholesale Market showing positive growth; or provide a market-by-market analysis. These phrasings are acceptable. If Grain is stated to show growth in Guangzhou, no points are awarded.
+- Sub-criterion 1.2.A.3 [1 point | Conclusiveness]: Based on price fluctuations, provide logical and reasonable inferences, analyzing possible causes of price volatility across categories, such as seasonality, variety effects, etc.
+
+---
+## Requirement 2: Analyze the impact of price volatility on supply (maximum 7 points)
+### Criterion 2.1: Compute and analyze price volatility
+#### Path 2.1.A [3 points | Standard deviation analysis: Complete computation of price volatility]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Compute price volatility for each Product Category in each Market (standard deviation of the MoM growth rate).
+- Sub-criterion 2.1.A.2 [1 point | Accuracy]: Compute price volatility accurately and provide volatility figures by Market and Product Category (verification tolerance within 0.5%).
+  Reference data:
+  | Product Category | Market Name | Std of df["MoM Growth Rate"] | Mean of df["MoM Growth Rate"] | Mean of On-shelf Quantity (tons) | Mean of Trading Volume (tons) |
+  |---------|---------|---------------------|-----------------------|-----------------------|-----------------------|
+  | Grain | Beijing Xinfadi Agricultural Products Wholesale Market | NaN    | -2.17% | 70            | 68            |
+  |     | Chengdu Agricultural Products Center Wholesale Market | NaN    | 2.13%  | 210           | 208           |
+  |     | Jiangnan Fruit and Vegetable Wholesale Market, Guangzhou | 2.41%  | -0.12% | 180           | 175           |
+  |     | Shanghai Jiangqiao Wholesale Market   | 2.27%  | -0.12% | 75            | 74            |
+  | Grain Total |                 | 2.01%  | -0.08% | 131.6666667   | 129           |
+  | Fruit | Beijing Xinfadi Agricultural Products Wholesale Market | 5.66%  | 2.26%  | 31.75         | 29.25         |
+  |     | Chengdu Agricultural Products Center Wholesale Market | 6.84%  | 1.85%  | 24.18181818   | 22.35454545   |
+  |     | Jiangnan Fruit and Vegetable Wholesale Market, Guangzhou | 7.32%  | 2.82%  | 27.59         | 25.17         |
+  |     | Shanghai Jiangqiao Wholesale Market   | 7.72%  | 7.51%  | 40.50909091   | 37.01818182   |
+  | Fruit Total |                 | 7.03%  | 3.60%  | 31.10227273   | 28.54090909   |
+  | Vegetable | Beijing Xinfadi Agricultural Products Wholesale Market | 11.43% | 9.66%  | 19.70429448   | 18.29092025   |
+  |     | Chengdu Agricultural Products Center Wholesale Market | 11.74% | 10.62% | 21.36932515   | 19.82018405   |
+  |     | Jiangnan Fruit and Vegetable Wholesale Market, Guangzhou | 11.99% | 10.23% | 20.63742331   | 19.10079755   |
+  |     | Shanghai Jiangqiao Wholesale Market   | 12.11% | 9.30%  | 20.42098765   | 18.92185185   |
+  | Vegetable Total |                 | 11.80% | 9.95%  | 20.53317972   | 19.03360983   |
+  | Total |                 | 11.64% | 9.47%  | 22.14778887    | 20.57158345   |
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness]: State that Vegetable has the largest volatility, Fruit is next, and Grain prices are the most stable; reasonable phrasing suffices.
+
+### Criterion 2.2: Analyze the impact of price volatility on supply
+#### Path 2.2.A [4 points | Correlation analysis: Analyze the impact of overall volatility on supply (Supply = On-shelf Quantity (tons), Trading Volume (tons) or Supply = On-shelf Quantity (tons))]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Provide a reasonable definition of supply; Supply = On-shelf Quantity (tons), Trading Volume (tons) or Supply = On-shelf Quantity (tons) are both acceptable; analyze the impact of price volatility on On-shelf Quantity (tons) and Trading Volume (tons), including correlation coefficient calculations.
+- Sub-criterion 2.2.A.2 [2 points | Accuracy]: Compute the Pearson correlation coefficient between price volatility and supply volume accurately and provide the correlation results (verification tolerance within 0.5%). If the model regards Supply = On-shelf Quantity (tons), then not providing -0.722 is also acceptable. Reference data:
+  Correlation between price volatility and average On-shelf Quantity (tons): -0.7209
+  Correlation between price volatility and average Trading Volume (tons): -0.722
+  You may also provide the corresponding coefficients for Vegetable, Fruit, and Grain:
+  - **Vegetable**: Price volatility is negatively correlated with supply rate (-0.159), i.e., the greater the volatility, the lower the supply rate
+  - **Fruit**: A stronger negative correlation (-0.302); price volatility has a more pronounced impact on supply
+  - **Grain**: Correlation is not significant; supply is essentially unaffected by price volatility
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness]: Provide reasonable conclusions; for reference (reasonable phrasing suffices):
+  1. In markets with greater price volatility, suppliers tend to reduce supply to avoid risk
+  2. Price volatility significantly suppresses Trading Volume (tons); consumers’ willingness to buy declines during periods of high volatility
+  4. Price volatility has a negative impact on both supply and demand, i.e., as volatility increases, On-shelf Quantity (tons) and Trading Volume (tons) decrease.

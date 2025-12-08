@@ -1,0 +1,1 @@
+Analyze employees’ current employment status at the company across different working years intervals (0–5 years, 6–10 years, 11–15 years, 16–20 years, and 20+ years), and identify the characteristics of long-term retained employees at the company (10 years and above). Based on these data, what specific actions can the company take to increase employee tenure?

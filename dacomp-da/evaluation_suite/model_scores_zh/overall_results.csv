@@ -1,0 +1,2 @@
+name,count,completeness,accuracy,conclusiveness,readability,professionalism,visualization,total
+openai_qwen3-coder-plus-test1-zh__rubrics-gemini-2-5-flash__textgsb-gemini-2-5-flash__visgsb-gemini-2-5-flash.csv,2,64.77,32.5,38.57,10.0,0.0,0.0,28.86

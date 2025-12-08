@@ -1,0 +1,69 @@
+# [Total score | 12 points] The solution must satisfy the following two core requirements:
+- Requirement 1: Accurately analyze changes in price per carat
+- Requirement 2: Quantitatively analyze how other quality attributes affect price
+
+---
+
+## Requirement 1: Analyze changes in price per carat (maximum 6 points for this requirement)
+### Criterion 1.1 [up to 6 points]: Conduct quantitative numerical analysis for each carat interval
+#### Path 1.1.A [6 points]: Analyze by computing the premium rate for each carat interval and derive the final conclusion
+- Standard 1.1.A.1 [1 point | Completeness]: For diamonds, correctly bin into the specified carat intervals, i.e., **<=0.5 carat, 0.51-1 carat, 1.01-1.5 carats, >1.5 carats**.
+- Standard 1.1.A.2 [3 points | Accuracy]: Using **<=0.5 carat** as the benchmark, correctly compute the relative premium rates for the other intervals, and ensure the values fall within the following acceptance ranges:
+  - 0.51-1 carat: [55%, 66%]
+  - 1.01-1.5 carats: [130%, 150%]
+  - >1.5 carats: [190%, 210%]
+- Standard 1.1.A.3 [1 point | Conclusion]: The conclusion explicitly states that the price per carat (or its relative premium rate) **significantly increases** with carat intervals (equivalent expressions such as “monotonically increasing/gradient increase/stepwise increase” are acceptable).
+- Standard 1.1.A.4 [1 point | Conclusion]: The conclusion explicitly notes price jump points at **0.5 carat, 1 carat, 1.5 carats**.
+
+#### Path 1.1.B [5 points]: Correctly compute the average price per carat for each carat interval (without calculating premium rates)
+- Standard 1.1.B.1 [1 point | Completeness]: For diamonds, correctly bin into the specified carat intervals, i.e., **<=0.5 carat, 0.51-1 carat, 1.01-1.5 carats, >1.5 carats**.
+- Standard 1.1.B.2 [2 points | Accuracy]: Correctly compute the average price per carat for each carat interval, and ensure the values fall within the following acceptance ranges:
+  - <=0.5 carat: [$2,300, $2,400]
+  - 0.51-1.0 carat: [$3,700, $3,850]
+  - 1.01-1.5 carats: [$5,600, $5,750]
+  - >1.5 carats: [$7,000, $7,150]
+- Standard 1.1.B.3 [1 point | Conclusion]: The conclusion explicitly states that the price per carat (or its relative premium rate) **significantly increases** with carat intervals (equivalent expressions such as “monotonically increasing/gradient increase/stepwise increase” are acceptable).
+- Standard 1.1.B.4 [1 point | Conclusion]: The conclusion explicitly notes price jump points at **0.5 carat, 1 carat, 1.5 carats**.
+
+---
+
+## Requirement 2: Analyze how other quality attributes affect price (maximum 6 points for this requirement)
+### Criterion 2.1 [4 points]: Quantitative analysis of the impact factors “Cut, Color, Clarity”
+#### Path 2.1.A [4 points]: Marginal contribution quantitative analysis path
+- Standard 2.1.A.1 [1 point | Completeness]: Separately compute the average price per carat for each level of **Cut, Color, Clarity**.
+- Standard 2.1.A.2 [1 point | Accuracy]: Compute the price fluctuation range for each factor, and ensure the values fall within the following acceptance ranges:
+  - Clarity price fluctuation range: [$7,500, $9,000]
+  - Cut price fluctuation range: [$3,200, $4,200]
+  - Color price fluctuation range: [$2,800, $3,800]
+- Standard 2.1.A.3 [1 point | Accuracy]: Compute premium rates of high grades relative to low grades, and ensure the values fall within the following acceptance ranges:
+  - IF-grade Clarity relative to SI2-grade premium rate: [180%, 250%]
+  - Ideal Cut relative to Good Cut premium rate: [15%, 35%]
+  - D-grade Color relative to I-grade Color premium rate: [20%, 40%]
+- Standard 2.1.A.4 [1 point | Conclusion]: Explicitly provide the importance ranking: **Clarity is more important than Cut and Color**.
+
+#### Path 2.1.B [3 points]: Controlled-variable comparative analysis path
+- Standard 2.1.B.1 [1 point | Completeness]: Hold other variables constant (e.g., fix carat weight and the other two quality factors), and analyze the impact of a single factor (Cut/Color/Clarity) on price.
+- Standard 2.1.B.2 [1 point | Accuracy]: Provide specific price comparison examples; under single-factor changes, the price differences must fall within the following ranges:
+  - Under the same conditions, price increase when Clarity upgrades from VS1 to IF: [40%, 70%]
+  - Under the same conditions, price increase when Cut upgrades from Good to Ideal: [8%, 25%]
+  - Under the same conditions, price increase when Color upgrades from I-grade to D-grade: [15%, 35%]
+- Standard 2.1.B.3 [1 point | Conclusion]: Explicitly provide the importance ranking: **Clarity is more important than Cut and Color**.
+
+#### Path 2.1.C [2 points]: Simple descriptive analysis path
+- Standard 2.1.C.1 [2 points | Completeness]: Only list the price distributions (e.g., price ranges, means) for the levels of **Cut, Color, Clarity**, without performing quantitative comparisons (e.g., premium rates, price differences) or an importance ranking.
+
+#### Path 2.1.D [3 points]: Regression analysis path
+- Standard 2.1.D.1 [1 point | Completeness]: Perform a regression analysis of price combining dimensions such as Cut, Color, and Clarity.
+- Standard 2.1.D.2 [1 point | Accuracy]: Accurately compute the R^2 value for each dimension; the overall R^2 must be greater than 0.9. This part requires carefully validating code logic and correctness.
+- Standard 2.1.D.3 [1 point | Conclusion]: Explicitly provide the importance ranking: **Clarity is more important than Cut and Color**.
+
+### Criterion 2.2 [2 points]: Final conclusion summary
+#### Path 2.2.A [2 points]: Complete conclusion summary
+- Standard 2.2.A.1 [1 point | Conclusion]: Carat weight amplification effect analysis  
+  Clearly state that increases in carat weight **amplify the impact of other quality factors (Cut/Color/Clarity) on price**, and support this with either of the following conclusions:
+  - Quality factors (e.g., high Clarity, Ideal Cut) have a significantly greater impact on price in large carat intervals (e.g., >1.5 carats) than in small carat intervals (e.g., <=0.5 carat);
+  - Carat weight exhibits a “multiplier effect” on other quality factors—the same upgrade in quality grade produces a much larger price increase for large-carat diamonds than for small-carat diamonds.
+- Standard 2.2.A.2 [1 point | Conclusion]: Physical parameter premium analysis (Note: the original standard numbering was duplicated and has been corrected to 2.2.A.2)  
+  From among **Depth percentage, Table percentage, X-axis length, Y-axis width, Z-axis depth** choose at least 2 parameters and complete the following analysis:
+  1. Explain how the selected parameters affect a diamond’s apparent size (e.g., at the same carat weight, diamonds with a moderate table percentage look larger) or optical performance (e.g., fire, brightness, scintillation);
+  3. Clearly state the direction of the parameter’s impact on diamond price, i.e., the **premium direction** (positive premium: prices are higher when the parameter lies within a reasonable interval; negative premium: prices decrease when the parameter deviates from a reasonable interval).

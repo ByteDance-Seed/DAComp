@@ -1,0 +1,142 @@
+# [Total Score | 36 points] Intercom Bot-First-Response Strategy × Product Conversion Performance Evaluation Rubric
+---
+## Requirement 1: Data Sample Definition and Customer Segmentation Mapping (Up to 9 points)
+### Criterion 1.1: Unified Time Window and Time Zone Setting
+#### Path 1.1.A (Rolling Anchor Method) [6 points]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly state that `MAX(conversation_created_at)=2023-12-26 18:44:00` is the anchor point, and construct a 6-month window by going back in time to `[2023-06-26 00:00:00, 2023-12-26 23:59:59]`. Declare that the database's default UTC time zone is used consistently for the analysis.
+- Sub-criterion 1.1.A.2 [4 points | Accuracy]: Verify using `intercom__conversation_metrics` that the number of conversations within the window is **3407** (margin of error ±1). Must also provide `MAX(conversation_last_updated_at)=2023-12-27 01:29:00`, explaining that the difference is only 0.4 hours and that the same window is used throughout.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: Explain the window's coverage (1301 out of 3407 conversations can be mapped to paying companies, involving 59 active paying customers) and emphasize the importance of consistent UTC for the uniformity of time-series calculations like 72-hour conversion and weekly/monthly retention.
+#### Path 1.1.B (Fixed Calendar Month Method) [6 points]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: State that the most recent complete calendar month range `[2023-07-01 00:00:00, 2023-12-31 23:59:59]` (UTC) is used.
+- Sub-criterion 1.1.B.2 [4 points | Accuracy]: Validate the conversation count in this range is **3306** (2.97% fewer than the rolling window, margin of error ±1), and ensure all metrics use the same calendar month window. Simultaneously output that 1269 conversations map to paying companies.
+- Sub-criterion 1.1.B.3 [1 point | Conclusion]: Evaluate that the calendar month window is convenient for aligning with monthly reports but misses conversations from June 26–30. The truncation effect must be disclosed when reporting on weekly retention or 72-hour statistics.
+
+### Criterion 1.2: Paying Customer Identification and Segmentation/Slicing by Scale
+#### Path 1.2.A (Tag-First + Numeric Fallback) [6 points]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Define paying customers as those with `monthly_spend > 0`. First, parse `segment` (Startup/SMB/Mid-Market/Enterprise), `region`, and `source` from `all_company_tags`. If missing, fall back to numeric binning.
+- Sub-criterion 1.2.A.2 [4 points | Accuracy]: Based on the 81 paying companies, provide unified fallback thresholds:
+  - `seat_bucket`: ≤124 → `seat_le_124`; 125–137 → `seat_125_137`; 138–146 → `seat_138_146`; 147–155 → `seat_147_155`; >155 → `seat_gt_155` (sample counts per bin {16,16,16,16,17}, margin of error ±1).
+  - `arr_bucket`: ≤5,658 → `arr_le_5658`; 5,659–13,260 → `arr_5659_13260`; 13,261–13,676 → `arr_13261_13676`; 13,677–30,552 → `arr_13677_30552`; >30,552 → `arr_gt_30552` (counts 16/16/16/16/17 per bin).
+  - Output the segment coverage: Startup 57, SMB 12, Mid-Market 11, Enterprise 1 (margin of error ±1).
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: State that 100% of tags are missing seat/arr information, necessitating the fallback above to ensure all paying companies fall into a defined segment × seat × arr combination. Specifically note that the 11 Mid-Market companies have no conversations in the current window, requiring explicit exclusion or zero-filling in subsequent analysis.
+#### Path 1.2.B (Purely Numeric Binning Method) [6 points]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: If ignoring tags, must also generate ≥5 bins using quantiles of `user_count` and ARR for all 81 paying companies. Clearly state thresholds and naming conventions.
+- Sub-criterion 1.2.B.2 [4 points | Accuracy]: Reproduce thresholds and sample counts equivalent to 1.2.A (error ≤ ±1 company). Output a distribution table and verify that each bin contains ≥10% of the total companies.
+- Sub-criterion 1.2.B.3 [1 point | Conclusion]: Discuss the pros and cons of purely numeric binning—good coverage but lacks business semantics. Recommend using it as a supplementary table or explanatory layer in conjunction with segment tags.
+
+### Criterion 1.3: Conversation-to-Company Mapping and Data Coverage
+#### Path 1.3.A (Exact Company Name Matching) [6 points]
+- Sub-criterion 1.3.A.1 [1 point | Completeness]: Explain that the mapping uses an exact match between `lower(trim(all_contact_company_names))` and `company_enhanced.company_name`, and explicitly uses `GROUP BY conversation_id` in the SQL/code to prevent duplicates from companies with the same name.
+- Sub-criterion 1.3.A.2 [4 points | Accuracy]: Report that out of 3,407 conversations in the window, **1,759** were successfully matched to any company (51.63%, margin of error ±0.5pp), of which **1,301** matched to paying companies (38.19%). Output 81 unique company names and representative examples of name duplication (e.g., “Bright Data” with 49 records), explaining how deduplication was handled.
+- Sub-criterion 1.3.A.3 [1 point | Conclusion]: Analyze the risks of name matching (brands in multiple regions, aliases) and propose using company ID as a primary key or secondary validation (e.g., seat/ARR thresholds) for future improvement.
+#### Path 1.3.B (Contact-Driven Mapping) [6 points]
+- Sub-criterion 1.3.B.1 [1 point | Completeness]: Describe the mapping process via `all_conversation_contacts → contact_enhanced.contact_id → all_contact_company_names`, retaining only companies with `monthly_spend > 0`.
+- Sub-criterion 1.3.B.2 [4 points | Accuracy]: Verify that the contact-driven path achieves 100% coverage (all 3,407 conversations map to a company name), with the count of conversations from paying companies remaining at 1,301, across 59 unique paying companies. Must provide a SQL/code snippet to prove `SUM(CASE WHEN monthly_spend > 0 THEN 1 END) = 1301`.
+- Sub-criterion 1.3.B.3 [1 point | Conclusion]: Compare the pros and cons of both mapping methods—the contact path is more robust for aliases but carries a risk of contacts spanning multiple companies. Recommend retaining a deduplication strategy (e.g., `COUNT(DISTINCT company_name_norm)`) for reuse.
+
+---
+## Requirement 2: Core Metric Construction and Definition (Up to 9 points)
+### Criterion 2.1: Message Response Delay and Bot First Response Share
+#### Path 2.1.A (Direct Field Method) [6 points]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: State the use of `time_to_first_response_minutes` and `conversation_initiated_type` to determine response delay and bot-first-response, with the share weighted by conversation volume.
+- Sub-criterion 2.1.A.2 [4 points | Accuracy]: Reproduce global statistics: average 26.04 minutes, P50=26, P1=8, P99=43 (each with a margin of error of ±0.2 minutes). Output at least two sliced anchor points:
+  - `Startup | seat_147_155 | arr_gt_30552`: average 27.26 minutes, bot first response share 0.330 (margin of error ±0.1 & ±0.01).
+  - `Startup | seat_125_137 | arr_gt_30552`: average 24.71 minutes, bot share 0.373.
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: Point out that the response time difference across slices is <3 minutes, and the overall bot share is 0.338, indicating that bots cover about one-third of first responses, which can serve as a baseline for subsequent panels.
+#### Path 2.1.B (Proxy Identification Method) [6 points]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: If `conversation_initiated_type` is missing, must explain the use of proxy logic, such as whether `first_admin_response_at` occurs before `first_contact_reply_at`, or the author of the first response, and cover handling of missing values.
+- Sub-criterion 2.1.B.2 [4 points | Accuracy]: In examples (≥2 slices), verify that the difference between the proxy and direct methods is ≤2pp. For instance, a 0.8pp difference for the `seat_138_146 | arr_le_5658` sample is considered acceptable.
+- Sub-criterion 2.1.B.3 [1 point | Conclusion]: Discuss how the proxy method might underestimate multi-turn bot interactions and its impact on short-term activation judgments. A risk note must be included in the report.
+
+### Criterion 2.2: Conversation to 72-Hour Feature Usage Conversion Rate
+#### Path 2.2.A (last_activity_ts Event Proxy) [6 points]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Define the "conversation closed" time as `conversation_created_at + time_to_first_close_minutes`. Determine, at the company level, if any contact `last_activity_at` exists within 72 hours. The denominator is the 59 paying companies with closed conversations.
+- Sub-criterion 2.2.A.2 [4 points | Accuracy]: Reproduce the total: 1 successful conversion out of 59 companies (conversion rate **1.69%**). Output key slices:
+  - `Startup | seat_147_155 | arr_13677_30552`: 2 companies, 1 conversion, 0.50 conversion rate;
+  - Other combinations have a conversion rate of 0 (must be listed in details or a table).
+  The margin of error for the above is ≤ ±0.01.
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]: Emphasize that 72-hour activation is extremely rare and should be treated as a high-priority event in strategic recommendations. Note the constraint this places on sample size (a single successful sample in one combination).
+#### Path 2.2.B (company_metrics Proxy) [6 points]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: If using alternative metrics like `conv_rate_messenger`, must provide the denominator (e.g., `total_conversations_closed`) and weighting method.
+- Sub-criterion 2.2.B.2 [4 points | Accuracy]: List at least two combination anchor points aligned with the 72-hour definition:
+  - `Startup | seat_147_155 | arr_gt_30552` messenger conversion rate **0.497**;
+  - `Startup | seat_147_155 | arr_13677_30552` messenger conversion rate **0.500**.
+  Margin of error is ±0.005. Explain that this metric reflects "channel conversion" rather than "post-conversation usage".
+- Sub-criterion 2.2.B.3 [1 point | Conclusion]: Compare the differences between the two definitions (72-hour = extremely sparse event; messenger conversion is stable around 0.49-0.51), clarifying their respective use cases (the former for high-priority tracking, the latter for routine monitoring).
+
+### Criterion 2.3: Weekly/Monthly Retention Rate Definition
+#### Path 2.3.A (company_metrics Indicators) [6 points]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Use `registration_retention_7d/30d` aggregated at the company level and explain the source of these coefficients.
+- Sub-criterion 2.3.A.2 [4 points | Accuracy]: Provide key anchor points (margin of error ±0.01):
+  - `Startup`: weekly retention 0.722, monthly retention 0.670;
+  - `SMB`: 0.710 / 0.695;
+  - `Enterprise`: 0.880 / 0.653 (sample size=1);
+  - `seat_147_155`: weekly 0.715, monthly 0.669; `seat_le_124`: weekly 0.733, monthly 0.651.
+- Sub-criterion 2.3.A.3 [1 point | Conclusion]: Point out that large seat counts (seat_147_155, seat_gt_155) have weekly retention around 0.71, but monthly retention is slightly higher than for small seat counts, suggesting a need to focus on the renewal funnel.
+#### Path 2.3.B (Event Set Overlap) [6 points]
+- Sub-criterion 2.3.B.1 [1 point | Completeness]: If building a custom retention model, must clarify the definition of weekly/monthly activity (≥1 `last_activity_at`), period truncation, and deduplication logic.
+- Sub-criterion 2.3.B.2 [4 points | Accuracy]: Provide a calculation example or pseudo-code, ensuring ISO week/month indexing aligns with the window.
+- Sub-criterion 2.3.B.3 [1 point | Conclusion]: Compare the differences between the event-based method and the pre-calculated metric, explaining that the event method allows for further breakdown to the feature level but requires caution regarding mapping errors between contact behavior and company-level metrics.
+
+---
+## Requirement 3: Structured Panel Output and Difference Identification (Up to 9 points)
+### Criterion 3.1: Comprehensive Segment × Seat × ARR Panel
+#### Path 3.1.A (Three-Dimensional Panel Export) [6 points]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: The panel must include the fields `segment / seat_bucket / arr_bucket / companies_total / companies_with_closed_conv / conv_cnt / avg_resp_min / p50_resp_min / avg_stage_duration / bot_first_resp_share / conv_to_feature_rate_closed_base / weekly_retention_rate / monthly_retention_rate / messenger_conv_rate`.
+- Sub-criterion 3.1.A.2 [4 points | Accuracy]: Key combinations must align (margin of error ±5% or ±0.02):
+  - `Startup | seat_147_155 | arr_gt_30552`: conv_cnt 211, bot share 0.330, 72h conversion 0, weekly retention 0.722, monthly retention 0.665, messenger conversion 0.497;
+  - `Startup | seat_147_155 | arr_13677_30552`: conv_cnt 51, bot share 0.296, 72h conversion 0.50, weekly retention 0.726, monthly retention 0.679;
+  - `Startup | seat_138_146 | arr_13261_13676`: conv_cnt 119, bot share 0.279, weekly retention 0.710, monthly retention 0.673.
+- Sub-criterion 3.1.A.3 [1 point | Conclusion]: Summarize structural differences: the high ARR × medium seat combination (arr_gt_30552 × seat_147_155) has the highest volume but 0 72h conversion; the only successful sample appears in `arr_13677_30552 × seat_147_155`, suggesting that priority actions should be designed around this group.
+#### Path 3.1.B (Two-Dimensional Panel) [6 points]
+- Sub-criterion 3.1.B.1 [1 point | Completeness]: If only a Segment×Seat or Segment×ARR panel is exported, it must list the same metrics as the 3D panel and explain in an appendix how the missing dimension will be supplemented.
+- Sub-criterion 3.1.B.2 [4 points | Accuracy]: Validate at least the overall weekly retention of 0.715 and monthly retention of 0.669 for `seat_147_155`, and weekly retention of 0.731 and monthly retention of 0.682 for `arr_gt_30552` (margin of error ±0.01).
+- Sub-criterion 3.1.B.3 [1 point | Conclusion]: Explain that a 2D panel is suitable for a quick overview, but in-depth strategy requires returning to the 3D details to locate bottlenecks.
+
+### Criterion 3.2: Supplementary Structural Variables
+#### Path 3.2.A (Routing and Initiation Structure) [6 points]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Calculate the distribution of `conversation_assignee_type` and `conversation_initiated_type` at the Segment×Seat (or Segment×ARR) level.
+- Sub-criterion 3.2.A.2 [4 points | Accuracy]: Reproduce key anchor points (margin of error ±0.02):
+  - Startup: assigned to admin 46.7%, unassigned 53.3%; bot first response 33.9%;
+  - SMB: admin 52.2%, bot first response 26.1%;
+  - `seat_147_155`: bot first response 30.1%, human first response 69.9%.
+- Sub-criterion 3.2.A.3 [1 point | Conclusion]: Point out that the high-value combination (seat_147_155 & arr_13677_30552) achieved the only successful 72h conversion with a bot share of 29.6%, providing a direction for strategic pilots.
+#### Path 3.2.B (Subject/Text Mapping) [6 points]
+- Sub-criterion 3.2.B.1 [1 point | Completeness]: Extract `conversation_subject`, create an aggregated metrics table for at least the Top 5 subjects, and explain the classification dictionary or keyword rules.
+- Sub-criterion 3.2.B.2 [4 points | Accuracy]: Output the conversation count and metrics for each subject:
+  - `Trial activation assistance`: 144 conversations, bot share 0.292, 72h conversion 0;
+  - `Integration help`: 141 conversations, bot share 0.397, conversion 0;
+  - `Bug report follow-up`: 134 conversations, avg response 27.34 minutes (margin of error ±0.3).
+- Sub-criterion 3.2.B.3 [1 point | Conclusion]: Emphasize that high-frequency subjects did not trigger 72h activation. The single successful company case needs to be analyzed in conjunction with its corresponding topic.
+
+---
+## Requirement 4: Quantifying Variable Relationships, Operational Recommendations, and Boundary Conditions (Up to 9 points)
+### Criterion 4.1: Correlation between Touchpoint and Outcome Variables
+#### Path 4.1.A (Pearson Correlation) [6 points]
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: Based on the 59 paying companies, calculate the correlation of `(bot_first_share vs 72h conversion)`, `(avg_resp vs 72h conversion)`, and `(bot_first_share vs retention)`.
+- Sub-criterion 4.1.A.2 [4 points | Accuracy]: Reproduce correlation coefficients (margin of error ±0.05):
+  - bot share vs 72h conversion: **-0.178**;
+  - response delay vs 72h conversion: **+0.110**;
+  - bot share vs weekly retention: **+0.208**;
+  - bot share vs monthly retention: **-0.207**.
+- Sub-criterion 4.1.A.3 [1 point | Conclusion]: Explain that "bot first touch has a negative correlation with short-term activation, but a slightly positive correlation with weekly retention and a slightly negative one with monthly retention," suggesting the need for stage-specific adjustments to the bot strategy.
+#### Path 4.1.B (High/Low Group Comparison) [6 points]
+- Sub-criterion 4.1.B.1 [1 point | Completeness]: Divide companies into three tiers based on bot share and response delay respectively (using 1/3 and 2/3 quantiles).
+- Sub-criterion 4.1.B.2 [4 points | Accuracy]: Present the comparison results:
+  - Low bot group (≤0.294, 22 companies) has a conversion rate of **4.55%**; high bot group (≥0.400, 21 companies) has 0%;
+  - Slow response group (≥26.49 minutes, 20 companies) has a conversion rate of **5%**; fast response group (≤25.24 minutes) has 0%;
+  - Corresponding weekly retention difference is 0.707 → 0.726 (margin of error ±0.01).
+- Sub-criterion 4.1.B.3 [1 point | Conclusion]: Point out that a "high bot + fast response" combination still did not lead to activation, indicating a need for differentiation in human intervention and follow-up playbooks, especially for high-ARR customers.
+
+### Criterion 4.2: Strategic Recommendations and Boundary Conditions
+#### Path 4.2.A (Tiered, Differentiated Strategy) [6 points]
+- Sub-criterion 4.2.A.1 [1 point | Completeness]: Output strategies and target metrics for three key customer segments.
+- Sub-criterion 4.2.A.2 [4 points | Accuracy]: Strategies must be consistent with the panel data:
+  1. `Startup | seat_147_155 | arr_gt_30552`: Currently 72h=0. Recommend lowering bot share to ≤0.28 and setting a conversion improvement target of ≥3%;
+  2. `Startup | seat_147_155 | arr_13677_30552`: Maintain bot share at ~0.30, focus on replicating the successful case, and set a goal to maintain the 0.50 conversion rate and expand it to ≥4 companies;
+  3. `SMB | seat_138_146 | arr_gt_30552`: Weekly/monthly retention is 0.875/0.825. Recommend focusing on renewal and advanced feature education.
+- Sub-criterion 4.2.A.3 [1 point | Conclusion]: List pilot KPIs (72h conversion, weekly/monthly retention, CSAT) and cadence (weekly monitoring, monthly review).
+#### Path 4.2.B (Boundary Conditions and Data Improvement) [6 points]
+- Sub-criterion 4.2.B.1 [1 point | Completeness]: Disclose key definitional limitations: bot first touch is based on `conversation_initiated_type`; 72h activation relies on contact `last_activity_at` (some timestamps predate the window); conversation-company mapping requires `GROUP BY` for deduplication.
+- Sub-criterion 4.2.B.2 [4 points | Accuracy]: Propose improvements: add responder/assignee ID, a core feature events table, company primary keys, and a message-level retention model. Quantify their potential benefit (e.g., increasing the 72h sample from 1/59 to an event-level N>50).
+- Sub-criterion 4.2.B.3 [1 point | Conclusion]: Explain that these improvements would enable a closed loop of rolling reports, experimentation, and causal analysis, enhancing the reusability of the strategy.

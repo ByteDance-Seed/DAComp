@@ -1,0 +1,141 @@
+==============================
+# [Total Score | 30 Points] Scoring Rubric
+---
+## Requirement 1: Identify and quantify "superficially healthy but latently high-risk" projects (Maximum 12 points for this requirement)
+### Criterion 1.1: Data Mapping and Project-Level Metric Definition (Maximum 4 points)
+#### Path 1.1.A (Multi-table Mapping + Proxy Derivation)
+- Sub-criterion 1.1.A.1 [1 point | Completeness] Explain the role of the data: `jira__project_risk_assessment` is the main table with 200 projects; `jira__team_performance_dashboard` only contains `project_id='all_projects'` and cannot be used for direct joins; `jira__stakeholder_engagement_insights` lacks a project key and requires a proxy mapping. All three tables must be mentioned.
+- Sub-criterion 1.1.A.2 [2 points | Accuracy] Provide and consistently use a unified proxy: `team_perf_proxy = 0.4*team_stability_percentage + 0.3*(sprint_adoption_rate*100) + 0.3*velocity_score` (where `velocity_score = 100` if `resolution_velocity_change_percent ≥ 0`, otherwise `max(0, 100 + resolution_velocity_change_percent)`). `stakeholder_factor = (total_external_links / 22.0) × 0.5626`. Validate the metrics: for the full dataset, `team_perf_proxy` range is 57.55–95.48, mean is 84.21; `stakeholder_factor` range is 0.128–0.563, mean is 0.343, with a tolerance of ±0.05. If a custom formula is used, reproducible values consistent with the answer must be provided.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion] Provide a conclusion on data quality, such as "The sample has 200 rows, project keys have duplicates, team/stakeholder data requires proxy mapping, and health scores appear optimistic," and state that subsequent statistics will be based on these proxy metrics.
+
+#### Path 1.1.B (Derivation using only the project table)
+- Sub-criterion 1.1.B.1 [1 point | Completeness] State that derivations rely solely on the project table and list at least three dimensions: lifecycle deviation, intervention urgency, and cross-functional complexity.
+- Sub-criterion 1.1.B.2 [3 points | Accuracy] Provide and validate reproducible formulas:
+  - `lifecycle_deviation_ratio = max(0, 1 - value_delivery_percentage/100)`, full dataset mean 0.31, P75≈0.60;
+  - `intervention_urgency_index = 0.4*(net_issue_growth_30d>0) + 0.3*(high_delay_cost_issues>0) + 0.3*(resolution_velocity_change_percent<0)`, values can only be {0,0.4,0.7,1.0}, full dataset mean 0.51, P75≈1.00;
+  - `crossfunc_complexity = 0.4*(unique_issue_types/13) + 0.4*(unique_components/8) + 0.2*(total_external_links/22)`, full dataset mean 0.69, P75≈1.00. Check for numerical error ≤ ±0.02.
+- Sub-criterion 1.1.B.3 [1 point | Conclusion] Explain the applicability and limitations of single-table derivation, e.g., "It allows for a quick scan of lifecycle/collaboration deviations but cannot characterize the quality of the stakeholder network."
+
+#### Path 1.1.C (Data Quality Statement)
+- Sub-criterion 1.1.C.1 [1 point | Completeness] List key defects: duplicate project keys, team table only contains global summaries, stakeholder table lacks project keys, and state the respective alternative metrics.
+- Sub-criterion 1.1.C.2 [2 points | Accuracy] Clearly define unified thresholds for subsequent use: high health criteria are `overall_health_score>75` AND `team_perf_proxy>80`; high stakeholder pressure is `stakeholder_factor≥0.40`; the high-risk threshold is `composite_risk_score ≥ 43.81` (P75 of the full dataset, tolerance ±0.1). Must state that all statistics are performed according to these metrics.
+- Sub-criterion 1.1.C.3 [1 point | Conclusion] Propose a conservative strategy, such as "Perform sensitivity analysis on the high-risk threshold using P70/P80 (see 2.2.C) and conduct row-level analysis for duplicate projects," which should be consistent with the previous statements.
+
+### Criterion 1.2: Identification and Scale Statistics of "Contradictory Projects" (Maximum 6 points)
+#### Path 1.2.A (Compound Thresholds + Organizational Signals)
+- Sub-criterion 1.2.A.1 [1 point | Completeness] Clearly define the contradiction criteria: satisfies `overall_health_score>75`, `team_perf_proxy>80`, `composite_risk_score≥43.81`, and also hits `urgent_flag=1` (intervention urgency ≥ 0.7) OR `contra_pri_flag=1` (strategic priority is Critical/High).
+- Sub-criterion 1.2.A.2 [4 points | Accuracy] Provide statistics: 7 contradictory projects, accounting for 3.5% of the total dataset and 24.14% of the healthy subset; their `composite_risk_score` has a mean of 47.47 and a range of 44.01–55.02. Must also list the risk driver distribution (Resource Constraints=5, Schedule Pressure=1, Team Dynamics=1), recommended intervention (all are 'Immediate Executive Review Required'), and strategic priority (Critical=3, High=4). A tolerance of ±1 item or ±0.2 points is allowed; exceeding this results in no score.
+- Sub-criterion 1.2.A.3 [1 point | Conclusion] Summarize the scale characteristics, e.g., "Nearly a quarter of high-health projects fall into the high-risk category, with a high concentration on resource and cross-team bottlenecks."
+
+#### Path 1.2.B (Rule-Based Flagging Method)
+- Sub-criterion 1.2.B.1 [1 point | Completeness] List the rules: health conditions are the same as above; for team conditions, state that `schedule_risk_score≥35` and `resource_risk_score≥40` indicate assignment risk; organizational flags are `lifecycle_deviation_ratio>0.5` OR `intervention_urgency_index≥0.7` OR `crossfunc_complexity>0.75`.
+- Sub-criterion 1.2.B.2 [4 points | Accuracy] Validate: 29 high-health projects, of which 15 have schedule≥35, 9 have resource≥40, and 5 have both high assignment risks; 17 projects hit an organizational flag; the combined rules identify 20 contradictory projects (68.97% of healthy projects). The output must be consistent with this (tolerance ±1 project).
+- Sub-criterion 1.2.B.3 [1 point | Conclusion] State that the rule-based method is suitable for quick screening but tends to overestimate (20 projects vs. 7 from the composite model).
+
+#### Path 1.2.C (Percentile Threshold + cume_dist)
+- Sub-criterion 1.2.C.1 [1 point | Completeness] Explain that `composite_risk_score` uses `cume_dist()` to get P75=43.81, and this is combined with organizational/urgency flags.
+- Sub-criterion 1.2.C.2 [4 points | Accuracy] Report the driver/intervention distribution for contradictory projects: Resource=5, Schedule=1, Team=1; Intervention level Immediate Executive=7; Strategic priority Critical Priority=3, High Priority=4. Must also provide the mean `stakeholder_factor` of 0.369 and mean `crossfunc_complexity` of 0.72. Tolerance is ±0.01.
+- Sub-criterion 1.2.C.3 [1 point | Conclusion] Point out that the risks are concentrated in the mismatch between resource investment and cross-functional collaboration.
+
+### Criterion 1.3: Structural Distribution and Sample Evidence (Maximum 2 points)
+#### Path 1.3.A (Group Mean Comparison)
+- Sub-criterion 1.3.A.1 [1 point | Completeness] Provide the mean values for 9 metrics comparing contradictory vs. non-contradictory groups: value_delivery_percentage 52.4 vs 69.9; team_stability_percentage 75.8 vs 80.0; schedule_risk_score 38.4 vs 36.2; resource_risk_score 46.1 vs 32.4; net_issue_growth_30d 9.1 vs 4.4; resolution_velocity_change_percent 7.5 vs 12.5; unique_components 4.7 vs 5.0; unique_issue_types 11.4 vs 10.5; total_external_links 14.4 vs 13.4; high_delay_cost_issues 2.9 vs 3.6. (Tolerance ±0.3)
+- Sub-criterion 1.3.A.2 [1 point | Accuracy] Explain the meaning of the differences, e.g., "The contradictory group lags in value delivery by 17.5pp and has 13.7 points higher resource pressure."
+
+#### Path 1.3.B (Typical Examples)
+- Sub-criterion 1.3.B.1 [1 point | Completeness] List ≥5 contradictory projects (must use `project_id`), for example:
+  - PRO18313235436(DAA): health79.5, team83.1, composite55.02, value65.5, stability76.4, issue_growth1, velocity-15.8, schedule33, resource52, crossfunc0.85, external_links22;
+  - PRO12023225217(POD): 91.5, 81.3, 50.82, 46.0, 72.8, 9.0, -4.1, 53, 36, 0.75, 9;
+  - PRO28057297018(UMG): 75.8, 86.8, 46.37, 44.5, 71.6, 21.0, 41.2, 35, 56, 0.54, 12;
+  - PRO29402630254(UMA): 76.4, 87.8, 46.35, 50.5, 86.6, 12.0, -15.8, 25, 39, 0.90, 16;
+  - PRO17787949649(SEA): 87.2, 82.9, 45.10, 62.5, 62.5, -1.0, 41.2, 55, 64, 0.67, 20.
+- Sub-criterion 1.3.B.2 [1 point | Accuracy] Examples must be consistent with the formulas, with a tolerance of ±0.2 points (±0.2pp for percentage metrics).
+
+---
+## Requirement 2: Comprehensive Risk Assessment Model Construction and Validation (Maximum 12 points for this requirement)
+### Criterion 2.1: Model Feature Engineering and Normalization Design (Maximum 5 points)
+#### Path 2.1.A (Weighted Normalization Model)
+- Sub-criterion 2.1.A.1 [1 point | Completeness] List the model dimensions and their directionality: complexity, schedule, resources, issue growth, velocity decline, dependency, value gap, team instability; and mention three risk flags (intervention urgency, team dynamics turmoil, strategic conflict).
+- Sub-criterion 2.1.A.2 [4 points | Accuracy] Provide and validate the formula:
+  - Normalization: `complexity_norm = complexity_risk_score/100`; `schedule_norm = schedule_risk_score/100`; `resource_norm = resource_risk_score/100`; `issue_growth_norm = max(0, net_issue_growth_30d)/21`; `velocity_decline_norm = max(0, -resolution_velocity_change_percent)/22.5`; `dependency_norm = min(1, total_external_links/22)`; `value_gap_norm = lifecycle_deviation_ratio`; `team_instability_norm = clip((100-team_stability_percentage)/48,0,1)`.
+  - Composite score: `composite = 100*(0.20*complexity_norm + 0.15*schedule_norm + 0.15*resource_norm + 0.10*issue_growth_norm + 0.10*velocity_decline_norm + 0.10*dependency_norm + 0.10*value_gap_norm + 0.10*team_instability_norm) + 10*(0.5*urgent_flag + 0.3*teamdyn_flag + 0.2*contra_pri_flag)`.
+  - PD Mapping Reference: `PD = 1 / (1 + exp(-( -3 + 0.08*(composite-40) )))`, e.g., `composite=30→PD=0.0219`, `43.81→0.0633`, `60→0.1978` (tolerance ±0.002).
+  - Validation: Full dataset min 18.64, max 70.76, mean 37.87; contradictory samples DAA=55.02, POD=50.82. Tolerance ±0.1.
+
+#### Path 2.1.B (Positive-Negative Hedging Model)
+- Sub-criterion 2.1.B.1 [1 point | Completeness] Define `positive_health = 0.5*(overall_health_score/100) + 0.3*(team_perf_proxy/100) + 0.2*(success_probability/100)`; `risk_load = composite/100 + stakeholder_factor`.
+- Sub-criterion 2.1.B.2 [4 points | Accuracy] Calculate `adjusted_true_health = 100*(positive_health - risk_load)` and list the gap: contradictory group mean -16.9, non-contradictory -13.8; examples PRO18313235436=-46.5, PRO12023225217=-3.6. Tolerance ±0.5.
+
+#### Path 2.1.C (Tiered Scorecard Model)
+- Sub-criterion 2.1.C.1 [1 point | Completeness] Set tiers: True Healthy ≥20; Watchlist [0,20); At Risk [-20,0); Critical < -20.
+- Sub-criterion 2.1.C.2 [4 points | Accuracy] Provide tiered results: True Healthy=6, Watchlist=44, At Risk=74, Critical=76 (tolerance ±1). Must state that all contradictory samples fall into the Critical tier.
+
+### Criterion 2.2: Model Output and Threshold Calibration (Maximum 4 points)
+#### Path 2.2.A (P75 Threshold + Contradiction Detection)
+- Sub-criterion 2.2.A.1 [1 point | Completeness] Explain that P75 is obtained as 43.81 via `cume_dist()` and is combined with `urgent_flag`/`contra_pri_flag`.
+- Sub-criterion 2.2.A.2 [2 points | Accuracy] List detection results: 7 contradictory items, with an average risk of 47.47 (range 44.01–55.02), accounting for 24.14% of high-health projects. Tolerance ±0.2.
+- Sub-criterion 2.2.A.3 [1 point | Conclusion] Describe the model's corrective power, e.g., 'The health score misjudged 29 projects, but the model identified 7 of them as high-risk, prioritizing focus on resource bottlenecks.'
+
+#### Path 2.2.B (Health vs. True Risk Four-Quadrant Matrix)
+- Sub-criterion 2.2.B.1 [1 point | Completeness] Construct the quadrant: x-axis `overall_health_score>75`, y-axis `composite≥43.81`.
+- Sub-criterion 2.2.B.2 [2 points | Accuracy] Provide quadrant sizes: High&HighRisk=14, High&LowRisk=28, NotHigh&HighRisk=37, NotHigh&LowRisk=121. Tolerance ±1.
+- Sub-criterion 2.2.B.3 [1 point | Conclusion] Point out the mismatch: for example, 'Of the 29 high-health projects, only 13 are truly healthy, representing a 46.4% misclassification rate'.
+
+#### Path 2.2.C (Misclassification Matrix + Sensitivity)
+- Sub-criterion 2.2.C.1 [1 point | Completeness] Provide a misclassification matrix: `HighHealth∧TrueHealthy=13`, `HighHealth∧TrueRisk=29`, `NotHigh∧TrueHealthy=37`, `NotHigh∧TrueRisk=121`.
+- Sub-criterion 2.2.C.2 [2 points | Accuracy] Perform threshold sensitivity analysis:
+  - P70=42.03 → 10 contradictory projects, mean 46.09;
+  - P75=43.81 → 7 contradictory projects, mean 47.47;
+  - P80=45.24 → 4 contradictory projects, mean 49.64.
+  Must also state the percentage of high-health projects captured: 34.48%, 24.14%, 13.79%.
+- Sub-criterion 2.2.C.3 [1 point | Conclusion] Recommend maintaining P75, using P70 for expanded review and P80 for a red-line list.
+
+### Criterion 2.3: Model Validation and Interpretability (Maximum 3 points)
+#### Path 2.3.A (Covariance Validation)
+- Sub-criterion 2.3.A.1 [1 point | Completeness] Provide covariance for the full dataset and the healthy subset:
+  - Full dataset: `cov(comp,value)=-60.27`, `cov(comp,velocity)=-57.81`, `cov(comp,resource)=41.68`, `cov(comp,schedule)=43.67`, `cov(comp,issue_growth)=44.21`;
+  - Healthy subset: -64.49, -95.56, 86.25, 52.69, 38.50.
+- Sub-criterion 2.3.A.2 [1 point | Accuracy] Numerical tolerance ±1.
+- Sub-criterion 2.3.A.3 [1 point | Conclusion] Explain that the risk score is negatively correlated with value/velocity and positively correlated with resource/schedule/issue growth.
+
+#### Path 2.3.B (Group Means + Model Interpretation)
+- Sub-criterion 2.3.B.1 [1 point | Completeness] Compare `positive_health` with `risk_load`: contradictory group 67.5 vs 84.4, non-contradictory 58.0 vs 71.8.
+- Sub-criterion 2.3.B.2 [1 point | Accuracy] Point out that the gap leads to a larger negative `adjusted_true_health` (-16.9 vs -13.8).
+- Sub-criterion 2.3.B.3 [1 point | Conclusion] Summarize the risk combination: "A combination of insufficient value + resource pressure + high stakeholder pressure creates the false prosperity."
+
+---
+## Requirement 3: Root Cause Analysis and Governance Recommendations (Maximum 6 points)
+### Criterion 3.1: Staffing Efficiency (Maximum 2 points)
+#### Path 3.1.A (Assignment Risk)
+- Sub-criterion 3.1.A.1 [1 point | Completeness] Define `assignment_risk_flag = (schedule_risk_score≥55 OR resource_risk_score≥55)`.
+- Sub-criterion 3.1.A.2 [1 point | Accuracy] Statistics: contradictory group 2/7 (28.6%), control group 53/193 (27.5%). Tolerance ±1 item.
+
+#### Path 3.1.B (Risk in High-Performing Population)
+- Sub-criterion 3.1.B.1 [1 point | Completeness] Consider `team_perf_proxy≥85` as high-performing and segment by `stakeholder_factor`: High≥0.40, Medium[0.32,0.40), Low<0.32.
+- Sub-criterion 3.1.B.2 [1 point | Accuracy] Show the mean value delivery: High=68.0, Medium=72.6, Low=71.9 (tolerance ±0.3).
+- Sub-criterion 3.1.B.3 [1 point | Conclusion] Point out that the high-performance × high-risk combination has the worst delivery performance, requiring prioritized intervention in their stakeholder management.
+
+### Criterion 3.2: Quality of Communication and Collaboration Network (Maximum 2 points)
+#### Path 3.2.A (Risk-Tiered Profiling)
+- Sub-criterion 3.2.A.1 [1 point | Completeness] State the proportion of high-risk stakeholders: `stakeholder_factor≥0.40` accounts for 38.50% of the total dataset.
+- Sub-criterion 3.2.A.2 [1 point | Accuracy] Compare network metrics: contradictory group `stakeholder_factor` 0.369, `crossfunc_complexity` 0.72, external links 14.4; control group 0.343, 0.69, 13.4 (tolerance ±0.02).
+- Sub-criterion 3.2.A.3 [1 point | Conclusion] Summarize as a network structure of "high quantity, low quality."
+
+#### Path 3.2.B (Engagement Risk in the High-Performing Population)
+- Sub-criterion 3.2.B.1 [1 point | Completeness] Use the same segmentation as 3.1.B to assess differences in engagement quality.
+- Sub-criterion 3.2.B.2 [1 point | Accuracy] Point out that the proportion of `intervention_urgency_index≥0.7` is 62.5% in the high-risk tier, 50.0% in the medium-risk tier, and 45.8% in the low-risk tier (tolerance ±2pp).
+- Sub-criterion 3.2.B.3 [1 point | Conclusion] Emphasize the need to improve collaboration depth and response times for the high-risk tier.
+
+### Criterion 3.3: Process Deviation and Cross-Functional Mismatch (Maximum 1 point)
+- Sub-criterion 3.3.A.1 [1 point | Completeness] Define metrics of concern: `lifecycle_deviation_ratio>0.5`, `crossfunc_complexity>0.75`, `total_external_links≥18`.
+- Sub-criterion 3.3.A.2 [1 point | Accuracy] Hits in the contradictory group: lifecycle deviation 3, cross-functional mismatch 4, high external links 2; control group has 32, 64, and 53 respectively (tolerance ±1).
+- Sub-criterion 3.3.A.3 [1 point | Conclusion] Point out that the resonance of these three factors is the main driver of the "false prosperity."
+
+### Criterion 3.4: Governance Strategy and Execution Loop (Maximum 1 point)
+- Sub-criterion 3.4.A.1 [1 point | Conclusion] Provide at least 4 governance measures with quantitative targets, for example:
+  1. Reallocate resources to contradictory projects within two weeks to reduce `resource_risk_score` to ≤40;
+  2. Control the response SLA for high-risk stakeholders to within 24h over 4 weeks, and monitor for `stakeholder_factor<0.35`;
+  3. Increase the target teams' `value_delivery_percentage` to ≥65% within the next two iterations;
+  4. For projects with `crossfunc_complexity>0.75`, implement a collaboration board and WIP limits to bring the metric down to ≤0.7 within one release cycle;
+  5. For projects with `assignment_risk_flag=1`, conduct a role-swapping review and reduce `schedule_risk_score` to ≤35 within two sprints.
+  Recommendations must align with the metric definitions.

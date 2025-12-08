@@ -1,0 +1,122 @@
+# [Total Score | 38 Points] Identify and Explain Upgrade/Downgrade Triggers, Construct Event Timelines, Quantify Experience Differences, and Provide Operational Recommendations
+---
+## Requirement 1: Event Timeline Construction and Company-level Alignment (Up to 10 points)
+### Standard 1.1: Upgrade/Downgrade Event Identification (Up to 4 points)
+#### Path 1.1.A [4 points | Combined Tag/Subject Method (Recommended)]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: State that the event anchor is the conversation creation time. The event type is determined by whether tags or the subject contain "upgrade" or "downgrade" (case-insensitive). If a record matches both, it should be labeled as "mixed" and excluded from subsequent window analysis.
+- Sub-standard 1.1.A.2 [2 points | Accuracy]: Recalculate the event volumes: upgrades = 1030 records, downgrades = 1095 records, mixed = 168 records. Tolerance is ≤±1. The number of covered companies must be 21 for upgrades and 23 for downgrades (out of 31 total companies). This must be proven with SQL/code output.
+- Sub-standard 1.1.A.3 [1 point | Conclusion]: Report the coverage rates (upgrades ≈67.7%, downgrades ≈74.2%) and the time span from 2019-06-12 to 2024-08-23. State that excluding mixed samples reduces the number of usable events by approximately 7.5%, and this limitation must be disclosed in the sample description.
+#### Path 1.1.B [4 points | Conservative Identification Using Subject Only]
+- Sub-standard 1.1.B.1 [1 point | Completeness]: Declare that identification is based solely on `conversation_subject` keywords, uses mutually exclusive criteria, and the event time is the conversation creation time.
+- Sub-standard 1.1.B.2 [2 points | Accuracy]: The conservative identification should yield upgrades = 333 records and downgrades = 361 records, covering 20 companies for upgrade-related conversations and 22 for downgrade-related ones. A deviation >±5% is considered a failure.
+- Sub-standard 1.1.B.3 [1 point | Conclusion]: Explain the difference compared to Path 1.1.A (recall loss for upgrades ≈67.7%) and define the limitations of this approach as a fallback scenario when tags are missing.
+#### Path 1.1.C [4 points | Conversation Spike Proxy Method (Soft Constraint Supplement)]
+- Sub-standard 1.1.C.1 [1 point | Completeness]: Describe the logic for identifying a spike: daily company-level conversation volume ≥ (14-day rolling average + 2σ) AND ≥ 5 conversations. The first spike day is the anchor. Explain the rolling window and multi-spike handling logic.
+- Sub-standard 1.1.C.2 [2 points | Accuracy]: Spike detection should yield 60 candidate days. The match rate between classifiable proxies (upgrade=20, downgrade=21) and tag-based events on the same day must be ≥85% (actual test shows 86.6%). Show comparison screenshots for ≥5 companies.
+- Sub-standard 1.1.C.3 [1 point | Conclusion]: Emphasize this method's value as an alternative when tags are absent, but also point out that 19 "undetermined" spikes cannot be classified and could be misidentified as renewal negotiations. Stress the need for cross-validation with actual tags.
+
+### Standard 1.2: Observation Window Construction and Sample Coverage (Up to 4 points)
+#### Path 1.2.A [4 points | Three-Window Method: baseline/pre/post]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Clearly define the windows in days: baseline=[-60, -31], pre=[-30, 0), post=(0, +30]. The event conversation itself must be excluded from these windows.
+- Sub-standard 1.2.A.2 [2 points | Accuracy]: The window coverage must align: downgrade baseline=649, pre=1091, post=1069; upgrade baseline=623, pre=1028, post=1012. The number of paired samples should be: downgrade=1068, upgrade=1011. Tolerance is ≤±1.
+- Sub-standard 1.2.A.3 [1 point | Conclusion]: Explain the business rationale for using the baseline as a steady-state control. Disclose the proportion of events missing a baseline window (upgrades ≈39.5%, downgrades ≈40.7%) and note this as a sample constraint for the analysis.
+
+### Standard 1.3: Event-Window Detail Table Construction (Up to 2 points)
+#### Path 1.3.A [2 points | Join with Conversation Metrics Table]
+- Sub-standard 1.3.A.1 [1 point | Completeness]: Join the conversation enhanced and metrics tables using `conversation_id`. Retain at least the following fields: `conversation_rating`, `count_total_parts`, `time_to_first_response_minutes`, `time_to_first_close_minutes`, `is_sla_breached`, etc.
+- Sub-standard 1.3.A.2 [1 point | Accuracy]: Verify that the missing rate for the above fields is 0% in any window. List the window-level fields (e.g., conv_count, tag proportions, quality metrics) that will support subsequent analysis.
+---
+## Requirement 2: Metric System Construction and Window Feature Quantification (Up to 10 points)
+### Standard 2.1: Feature Usage Intensity Metrics (Up to 3 points)
+#### Path 2.1.A [3 points | Ratio Method]
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Define a group of usage-related tags: `Usage Spike`, `Integration`, `API`, `Training`, `Enablement`, `Implementation`. For each window, calculate the count and proportion of conversations with these tags.
+- Sub-standard 2.1.A.2 [1 point | Accuracy]: The average values must match: upgrade pre usage_rate=0.1414, post=0.1359; downgrade pre=0.1404, post=0.1352; upgrade pre api_rate=0.1215, post=0.1349; downgrade pre=0.1260, post=0.1369. Tolerance ≤±0.003.
+- Sub-standard 2.1.A.3 [1 point | Conclusion]: Point out that for upgrades, the API tag proportion increases by +1.35pp, while for downgrades, the Integration tag proportion drops by -1.15pp. Explain the business meaning of these changes.
+#### Path 2.1.B [3 points | Intensity × Duration Method]
+- Sub-standard 2.1.B.1 [1 point | Completeness]: Output the `conv_count` and `avg count_total_parts` for each window, as well as the average daily intensity (`conv_count`/30).
+- Sub-standard 2.1.B.2 [1 point | Accuracy]: Upgrade pre conv=88.19 (avg 2.94/day), post=88.16 (avg 2.94/day), avg_parts=16.50→16.46; Downgrade pre conv=91.12 (avg 3.04/day), post=89.65 (avg 2.99/day), avg_parts=16.49→16.51. Tolerance ≤±0.1.
+- Sub-standard 2.1.B.3 [1 point | Conclusion]: Note that for upgrades, the volume is stable and depth is maintained around 16.5 parts, while for downgrades, the slight drop in volume (-1.47) indicates cooling demand.
+#### Path 2.1.C [3 points | Composite Score Method]
+- Sub-standard 2.1.C.1 [1 point | Completeness]: Construct a composite score, e.g., `0.5*usage_rate + 0.3*api_rate - 0.2*integration_rate`, and explain the basis for the weights.
+- Sub-standard 2.1.C.2 [1 point | Accuracy]: The pre→post change in the score must be directionally consistent with the findings in 2.1.A/B. Explain any inconsistencies.
+- Sub-standard 2.1.C.3 [1 point | Conclusion]: Explain how the score can be used for customer ranking or setting alert thresholds.
+
+### Standard 2.2: Support Incidents and Operational Tags (Up to 3 points)
+#### Path 2.2.A [3 points | Proportion Method]
+- Sub-standard 2.2.A.1 [1 point | Completeness]: Aggregate the proportions of tags like `Escalation`+`Executive Attention`, `Billing`, `Bug`, `Outage`, `Security`, `Data Quality`, `Adoption Risk`.
+- Sub-standard 2.2.A.2 [1 point | Accuracy]: Upgrade pre/post escalation=0.2703/0.2876, billing=0.1441/0.1435, bug=0.1453/0.1392; Downgrade pre/post escalation=0.2688/0.2928, billing=0.1464/0.1445, bug=0.1448/0.1316. Tolerance ≤±0.003.
+- Sub-standard 2.2.A.3 [1 point | Conclusion]: Point out that both upgrades and downgrades are accompanied by a rise in escalations, but the reduction in `bug`/`outage` tags is more significant for downgrades.
+#### Path 2.2.B [3 points | Difference Method]
+- Sub-standard 2.2.B.1 [1 point | Completeness]: For each event, calculate the post-pre difference for each metric and then find the average difference.
+- Sub-standard 2.2.B.2 [1 point | Accuracy]: Upgrade Δescalation=+1.79pp, Δbug=-0.64pp, Δintegration=-1.81pp; Downgrade Δescalation=+2.41pp, Δbug=-1.36pp, Δintegration=-1.15pp, Δapi=+1.11pp. Tolerance ≤±0.3pp.
+- Sub-standard 2.2.B.3 [1 point | Conclusion]: Explain that downgrades are characterized by "quality convergence + adoption decline," while upgrades are driven by "high-level collaboration (API)."
+#### Path 2.2.C [3 points | Directional Consistency Analysis]
+- Sub-standard 2.2.C.1 [1 point | Completeness]: Calculate the proportion of events where a metric increased/decreased, e.g., `share_escalation_up`.
+- Sub-standard 2.2.C.2 [1 point | Accuracy]: Downgrade: escalation↑=60.3%, bug↓=54.8%; Upgrade: escalation↑=57.4%, bug↓=51.8%, rating↑=52.6%. Tolerance ≤±3pp.
+- Sub-standard 2.2.C.3 [1 point | Conclusion]: Use the combination of "directional prevalence" and "magnitude of difference" to prioritize customers with simultaneous changes in escalation and bug rates.
+
+### Standard 2.3: Support Quality Metrics (Up to 2 points)
+#### Path 2.3.A [2 points | Average Value Method]
+- Sub-standard 2.3.A.1 [1 point | Completeness]: Calculate average rating, `time_to_first_response`, `time_to_first_close`, and SLA breach rate.
+- Sub-standard 2.3.A.2 [1 point | Accuracy]: Upgrade pre_rating=2.980→post=3.017, ΔTTF=+1.00 minutes, Δbreach=+0.0085; Downgrade pre=2.994→post=3.007, ΔTTF=+0.11, Δbreach=+0.0041. Rating tolerance ≤±0.05, TTF ≤±0.2.
+#### Path 2.3.B [2 points | Time-to-Resolution Efficiency Breakdown]
+- Sub-standard 2.3.B.1 [1 point | Completeness]: Compare efficiency metrics like `time_to_first_close`, `count_reopens` (optional).
+- Sub-standard 2.3.B.2 [1 point | Accuracy]: Upgrade ΔTTC=-1.01 minutes, Downgrade ΔTTC=-2.24 minutes. Tolerance ≤±0.3. Must emphasize the fact that conversations are closed faster post-event.
+---
+## Requirement 3: Pre/Post-Event Difference Analysis and Statistical Validation (Up to 10 points)
+### Standard 3.1: Event-Level Paired Differences (Up to 4 points)
+#### Path 3.1.A [4 points | Numerical Difference Method]
+- Sub-standard 3.1.A.1 [1 point | Completeness]: Only include paired pre & post samples (upgrades=1011, downgrades=1068).
+- Sub-standard 3.1.A.2 [2 points | Accuracy]: Mean differences: Upgrade Δrating=+0.0358, ΔTTF=+1.003, Δescalation=+1.79pp, Δbug=-0.64pp, Δapi=+1.35pp; Downgrade Δrating=+0.0133, ΔTTF=+0.112, Δescalation=+2.41pp, Δbug=-1.36pp, Δintegration=-1.15pp. Tolerance ≤±0.3pp or ±0.2 minutes.
+- Sub-standard 3.1.A.3 [1 point | Conclusion]: Summarize commonalities (esc↑, bug↓) and differences (upgrades show a larger rating increase, downgrades show more significant quality convergence).
+#### Path 3.1.B [4 points | Directional Proportion + Magnitude (Dual-Dimension)]
+- Sub-standard 3.1.B.1 [1 point | Completeness]: For each event, determine if metrics increased/decreased and calculate the proportion.
+- Sub-standard 3.1.B.2 [2 points | Accuracy]: Downgrade: escalation↑=60.3%, bug↓=54.8%; Upgrade: escalation↑=57.4%, rating↑=52.6%. Must be directionally consistent with 3.1.A.
+- Sub-standard 3.1.B.3 [1 point | Conclusion]: Use the combination of "prevalence + magnitude" to prioritize driving factors.
+
+### Standard 3.2: Time-based Decomposition: baseline vs. pre vs. post (Up to 3 points)
+#### Path 3.2.A [3 points | Three-Window Comparison]
+- Sub-standard 3.2.A.1 [1 point | Completeness]: Output conv count, rating, and major tag proportions for baseline, pre, and post windows.
+- Sub-standard 3.2.A.2 [1 point | Accuracy]: Upgrade conv 49.63→88.19→88.16, baseline_rating=2.996→post=3.017; Downgrade conv 51.69→91.12→89.65. Tolerance ≤±1.0 (conv), ±0.02 (rating).
+- Sub-standard 3.2.A.3 [1 point | Conclusion]: Explain the surge from baseline→pre and the convergence in post. Compare how upgrade ratings exceed the baseline while downgrade ratings return to it.
+#### Path 3.2.B [3 points | Baseline Difference]
+- Sub-standard 3.2.B.1 [1 point | Completeness]: Calculate pre-baseline and post-baseline differences (for conv, escalation, bug, etc.).
+- Sub-standard 3.2.B.2 [1 point | Accuracy]: Upgrade conv +38.56 (pre)/+38.53 (post), esc_diff +0.00055/+0.01788, bug_diff -0.00040; Downgrade conv +39.44/+37.96, esc_diff -0.00263/+0.02132, bug_diff -0.00322. Tolerance ≤±2 (conv), ±0.003 (proportions).
+- Sub-standard 3.2.B.3 [1 point | Conclusion]: Point out that the pre-event surge stems from an accumulation of support/billing issues, while the post-event drop represents either resolution or demand contraction.
+
+### Standard 3.3: Statistical Tests or Explanatory Models (Up to 3 points)
+#### Path 3.3.A [3 points | Significance Testing]
+- Sub-standard 3.3.A.1 [1 point | Completeness]: Perform paired t-tests on Δrating, ΔTTF, Δescalation, ΔIntegration, etc. State the hypothesis and sample size.
+- Sub-standard 3.3.A.2 [1 point | Accuracy]: Report means and p-values: Upgrade Δrating p=0.019<0.05, ΔTTF p=0.042, Δescalation p<1e-7, ΔAPI p≈1.9e-7, ΔIntegration p≈2.3e-10; Downgrade Δescalation p≈3.8e-12, ΔBug p≈2.7e-7, ΔAPI p≈6.5e-6, ΔIntegration p≈4.3e-6. Also, state that ΔSLA (downgrade p=0.24) is not significant.
+- Sub-standard 3.3.A.3 [1 point | Conclusion]: Emphasize that the increase in upgrade ratings and deepening of API usage are statistically significant, as is the decline in integration for downgrades. Non-significant items should be interpreted with caution.
+#### Path 3.3.B [3 points | Explanatory Model]
+- Sub-standard 3.3.B.1 [1 point | Completeness]: Build a logistic regression model (70/30 split, random_state=42) with features including Δrating/ΔTTF/ΔEscalation/ΔBug/ΔAPI/ΔIntegration/ΔBilling and the 7-day spike difference.
+- Sub-standard 3.3.B.2 [1 point | Accuracy]: Model performance: AUC=0.549, accuracy=0.543. Coefficient signs: ΔAPI(+0.34), ΔIntegration(-0.52), ΔEscalation(-0.38), ΔBug(+0.65), ΔBilling(+0.32), 7-day Billing diff(-0.44), 7-day Esc diff(+0.07). Must be consistent with the numerical analysis.
+- Sub-standard 3.3.B.3 [1 point | Conclusion]: Use the model output to support the narrative that "deeper API usage + rating recovery" promotes upgrades, while "integration decline + billing spikes" predicts downgrades. Note the model's limited explanatory power (AUC≈0.55).
+---
+## Requirement 4: Driver Attribution and Operational Recommendations (Up to 8 points)
+### Standard 4.1: Key Factor Ranking and Explanation (Up to 4 points)
+#### Path 4.1.A [4 points | Rule-Based Difference Ranking]
+- Sub-standard 4.1.A.1 [1 point | Completeness]: Rank factors based on a combination of difference magnitude and directional proportion. Cover at least escalation, API, integration, billing, rating, TTF, and bug.
+- Sub-standard 4.1.A.2 [2 points | Accuracy]: The ranking should reflect: Upgrade→API(+1.35pp), rating(+0.036), escalation(+1.79pp), integration(-1.81pp), bug(-0.64pp); Downgrade→billing spike (7d-30d diff +0.46pp), integration(-1.15pp), escalation(+2.41pp), bug(-1.36pp), TTF(+0.11).
+- Sub-standard 4.1.A.3 [1 point | Conclusion]: List 3–5 core factors for each of upgrade/downgrade and explain the business mechanism (e.g., upgrades depend on advanced API use and executive attention; downgrades are driven by billing friction and integration decline).
+#### Path 4.1.B [4 points | Model Weights/Influence]
+- Sub-standard 4.1.B.1 [1 point | Completeness]: Reference standardized coefficients or feature importance from a model like logistic regression/SHAP.
+- Sub-standard 4.1.B.2 [2 points | Accuracy]: Explain model coefficients: ΔIntegration(-0.52), ΔEscalation(-0.38), ΔAPI(+0.34), ΔBug(+0.65), ΔBilling(+0.32), ΔBilling(7d-30d)(-0.44). Explain their consistency with the rule-based method.
+- Sub-standard 4.1.B.3 [1 point | Conclusion]: Use the model to highlight the different mechanisms for "promoting upgrades vs. preventing downgrades" (technical depth vs. cost/quality risks) and state the model's limitations.
+
+### Standard 4.2: Actionable Thresholds and Playbooks (Up to 3 points)
+#### Path 4.2.A [3 points | Rule Engine]
+- Sub-standard 4.2.A.1 [1 point | Completeness]: Propose ≥2 rules for upgrade signals and ≥2 for downgrade risks (e.g., ΔAPI ≥ +1.2pp AND ΔIntegration ≤ -1.5pp indicates 'Upgrade Likely'; 7-day 'Escalation' rate increase of ≥0.45pp over 30-day rate triggers executive intervention; 7-day 'Billing' rate increase of ≥0.5pp over 30-day rate + ΔBug ≤ -1.2pp indicates high downgrade risk).
+- Sub-standard 4.2.A.2 [1 point | Accuracy]: Thresholds must be consistent with the magnitude of observed differences (referencing mean differences) and grounded in the data.
+- Sub-standard 4.2.A.3 [1 point | Conclusion]: For each rule, assign an owner (CSM/Support/Finance), a response SLA (e.g., 48h), and success metrics (e.g., for upgrade candidates, rating must increase ≥0.03; for downgrade risks, first response time must be ≤0.5 min).
+#### Path 4.2.B [3 points | Trial/Monitoring Program]
+- Sub-standard 4.2.B.1 [1 point | Completeness]: Incorporate key metrics into a dashboard (TTF, API adoption, Billing spikes, 7d-30d Escalation difference).
+- Sub-standard 4.2.B.2 [1 point | Accuracy]: Set targets: TTF increase for upgrade cohort ≤ +0.5 minutes; close downgrade risk conversations within 7 days; achieve ≥ specified API trial conversion rate. Justify targets using current baselines.
+- Sub-standard 4.2.B.3 [1 point | Conclusion]: Explain how monitoring will validate the rules' effectiveness and establish a quarterly review cadence.
+
+### Standard 4.3: Strategy Implementation and Risk Advisory (Up to 1 point)
+#### Path 4.3.A [1 point | Data Governance and Iteration]
+- Sub-standard 4.3.A.1 [1 point | Completeness]: List required supplementary data (e.g., actual `upgrade_at`/`downgrade_at` timestamps, API call logs, precise `company_id` links) and explain how it would improve analysis accuracy.
+- Sub-standard 4.3.A.2 [0 points | Accuracy]: In the conclusion, note that with supplementary data, more advanced methods like Regression Discontinuity, causal inference, or A/B testing could be used to avoid misinterpretation.
+- Sub-standard 4.3.A.3 [0 points | Conclusion]: Emphasize that current conclusions are based on correlation and outline a path for future validation.

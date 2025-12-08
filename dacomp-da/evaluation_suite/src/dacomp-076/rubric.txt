@@ -1,0 +1,166 @@
+# [Total Score | 39 Points] Scoring Rubric for Reviewing the Match Between Customer Profitability Segments and Retention
+---
+## Requirement 1: Construct the Analysis Sample and Identify 'Classification Anomaly' Customers (Up to 9 points for this requirement)
+### Standard 1.1: Data Table and Field Scope Confirmation (Up to 3 points)
+#### Path 1.1.A [Full Record Perspective (149 rows)]
+- Sub-standard 1.1.A.1 [1 point | Completeness] Explicitly uses the `netsuite2_customer_analytics` table and names the fields: `profitability_segment`, `retention_probability`, `transaction_count`, `avg_transactions_per_month`, `transaction_value_volatility`, `q1_transactions`~`q4_transactions`, `total_revenue`, `comprehensive_customer_score`, `lifecycle_stage`, `seasonal_preference`, `transaction_consistency`, `segmentation_date`, `customer_analytics_id`; no points if any field is missing.
+- Sub-standard 1.1.A.2 [1 point | Accuracy] Verifies total table rows = 149, distinct `customer_id` count = 107, and sample sizes for each profitability segment: Premium 52, Growing 29, High Value 27, Standard 23, Basic 18 (tolerance ±1). Must provide SQL/code or a runtime screenshot as evidence.
+- Sub-standard 1.1.A.3 [1 point | Conclusion] States that the aforementioned fields cover the four dimensions of retention, transactions, seasonality, and value, and can support anomaly identification and subsequent modeling; must clarify that metrics can be reproduced without additional cleaning.
+
+#### Path 1.1.B [Latest Record Perspective (107 customers)]
+- Sub-standard 1.1.B.1 [1 point | Completeness] Describes sampling by `customer_id` + latest `segmentation_date`, and if multiple records exist on the same day, to first select the one with the highest `subsidiary_id`; for the five tied customers (NET01146543590, etc.), must specify the `(segment, retention_probability, transaction_count)` combination of the retained row to ensure reproducibility.
+- Sub-standard 1.1.B.2 [1 point | Accuracy] Validates latest sample size = 107, with profitability segment distribution: Premium 33, Growing 22, High Value 19, Standard 15, Basic 18 (±1 tolerance).
+- Sub-standard 1.1.B.3 [1 point | Conclusion] Explains that using the latest records reflects the current segmentation status and ensures that the scope for subsequent anomaly detection and modeling is consistent with the business perspective.
+
+### Standard 1.2: Segment-Average Retention Rate Calculation and 'Classification Anomaly' Tagging (Up to 3 points)
+#### Path 1.2.A [Full Records (deterministic)]
+- Sub-standard 1.2.A.1 [1 point | Completeness] Provides the anomaly identification formula: `ABS(retention_probability − segment_average) > 0.15`, where the segment average is calculated by grouping by `profitability_segment`.
+- Sub-standard 1.2.A.2 [1 point | Accuracy] Reproduces the segment-average retention rates (±0.001): Basic 0.4739, Growing 0.4397, High Value 0.5556, Premium 0.6587, Standard 0.5230; total anomalies = 47, with intra-segment anomalies: High Value 20, Standard 15, Basic 12, Premium=0, Growing=0 (±1 tolerance).
+- Sub-standard 1.2.A.3 [1 point | Conclusion] Points out that anomalies are concentrated in the High Value/Standard/Basic segments, while Premium and Growing are "zero-anomaly" segments, suggesting a need to strengthen monitoring in the mid-to-low tier segments.
+
+#### Path 1.2.B [Latest Record Scope]
+- Sub-standard 1.2.B.1 [1 point | Completeness] States that based on the sample from 1.1.B, anomalies are identified using the same segment-average retention rate method.
+- Sub-standard 1.2.B.2 [1 point | Accuracy] Provides the segment averages (±0.001): Basic 0.4739, Growing 0.4409, High Value 0.6221, Premium 0.6615, Standard 0.5567; total anomalies = 28, with intra-segment anomalies: Basic 12, High Value 9, Standard 7, Premium=0, Growing=0.
+- Sub-standard 1.2.B.3 [1 point | Conclusion] States that from the latest perspective, the anomaly rate decreases but remains concentrated in the same segments, more closely reflecting the current operational risk profile.
+
+### Standard 1.3: Anomaly Distribution and Deviation Direction (Up to 3 points)
+#### Path 1.3.A [Full Records]
+- Sub-standard 1.3.A.1 [1 point | Completeness] Outputs the anomaly rate for each profitability segment and its share of total anomalies: Basic ≈66.7% (25.5% share), High Value ≈74.1% (42.6% share), Standard ≈65.2% (31.9% share).
+- Sub-standard 1.3.A.2 [1 point | Accuracy] Reports the deviation direction: Basic +6 / -6, High Value +11 / -9, Standard +6 / -9.
+- Sub-standard 1.3.A.3 [1 point | Conclusion] Points out that both High Value and Standard have positive and negative deviations, indicating a need for a differentiated breakdown of retention drivers.
+
+#### Path 1.3.B [Latest Records]
+- Sub-standard 1.3.B.1 [1 point | Completeness] Provides the anomaly rate and share for each segment in the latest sample: Basic ≈66.7% (42.9% share), High Value ≈47.4% (32.1% share), Standard ≈46.7% (25.0% share).
+- Sub-standard 1.3.B.2 [1 point | Accuracy] Deviation direction: Basic +6 / -6, High Value +3 / -6, Standard +3 / -4.
+- Sub-standard 1.3.B.3 [1 point | Conclusion] Emphasizes that from the latest perspective, anomalies in the High Value segment are more negatively skewed, suggesting a need to dynamically adjust retention forecasts for this segment.
+
+---
+## Requirement 2: Differences in Transaction Stability, Seasonality, and Value Path for Anomaly Customers (Up to 9 points for this requirement)
+### Standard 2.1: Transaction Stability Characteristics (Up to 3 points)
+#### Path 2.1.A [Expected vs. Actual Transactions]
+- Sub-standard 2.1.A.1 [1 point | Completeness] Constructs: `months_active = customer_age_days / 30`, `expected_txn = avg_transactions_per_month × months_active`, `txn_consistency_ratio = transaction_count / expected_txn`, `txn_consistency_error = |transaction_count − expected_txn| / expected_txn` (if denominator=0, treat as null).
+- Sub-standard 2.1.A.2 [1 point | Accuracy] Compares means (±0.01): `txn_consistency_error` for anomalies ≈0.516, for non-anomalies ≈0.486; `txn_consistency_ratio` for anomalies ≈0.521, for non-anomalies ≈0.516.
+- Sub-standard 2.1.A.3 [1 point | Conclusion] Points out that anomaly customers have weaker overall consistency, which introduces noise into retention modeling.
+
+#### Path 2.1.B [Quarterly Coverage Validation]
+- Sub-standard 2.1.B.1 [1 point | Completeness] Provides `coverage_gap = transaction_count − Σ(q1~q4)` and `coverage_gap_ratio = coverage_gap / transaction_count` (if denominator=0, treat as null).
+- Sub-standard 2.1.B.2 [1 point | Accuracy] Means: anomaly coverage_gap=0, non-anomaly ≈-0.088; absolute `coverage_gap_ratio` mean is <0.01 for both.
+- Sub-standard 2.1.B.3 [1 point | Conclusion] Confirms that the quarterly breakdown is fundamentally aligned with the total transaction count, allowing quarterly shares to be used in subsequent analysis.
+
+### Standard 2.2: Seasonality Imbalance (Up to 3 points)
+#### Path 2.2.A [Standard Deviation + Range of Quarterly Shares]
+- Sub-standard 2.2.A.1 [1 point | Completeness] Explains the calculation of `seasonality_std` and `seasonality_imbalance = max − min` using quarterly transaction shares.
+- Sub-standard 2.2.A.2 [1 point | Accuracy] Compares means (±0.01): `seasonality_std` for anomalies ≈0.136 vs non-anomalies ≈0.102; `seasonality_imbalance` for anomalies ≈0.334 vs non-anomalies ≈0.251.
+- Sub-standard 2.2.A.3 [1 point | Conclusion] Points out that anomaly customers have a significantly higher concentration of seasonal transactions.
+
+#### Path 2.2.B [Entropy (normalized)]
+- Sub-standard 2.2.B.1 [1 point | Completeness] Provides the entropy calculation: `−Σ(share×ln share)/ln(4)`.
+- Sub-standard 2.2.B.2 [1 point | Accuracy] Mean entropy (±0.02): anomalies ≈0.788, non-anomalies ≈0.897.
+- Sub-standard 2.2.B.3 [1 point | Conclusion] Emphasizes that lower entropy is related to peak season dependency and can be used to identify customers with sharp peaks.
+
+#### Path 2.2.C [Quarterly CV / Threshold Method]
+- Sub-standard 2.2.C.1 [1 point | Completeness] Defines `seasonality_cv = std(q1~q4)/mean(q1~q4)` and sets a threshold of `>1` to flag "strong seasonality".
+- Sub-standard 2.2.C.2 [1 point | Accuracy] Number of customers meeting the threshold: 9 anomalies, 5 non-anomalies; difference ≈ +4 customers (±1).
+- Sub-standard 2.2.C.3 [1 point | Conclusion] Points out that this threshold can serve as a rule for seasonal alerts.
+
+### Standard 2.3: Value Realization Path (Score vs. Revenue) (Up to 3 points)
+#### Path 2.3.A [Revenue-to-Score Ratio]
+- Sub-standard 2.3.A.1 [1 point | Completeness] Defines `revenue_per_score = total_revenue / (comprehensive_customer_score + ε)` (where ε→0 to avoid division by zero).
+- Sub-standard 2.3.A.2 [1 point | Accuracy] Means: anomalies ≈9.01, non-anomalies ≈9.38 (±0.2).
+- Sub-standard 2.3.A.3 [1 point | Conclusion] Points out that anomaly customers have a slightly lower revenue per score point, indicating signs of "unrealized value".
+
+#### Path 2.3.B [z-score Deviation]
+- Sub-standard 2.3.B.1 [1 point | Completeness] Calculates z-scores for revenue and score, and constructs `value_mismatch_z = |z(total_revenue) − z(score)|`.
+- Sub-standard 2.3.B.2 [1 point | Accuracy] Means: anomalies ≈0.199, non-anomalies ≈0.251 (±0.02).
+- Sub-standard 2.3.B.3 [1 point | Conclusion] States that value deviation is not a primary driver, but when combined with stability/seasonality, it can help identify high-risk customers.
+
+---
+## Requirement 3: Multi-dimensional Cross-Analysis to Diagnose Anomaly Drivers (Up to 6 points for this requirement)
+### Standard 3.1: Categorical Label Cross-Tabulation (Up to 3 points)
+#### Path 3.1.A [Seasonal Preference × Anomaly Rate]
+- Sub-standard 3.1.A.1 [1 point | Completeness] Outputs a contingency table for `seasonal_preference` and the anomaly flag.
+- Sub-standard 3.1.A.2 [1 point | Accuracy] Data: Anomalies: Q4 Peak 33, Q1 Peak 10, Q3 Peak 4, Balanced 0; Non-anomalies: Q4 Peak 50, Q1 Peak 31, Q3 Peak 16, Balanced 5.
+- Sub-standard 3.1.A.3 [1 point | Conclusion] Points out that anomalies are highly concentrated among Q4 Peak customers and suggests that the seasonal label should be included for calibration.
+
+#### Path 3.1.B [Lifecycle × Anomaly Rate]
+- Sub-standard 3.1.B.1 [1 point | Completeness] Provides the cross-distribution of `lifecycle_stage` and anomalies.
+- Sub-standard 3.1.B.2 [1 point | Accuracy] Results: Anomalies: At Risk 12, Growth 11, Mature 24; Non-anomalies: At Risk 10, Growth 43, Mature 49.
+- Sub-standard 3.1.B.3 [1 point | Conclusion] States that the proportion of 'At Risk' customers is significantly higher among anomalies and should be given more weight in strategy.
+
+### Standard 3.2: Label Thresholds and Lift (Up to 3 points)
+#### Path 3.2.A [Multi-Threshold Comparison]
+- Sub-standard 3.2.A.1 [1 point | Completeness] Sets thresholds: `seasonality_cv > 1.0`, `transaction_value_volatility > 0.7`, `txn_consistency_error > 0.6`, and states that meeting any threshold is considered a risk flag.
+- Sub-standard 3.2.A.2 [1 point | Accuracy] Hit counts: Seasonality (9 anomalies vs 5 non-anomalies), Volatility (15 vs 16), Consistency (12 vs 18); corresponding lift is approx. +14.3pp, +16.2pp, +7.9pp.
+- Sub-standard 3.2.A.3 [1 point | Conclusion] Points out that the seasonality/volatility thresholds contribute the most to identifying anomalies and can be converted into monitoring rules.
+
+---
+## Requirement 4: Cluster Profiling of Anomaly Customers (Up to 6 points for this requirement)
+### Standard 4.1: Cluster Configuration and Evaluation (Up to 3 points)
+#### Path 4.1.A [KMeans (Standardization + K-Selection)]
+- Sub-standard 4.1.A.1 [1 point | Completeness] Lists the features: `txn_consistency_error`, `transaction_value_volatility`, `seasonality_std`, `seasonality_imbalance`, `seasonality_entropy_norm`, `avg_transactions_per_month`, `transaction_count`, `total_revenue`, and mentions that standardization was applied.
+- Sub-standard 4.1.A.2 [1 point | Accuracy] Provides the silhouette score for K∈[2,6], with the best K=2 having a score of ≈0.542 (±0.02), and cluster sizes of 36 vs 11.
+- Sub-standard 4.1.A.3 [1 point | Conclusion] Explains that this configuration can distinguish between two types of anomaly customer groups, providing a basis for differentiated strategies.
+
+#### Path 4.1.B [Alternative Clustering / Rule-based Grouping]
+- Sub-standard 4.1.B.1 [1 point | Completeness] Describes rule-based grouping using a combination of thresholds: `seasonality_imbalance>0.4 ∧ volatility>0.7 ∧ avg_transactions_per_month<0.5`.
+- Sub-standard 4.1.B.2 [1 point | Accuracy] Reports that 3 customers were identified, all of whom are in the Basic segment and have a lifecycle stage of At Risk.
+- Sub-standard 4.1.B.3 [1 point | Conclusion] States that this rule identifies seasonal-peak & low-activity customers and can corroborate the KMeans results.
+
+### Standard 4.2: Cluster Profiles and Business Interpretation (Up to 3 points)
+#### Path 4.2.A [KMeans-based Cluster Profiles]
+- Sub-standard 4.2.A.1 [1 point | Completeness] Provides medians for key metrics:
+  - Cluster 0 (36 people): `txn_consistency_error`≈0.535, `volatility`≈0.365, `seasonality_std`≈0.061, `imbalance`≈0.167, `entropy_norm`≈0.978, `avg_txn_pm`≈2.65, `total_revenue`≈825.6, `transaction_count`≈15.
+  - Cluster 1 (11 people): `txn_consistency_error`≈0.589, `volatility`≈0.813, `seasonality_std`≈0.433, `imbalance`≈1.0, `entropy_norm`≈0.0, `avg_txn_pm`≈0.5, `total_revenue`≈93.7, `transaction_count`≈2.
+- Sub-standard 4.2.A.2 [1 point | Accuracy] Distribution: Cluster 0 contains High Value 20, Standard 15, Basic 1; Cluster 1 is entirely Basic customers; Lifecycle: Cluster 0 is mainly Mature 24/Growth 11, while Cluster 1 is entirely At Risk; Seasonal preference is dominated by Q4 Peak in both (Cluster 0: 22 people, Cluster 1: 11 people).
+- Sub-standard 4.2.A.3 [1 point | Conclusion] Summarizes two anomaly types: ① High-value but imbalanced-rhythm type (needs relationship management + seasonal recalibration); ② Seasonal-peak, low-activity type (needs pre-peak season engagement and off-season retention efforts).
+
+#### Path 4.2.B [Profiles from non-KMeans methods]
+- Sub-standard 4.2.B.1 [1 point | Completeness] Continuing from 4.1.B, describes the core metric characteristics of the identified group (sharp seasonal peak, high volatility, low activity).
+- Sub-standard 4.2.B.2 [1 point | Accuracy] Points out that the 3 identified customers are all Basic & At Risk, with `seasonality_imbalance`>0.4, `volatility`>0.7, and `avg_txn_pm`<0.5.
+- Sub-standard 4.2.B.3 [1 point | Conclusion] States that rule-based grouping can serve as a supplementary alert for peak-type customers, validating the customer segmentation from KMeans.
+
+---
+## Requirement 5: Decision Tree Evaluation and New Dimension Value Validation (Up to 6 points for this requirement)
+### Standard 5.1: Model Construction and Performance Comparison (Up to 3 points)
+#### Path 5.1.A [Reference Model with Retention Probability vs. Fair Model]
+- Sub-standard 5.1.A.1 [1 point | Completeness] Builds two versions of a decision tree (max_depth=5): a) with all features (including `retention_probability`), b) with `retention_probability` removed, keeping only categorical + numerical behavior features; must state that evaluation is done directly on the full 149 rows (no train/test split).
+- Sub-standard 5.1.A.2 [1 point | Accuracy] Metrics (±0.02):
+  - Full Features: Accuracy≈0.987, ROC-AUC≈0.979, Recall(anomaly)≈0.957;
+  - Fair Model: Accuracy≈0.893, ROC-AUC≈0.940, Recall≈0.936.
+- Sub-standard 5.1.A.3 [1 point | Conclusion] Points out that the Fair Model still maintains high recall, indicating that behavioral/seasonal features have identification power without relying on `retention_probability`.
+
+#### Path 5.1.B [Baseline (Profitability Segment) vs. Enhanced (with Behavior Features)]
+- Sub-standard 5.1.B.1 [1 point | Completeness] Compares a baseline model containing only the profitability segment category with a model containing only numerical behavior features.
+- Sub-standard 5.1.B.2 [1 point | Accuracy] Metrics (±0.02):
+  - Baseline: Accuracy≈0.859, ROC-AUC≈0.907, Recall≈1.00;
+  - Behavioral Numerical: Accuracy≈0.960, ROC-AUC≈0.990, Recall≈1.00.
+- Sub-standard 5.1.B.3 [1 point | Conclusion] States that the profitability segment provides a strong baseline, but behavioral features offer superior ranking/discriminatory power, supporting the addition of new dimensions.
+
+### Standard 5.2: Feature Importance and Interpretation (Up to 3 points)
+#### Path 5.2.A [Feature Ranking + Leakage Explanation]
+- Sub-standard 5.2.A.1 [1 point | Completeness] Lists the top 10 most important features and indicates their source (categorical/numerical).
+- Sub-standard 5.2.A.2 [1 point | Accuracy]
+  - Full Feature Model Top 3: `retention_probability`≈0.736, `avg_transactions_per_month`≈0.183, `seasonal_preference_Q3 Peak`≈0.049;
+  - Fair Model Top 5: `profitability_segment_Growing`≈0.466, `profitability_segment_Premium`≈0.381, `seasonality_imbalance`≈0.088, `seasonality_entropy_norm`≈0.036, `revenue_per_score`≈0.029 (±0.02).
+- Sub-standard 5.2.A.3 [1 point | Conclusion] Explains the "masking effect" of `retention_probability` in the full-feature model and emphasizes the contribution of seasonality/transaction intensity in the fair model.
+
+#### Path 5.2.B [Rule Extraction or Interpretable Path]
+- Sub-standard 5.2.B.1 [1 point | Completeness] Provides rules from the top layers of the fair model, such as "If not Premium and not Growing → If seasonal entropy ≤0.99 and imbalance ≤0.10, classify as non-anomaly; if entropy >0.99, classify as anomaly," etc.
+- Sub-standard 5.2.B.2 [1 point | Accuracy] The rules must be consistent with the tree structure and must not reference `retention_probability`.
+- Sub-standard 5.2.B.3 [1 point | Conclusion] Aligns the rules with business meaning: emphasizes that low entropy + low imbalance indicates a stable customer, while increased seasonal fluctuation warrants inclusion in anomaly monitoring.
+
+---
+## Requirement 6: Segmentation Redesign and Operational Implementation Recommendations (Up to 3 points for this requirement)
+### Standard 6.1: New Dimension Inclusion and Strategy Output (Up to 3 points)
+#### Path 6.1.A [Structured Redesign Plan]
+- Sub-standard 6.1.A.1 [1 point | Completeness] Proposes a segmentation framework: Profitability Segment × (Transaction Stability: `txn_consistency_error`, `transaction_value_volatility`) × (Seasonality: `seasonality_std/imbalance/CV` + quarterly thresholds) × (Lifecycle: At Risk/Growth/Mature).
+- Sub-standard 6.1.A.2 [1 point | Accuracy] Links clusters and anomalies to actions:
+  - Cluster 1 (Seasonal-peak, low-activity, 11 people): Pre-peak season warm-up, off-season retention, trigger intervention if `volatility>0.7` or `seasonality_imbalance>0.4`;
+  - Cluster 0 (High-value, volatile, 36 people): Strengthen relationship management and rhythm calibration;
+  - KPIs: Anomaly rate reduction ≥20pp, seasonality metric reduction ≥15%, transaction consistency improvement ≥10%.
+- Sub-standard 6.1.A.3 [1 point | Conclusion] Provides implementation priority (High Value → Standard → Basic) and explains the expected synergy with the fair model's predictions and threshold rules.
+
+#### Path 6.1.B [Strategy + Pilot (Simplified Version)] (Optional, graded if provided, and higher score of the two paths is taken)
+- Sub-standard 6.1.B.1 [1 point | Completeness] Proposes off-season promotions for peak-type customers, VIP maintenance for high-value unstable customers, and enhanced lifecycle touchpoints for At Risk customers.
+- Sub-standard 6.1.B.2 [1 point | Accuracy] Anchors targets with data points: e.g., the 33 Q4 Peak anomalies, 12 At Risk anomalies, 15 anomalies with `volatility>0.7`, etc.
+- Sub-standard 6.1.B.3 [1 point | Conclusion] Proposes a pilot period and monitoring metrics (anomaly rate, `seasonality_cv`, `transaction_value_volatility`, retention lift) and explains the expected benefits and risk controls.

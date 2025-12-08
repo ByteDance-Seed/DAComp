@@ -1,0 +1,1 @@
+想了解我们的cross-functional collaboration效果如何。请分析那些direct_network_connections数量高的stakeholders是否真的带来了更好的project outcomes，特别关注他们参与的projects在complexity_risk_score和success_probability方面的表现。

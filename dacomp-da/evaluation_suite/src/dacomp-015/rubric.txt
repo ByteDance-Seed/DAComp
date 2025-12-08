@@ -1,0 +1,291 @@
+# [Total Score | 29 points] The assistant’s reply needs to satisfy two requirements:
+Requirement 1: Accurately identify combinations of home features with higher Watch Count in the market.
+Requirement 2: Scientifically identify and justify the key factors that affect Showings.
+
+
+## Requirement 1: Accurately identify combinations of home features with higher Watch Count (Maximum 5 points for this requirement)
+### Standard 1.1 [Highest 5 points]: Top-10 combination identification methods
+#### Path 1.1.A [5 points]: Sum analysis method
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Compute the total Watch Count for different combinations of Floor Plan, Decoration, Floor, and Orientation
+- Sub-standard 1.1.A.2 [1 point | Completeness]: Provide the top 10 combinations with higher Watch Count and include their corresponding total Watch Count
+- Sub-standard 1.1.A.3 [1 point | Accuracy]: Check whether the calculation logic for different combinations is correct
+  Calculation logic:
+  1. Group by Floor Plan, Decoration, Floor, Orientation
+  2. Sum the Watch Count for each group
+- Sub-standard 1.1.A.4 [2 points | Accuracy]: The following are the top 10 combinations by Watch Count; full correctness earns points
+
+| Floor Plan | Decoration | Orientation | Floor | Total Watch Count |
+|-------|-------|------|------|----------|
+| 2 bedrooms 1 living room | Basic decoration | South | 7th floor | 3726 |
+| 2 bedrooms 1 living room | Basic decoration | South | 6th floor | 3582 |
+| 3 bedrooms 2 living rooms | Fully renovated | South | 18th floor | 3291 |
+| 3 bedrooms 2 living rooms | Fully renovated | South | 16th floor | 2564 |
+| 3 bedrooms 2 living rooms | Fully renovated | South | 6th floor | 2491 |
+| 3 bedrooms 2 living rooms | Fully renovated | South | 11th floor | 2241 |
+| 2 bedrooms 1 living room | Fully renovated | South | 7th floor | 2183 |
+| 3 bedrooms 1 living room | Basic decoration | South | 6th floor | 1964 |
+| 2 bedrooms 1 living room | Fully renovated | South | 6th floor | 1807 |
+| 3 bedrooms 1 living room | Basic decoration | South | 7th floor | 1764 |
+
+If the assistant’s reply selects a large number of combination samples for analysis, use the following pseudocode to verify:
+```
+// Pseudocode: verify the calculation process for a single case
+For each home combination
+1. Filter data according to the sample size range selected in the assistant’s reply
+2. For the filtered subset:
+   a. Compute the total Watch Count for each combination.
+   b. Compare median values and select 10 combinations for output
+3. The final output must present Floor Plan, Decoration, Floor, Orientation, and the computed Total Watch Count
+```
+
+
+#### Path 1.1.B [4 points]: Median analysis method
+- Sub-standard 1.1.B.1 [1 point | Completeness]: Compute the median Watch Count for different combinations of Floor Plan, Decoration, Floor, and Orientation
+- Sub-standard 1.1.A.2 [1 point | Completeness]: Provide the top 10 combinations with higher Watch Count and include their corresponding median Watch Count
+- Sub-standard 1.1.A.3 [1 point | Accuracy]: Check whether the calculation logic for different combinations is correct
+  Calculation logic:
+  1. Group by Floor Plan, Decoration, Floor, Orientation
+  2. Compute the median for each group
+- Sub-standard 1.1.A.4 [1 point | Accuracy]: The following are the top 10 combinations by Watch Count; full correctness earns points
+
+| Floor Plan | Decoration | Floor | Orientation | Watch Count_Median |
+|:------|:----|:----|:----|--------------:|
+| 2 bedrooms 1 living room | Basic decoration | 8th floor | Northwest | 111.0 |
+| 2 bedrooms 1 living room | Fully renovated | 25th floor | Southwest | 95.0 |
+| 2 bedrooms 1 living room | Bare shell | 34th floor | South | 81.0 |
+| 2 bedrooms 1 living room | Fully renovated | 15th floor | Southwest | 79.0 |
+| 3 bedrooms 1 living room | Fully renovated | 17th floor | Northwest | 76.0 |
+| 3 bedrooms 1 living room | Bare shell | 5th floor | Southeast | 73.0 |
+| 1 bedroom 1 living room | Fully renovated | 19th floor | East | 72.0 |
+| 2 bedrooms 0 living rooms | Basic decoration | 5th floor | Southeast | 72.0 |
+| 6 bedrooms 3 living rooms | Bare shell | 9th floor | South | 67.0 |
+| 1 bedroom 1 living room | Basic decoration | 12th floor | South | 58.0 |
+
+If the assistant’s reply selects a large number of combination samples for analysis, use the following pseudocode to verify:
+```
+// Pseudocode: verify the calculation process for a single case
+For each home combination
+1. Filter data according to the sample size range selected in the assistant’s reply
+2. For the filtered subset:
+   a. Compute the median Watch Count for each combination.
+   b. Compare median values and select 10 combinations for output
+3. The final output must present Floor Plan, Decoration, Floor, Orientation, and the computed median Watch Count
+```
+
+
+## Requirement 2: Key factor analysis affecting Showings (Maximum 24 points)
+- Code verification method: Applicable when it is difficult to list all reference answers; by default, if the code is correct, the answer is correct. First, by reading comments and quickly reviewing the relevant code, verify whether the overall code logic matches the analysis approach; second, verify line by line, checking whether each line of code truly achieves the effect described in the corresponding comment.
+### Standard 2.1 [Highest 18 points]: Factor analysis methods
+#### Path 2.1.A [18 points]: Linear relationship analysis method
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Analyze the correlation or regression coefficient between Price and Showings
+- Sub-standard 2.1.A.2 [1 point | Completeness]: Analyze the correlation or regression coefficient between Floor Plan and Showings
+- Sub-standard 2.1.A.3 [1 point | Completeness]: Analyze the correlation or regression coefficient between Orientation and Showings
+- Sub-standard 2.1.A.4 [1 point | Completeness]: Analyze the correlation or regression coefficient between Price/sqm and Showings
+- Sub-standard 2.1.A.5 [1 point | Completeness]: Analyze the correlation or regression coefficient between Area and Showings
+- Sub-standard 2.1.A.6 [1 point | Completeness]: Analyze the correlation or regression coefficient between Date Published and Showings
+- Sub-standard 2.1.A.7 [1 point | Completeness]: Analyze the correlation or regression coefficient between Decoration and Showings
+- Sub-standard 2.1.A.8 [1 point | Completeness]: Analyze the correlation or regression coefficient between Floor and Showings
+- Sub-standard 2.1.A.9 [1 point | Completeness]: Analyze the correlation or regression coefficient between Watch Count and Showings
+- Sub-standard 2.1.A.10 [1 point | Accuracy]: Reference content: Using the Pearson analysis method, the correlation between Watch Count and Showings is 0.083. Note that this uses the Pearson analysis method and the entire dataset (excluding nulls). If the assistant’s reply uses a different linear analysis method (e.g., regression analysis) or performs data cleaning or uses a different calculation scope, then this value is not applicable; score according to the code verification method by checking the code logic, and award points if correct
+- Sub-standard 2.1.A.11 [1 point | Accuracy]: Reference content: Using the Pearson analysis method, the correlation between Price and Showings is 0.0487. Note that this uses the Pearson analysis method and the entire dataset (excluding nulls). If the assistant’s reply uses a different linear analysis method (e.g., regression analysis) or performs data cleaning or uses a different calculation scope, then this value is not applicable; score according to the code verification method by checking the code logic, and award points if correct
+- Sub-standard 2.1.A.12 [1 point | Accuracy]: Reference content: Using the Pearson analysis method, the correlation between Price/sqm and Showings is 0.1156. Note that this uses the Pearson analysis method and the entire dataset (excluding nulls). If the assistant’s reply uses a different linear analysis method (e.g., regression analysis) or performs data cleaning or uses a different calculation scope, then this value is not applicable; score according to the code verification method by checking the code logic, and award points if correct
+- Sub-standard 2.1.A.13 [1 point | Accuracy]: Reference content: Using the Pearson analysis method, the correlation between Area and Showings is -0.0394. Note that this uses the Pearson analysis method and the entire dataset (excluding nulls). If the assistant’s reply uses a different linear analysis method (e.g., regression analysis) or performs data cleaning or uses a different calculation scope, then this value is not applicable; score according to the code verification method by checking the code logic, and award points if correct
+- Sub-standard 2.1.A.14 [1 point | Accuracy]: Reference content: Using the Pearson analysis method, the correlation between Floor and Showings is 0.0755. Note that this uses the Pearson analysis method and the entire dataset (excluding nulls). If the assistant’s reply uses a different linear analysis method (e.g., regression analysis) or performs data cleaning or uses a different calculation scope, then this value is not applicable; score according to the code verification method by checking the code logic, and award points if correct (analyzing each Floor separately also qualifies for scoring)
+- Sub-standard 2.1.A.15 [1 point | Accuracy]: Use Pearson analysis, regression analysis, or other linear analysis to compute the correlation between Floor Plan and Showings; score according to the code verification method based on the assistant’s calculation scope and data cleaning, awarding points if the logic is correct
+- Sub-standard 2.1.A.16 [1 point | Accuracy]: Use Pearson analysis, regression analysis, or other linear analysis to compute the correlation between Orientation and Showings; score according to the code verification method based on the assistant’s calculation scope and data cleaning, awarding points if the logic is correct
+- Sub-standard 2.1.A.17 [1 point | Accuracy]: Use Pearson analysis, regression analysis, or other linear analysis to compute the correlation between Date Published and Showings; score according to the code verification method based on the assistant’s calculation scope and data cleaning, awarding points if the logic is correct
+- Sub-standard 2.1.A.18 [1 point | Accuracy]: Use Pearson analysis, regression analysis, or other linear analysis to compute the correlation between Decoration and Showings; score according to the code verification method based on the assistant’s calculation scope and data cleaning, awarding points if the logic is correct
+
+
+#### Path 2.1.B [16 points]: Mean comparison analysis method
+- Sub-standard 2.1.B.1 [1 point | Completeness]: Compute the average Showings for different Price ranges to analyze their impact on Showings
+- Sub-standard 2.1.B.2 [1 point | Completeness]: Compute the average Showings for different Floor Plans to analyze their impact on Showings
+- Sub-standard 2.1.B.3 [1 point | Completeness]: Compute the average Showings for different Orientations to analyze their impact on Showings
+- Sub-standard 2.1.B.4 [1 point | Completeness]: Compute the average Showings for different Price/sqm ranges to analyze their impact on Showings
+- Sub-standard 2.1.B.5 [1 point | Completeness]: Compute the average Showings for different Area ranges to analyze their impact on Showings
+- Sub-standard 2.1.B.6 [1 point | Completeness]: Compute the average Showings for different Date Published values to analyze their impact on Showings
+- Sub-standard 2.1.B.7 [1 point | Completeness]: Compute the average Showings for different Decoration levels to analyze their impact on Showings
+- Sub-standard 2.1.B.8 [1 point | Completeness]: Compute the average Showings for different Floors to analyze their impact on Showings
+- Sub-standard 2.1.B.9 [1 point | Accuracy]: Accurately compute the average Showings for different Price ranges
+  ```
+  // Pseudocode: verify the calculation process for a single case
+  For each Price range
+  1. According to the assistant’s defined Price ranges, compute the corresponding average Showings
+  2. The final output must present the Price range and its computed average Showings.
+  ```
+- Sub-standard 2.1.B.10 [1 point | Accuracy]: Accurately compute the average Showings for different Floor Plans; the following is reference data—providing 5 or more earns points (allow 5% data variance)
+
+| Floor Plan | Average Showings |
+| --- | --- |
+| 7 bedrooms 0 living rooms | 4.000000 |
+| 4 bedrooms 0 living rooms | 3.829787 |
+| 6 bedrooms 0 living rooms | 3.333333 |
+| 3 bedrooms 2 living rooms | 3.090045 |
+| 2 bedrooms 1 living room | 2.946292 |
+| 2 bedrooms 0 living rooms | 2.848649 |
+| 3 bedrooms 1 living room | 2.756161 |
+| 4 bedrooms 2 living rooms | 2.707408 |
+| 2 bedrooms 2 living rooms | 2.678642 |
+| 4 bedrooms 1 living room | 2.527716 |
+| 11 bedrooms 2 living rooms | 2.500000 |
+| 3 bedrooms 0 living rooms | 2.494845 |
+| 5 bedrooms 1 living room | 2.380435 |
+| 1 bedroom 2 living rooms | 2.255102 |
+| 1 bedroom 0 living rooms | 2.116071 |
+| 1 bedroom 1 living room | 2.038894 |
+| 8 bedrooms 3 living rooms | 2.000000 |
+| 9 bedrooms 1 living room | 2.000000 |
+| 10 bedrooms 4 living rooms | 2.000000 |
+| 5 bedrooms 2 living rooms | 1.855787 |
+| 7 bedrooms 1 living room | 1.750000 |
+| 5 bedrooms 0 living rooms | 1.733333 |
+| 7 bedrooms 4 living rooms | 1.666667 |
+| 4 bedrooms 4 living rooms | 1.666667 |
+| 6 bedrooms 1 living room | 1.647059 |
+| 6 bedrooms 3 living rooms | 1.477273 |
+| 4 bedrooms 3 living rooms | 1.460784 |
+| 6 bedrooms 2 living rooms | 1.359551 |
+| 3 bedrooms 3 living rooms | 1.318182 |
+| 5 bedrooms 3 living rooms | 1.313253 |
+| 7 bedrooms 2 living rooms | 1.227273 |
+| 2 bedrooms 3 living rooms | 1.000000 |
+| 9 bedrooms 2 living rooms | 1.000000 |
+| 2 bedrooms 4 living rooms | 1.000000 |
+| 5 bedrooms 4 living rooms | 1.000000 |
+| 5 bedrooms 5 living rooms | 1.000000 |
+| 9 bedrooms 4 living rooms | 1.000000 |
+| 7 bedrooms 3 living rooms | 1.000000 |
+| 8 bedrooms 4 living rooms | 1.000000 |
+| 8 bedrooms 0 living rooms | 1.000000 |
+| 8 bedrooms 2 living rooms | 0.857143 |
+| 6 bedrooms 4 living rooms | 0.600000 |
+| 10 bedrooms 2 living rooms | 0.000000 |
+| 8 bedrooms 1 living room | 0.000000 |
+
+If the assistant’s reply selects a large number of samples for analysis, use the following pseudocode to verify:
+```
+// Pseudocode: verify the calculation process for a single case
+For each Floor Plan
+1. Filter data according to the sample size range selected in the assistant’s reply
+2. For the filtered subset:
+   a. Compute the average Showings for each Floor Plan.
+3. The final output must present the Floor Plan and its computed average Showings
+```
+
+- Sub-standard 2.1.B.11 [1 point | Accuracy]: Accurately compute the average Showings for different Orientations; the following is reference data—providing 5 or more earns points (allow 5% data variance)
+
+| Orientation | Average Showings |
+| --- | --- |
+| South | 2.941650 |
+| Southeast | 2.568182 |
+| East | 2.459199 |
+| Northeast | 2.452442 |
+| Northwest | 2.428238 |
+| Southwest | 2.373786 |
+| West | 2.359100 |
+| North | 2.181300 |
+
+- Sub-standard 2.1.B.12 [1 point | Accuracy]: Accurately compute the average Showings for different Price/sqm ranges
+  ```
+  // Pseudocode: verify the calculation process for a single case
+  For each Price/sqm range
+  1. According to the assistant’s defined Price/sqm ranges, compute the corresponding average Showings
+  2. The final output must present the Price/sqm range and its computed average Showings.
+  ```
+- Sub-standard 2.1.B.13 [1 point | Accuracy]: Accurately compute the average Showings for different Area ranges
+  ```
+  // Pseudocode: verify the calculation process for a single case
+  For each Area range
+  1. According to the assistant’s defined Area ranges, compute the corresponding average Showings
+  2. The final output must present the Area range and its computed average Showings.
+  ```
+- Sub-standard 2.1.B.14 [1 point | Accuracy]: Accurately compute the average Showings for different Date Published values; the following is reference data—score if correct (allow 5% data variance)
+
+| Date Published | Average Showings |
+| --- | --- |
+| 3 months | 3.700783 |
+| 1 month | 3.427598 |
+| 6 months | 3.287143 |
+| 1 year | 2.252392 |
+
+- Sub-standard 2.1.B.15 [1 point | Accuracy]: Accurately compute the average Showings for different Decoration levels; the following is reference data—score if correct (allow 5% data variance)
+
+| Decoration | Average Showings |
+| --- | --- |
+| Basic decoration | 2.869362 |
+| Bare shell | 2.823022 |
+| Fully renovated | 2.802100 |
+| Luxury decoration | 2.707317 |
+
+- Sub-standard 2.1.B.16 [1 point | Accuracy]: Accurately compute the average Showings for different Floors; the following is reference data—providing 5 or more earns points (allow 5% data variance)
+
+| Floor | Average Showings |
+| --- | --- |
+| 39th floor | 5.600000 |
+| 44th floor | 5.476190 |
+| 45th floor | 5.076923 |
+| 37th floor | 4.500000 |
+| 40th floor | 3.914286 |
+| 26th floor | 3.870019 |
+| 34th floor | 3.851759 |
+| 25th floor | 3.503209 |
+| 20th floor | 3.496124 |
+| 31st floor | 3.323326 |
+| 36th floor | 3.250000 |
+| 27th floor | 3.246172 |
+| 30th floor | 3.226027 |
+| 42nd floor | 3.176471 |
+| 16th floor | 3.146061 |
+| 8th floor | 3.121311 |
+| 15th floor | 3.055172 |
+| 23rd floor | 3.031148 |
+| 32nd floor | 3.029004 |
+| 22nd floor | 3.000000 |
+| 33rd floor | 2.973140 |
+| 14th floor | 2.903141 |
+| 19th floor | 2.887597 |
+| 47th floor | 2.884615 |
+| 38th floor | 2.880000 |
+| 24th floor | 2.871658 |
+| 17th floor | 2.821997 |
+| 9th floor | 2.679487 |
+| 18th floor | 2.678378 |
+| 7th floor | 2.653733 |
+| 28th floor | 2.631373 |
+| 29th floor | 2.604278 |
+| 11th floor | 2.595085 |
+| 12th floor | 2.578947 |
+| 41st floor | 2.500000 |
+| 43rd floor | 2.500000 |
+| 21st floor | 2.486486 |
+| 48th floor | 2.475000 |
+| 5th floor | 2.404145 |
+| 35th floor | 2.390244 |
+| 6th floor | 2.344595 |
+| 10th floor | 2.275862 |
+| 1st floor | 2.189723 |
+| 4th floor | 2.122449 |
+| 3rd floor | 2.071429 |
+| 13th floor | 2.031142 |
+| 2nd floor | 1.333333 |
+| 53rd floor | 1.000000 |
+| 46th floor | 0.250000 |
+| 61st floor | 0.000000 |
+| 54th floor | 0.000000 |
+
+If the model uses Floor ranges for computation, use the following pseudocode to verify step by step:
+```
+// Pseudocode: verify the calculation process for a single case
+For each Floor range
+1. According to the assistant’s defined Floor ranges, compute the corresponding average Showings
+2. The final output must present the Floor range and its computed average Showings.
+```
+
+
+### Standard 2.2 [Highest 6 points]: Conclusion summary
+- Sub-standard 2.2.A.1 [1 point | Conclusion]: Watch Count and Showings have weak correlation (stating a correlation of 0.083 also earns points; allow 5% data error)
+- Sub-standard 2.2.A.2 [1 point | Conclusion]: Floor affects Showings——especially mid-to-high floors have more Showings.
+- Sub-standard 2.2.A.3 [1 point | Conclusion]: Area affects Showings——60–120 sqm is mainstream demand; very large or very small areas attract fewer showings.
+- Sub-standard 2.2.A.4 [1 point | Conclusion]: Orientation affects Showings——South-facing listings have higher Showings.
+- Sub-standard 2.2.A.5 [1 point | Conclusion]: Decoration affects Showings——Bare shell/Basic decoration are easier to show; Fully renovated and Luxury decoration are not advantageous.
+- Sub-standard 2.2.A.6 [1 point | Conclusion]: Floor Plan affects Showings —— 3 bedrooms 2 living rooms is the most popular.

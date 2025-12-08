@@ -1,0 +1,114 @@
+# [总分 | 36分]  评分遵循“需求 → 标准 → 路径 → 小标准”的层次结构；每条路径以“完备性1分｜精确性4分｜结论性1分”计分。任一标准只需完成其中一条路径即可拿分，不得将不同路径混用。
+
+———
+
+## 需求1：数据框架对齐与样本可用性确认（最高 6 分）
+
+### 标准1.1：核心表结构、主键与时间口径核验
+
+#### 路径1.1.A [6分 | 纯 SQL 勘探+核验]
+- 小标准1.1.A.1 [1分 | 完备性] 必须列出后续分析涉及的表与字段映射：`klaviyo__campaigns（campaign_id/SENT_AT/updated_at/EMAIL_TEMPLATE_ID/source_relation/触达计数）`、`klaviyo__person_campaign_flow（person_id/first_event_at/last_event_at/touch_span_days/窗口指标）`、`klaviyo__persons（person_id/first_event_on/last_event_on/active_months/days_span/email_open_rate/paid_retention_rate_month）`，说明 person_id 为跨表连接键，SENT_AT 与 first_event_at 是活动/窗口时间基准。
+- 小标准1.1.A.2 [4分 | 精确性] 通过 SQL 验证以下锚点（允许误差±1条/±1天）：`klaviyo__persons` 共 1192 行，`first_event_on` 最早 2021-01-01、`last_event_on` 最晚 2023-08-22；`klaviyo__person_campaign_flow` 共 4 行，`first_event_at` 介于 2024-03-05 14:05~2024-05-02 10:05；`klaviyo__campaigns` 共 184 行，`SENT_AT` 范围 2023-01-05 10:20~2023-10-06 23:20。需展示 SQL 逻辑并注明无额外清洗。
+- 小标准1.1.A.3 [1分 | 结论性] 给出口径声明：事件明细表缺失，需以聚合层（person/campaign_flow/campaigns）近似分析；确认现有字段足以完成生命周期、触达效率与异常判定。
+
+#### 路径1.1.B [6分 | Python/Pandas 采样核验]
+- 小标准1.1.B.1 [1分 | 完备性] 使用 pandas 读取三张表后，描述字段到业务指标的映射及 person_id 连接方式，说明所有列直接使用、无需额外清洗。
+- 小标准1.1.B.2 [4分 | 精确性] 以 DataFrame 统计上述关键锚点（1192/4/184 行、时间范围同 1.1.A），并打印 `head()/describe()` 验证字段类型正确，容差同上。
+- 小标准1.1.B.3 [1分 | 结论性] 说明数据覆盖与限制（无 events、person_campaign_flow 仅 4 行），确认后续分析需结合 person 聚合指标补足行为强度判断。
+
+———
+
+## 需求2：用户活跃/付费特征与邮件效率的关联分析（最高 6 分）
+
+### 标准2.1：长期活跃跨度 vs 邮件效率/留存的关联
+
+#### 路径2.1.A [6分 | 皮尔逊相关度量]
+- 小标准2.1.A.1 [1分 | 完备性] 说明将从 `klaviyo__persons` 计算的变量：`days_span`、`active_months`、`email_open_rate`、`paid_retention_rate_month`、`paid_retained_month_count`、`count_received_email`，用于衡量“达峰速度”“邮件效率”“长期付费”。
+- 小标准2.1.A.2 [4分 | 精确性] 计算并给出以下相关系数（允许误差±0.02，需声明统一使用 Pearson/population 协方差或 pandas `corr()` 默认口径）：
+  - `corr(email_open_rate, days_span) ≈ -0.9185`；
+  - `corr(email_open_rate, active_months) ≈ -0.8666`；
+  - `corr(email_open_rate, paid_retention_rate_month) ≈ +0.0771`；
+  - `corr(active_months, paid_retained_month_count) ≈ +1.0000`；
+  - `corr(count_received_email, email_open_rate) ≈ -0.7163`；
+  - `corr(count_received_email, active_months) ≈ +0.6291`。
+- 小标准2.1.A.3 [1分 | 结论性] 得出“高开信率对应更短活跃跨度、更低活跃月；长期活跃/付费人群邮件响应度下降但付费沉淀更深”等结论，为后续分层与频控提供依据。
+
+#### 路径2.1.B [6分 | 分箱对比]
+- 小标准2.1.B.1 [1分 | 完备性] 将用户按 `email_open_rate` 与 `days_span` 各自分为四分位，输出均值对比表，指标同路径 A；需声明 `dropna` 口径与分箱方式（如 `pandas.qcut`）。
+- 小标准2.1.B.2 [4分 | 精确性] 四分位均值需与以下锚点一致（允许误差±0.5/±0.005）：
+  - `email_open_rate`：Q1≈0.2597、Q4≈0.6004；对应 `days_span` Q1≈132.95、Q4≈63.95；`paid_retention_rate_month` 在 0.93~0.97；
+  - `days_span`：Q1≈62.87、Q4≈134.11；`active_months` Q1≈2.44、Q4≈4.67；`email_open_rate` Q1≈0.573、Q4≈0.284。
+- 小标准2.1.B.3 [1分 | 结论性] 归纳“短跨度/高开群体活跃集中但付费月数有限；慢跨度群体付费沉淀深但需防邮件疲劳”，并提示在画像/频率设计中的应用。
+
+———
+
+## 需求3：活动健康度基线（近 6 个月）构建（最高 6 分）
+
+### 标准3.1：活动类型 × 受众规模分位的均值/标准差
+
+#### 路径3.1.A [6分 | SQL 聚合]
+- 小标准3.1.A.1 [1分 | 完备性] 指定 6 个月窗口：取 `klaviyo__campaigns` 最大 SENT_AT 为 `T_max=2023-10-06 23:20`，分析窗口为 `[T_max-180 天, T_max]`；以 `total_count_unique_people`（若为空则用 `count_received_email`）区分 `<10k/10k-100k/>100k`；按 `CAMPAIGN_TYPE × audience_band` 计算 open/click 均值与人口标准差（ddof=0）。
+- 小标准3.1.A.2 [4分 | 精确性] 输出总体统计锚点（允许误差±0.005）：近 6 个月活动数=121，整体 `avg_open≈0.2647`、`avg_ctor≈0.1130`、`std_open≈0.1733`、`std_ctor≈0.0750`。对 `<10k` 档需匹配：
+  - VIP：`avg_open≈0.5200`、`std_open≈0.0071`、`avg_ctor≈0.2301`、`std_ctor≈0.0001`；
+  - PRODUCT_LAUNCH：`avg_open≈0.4800`、`std_open≈0.0072`；
+  - PROMOTION：`avg_open≈0.2050`、`std_open≈0.2051`、`avg_ctor≈0.0850`、`std_ctor≈0.0850`；
+  - WINBACK：`avg_open≈0.1155`、`std_open≈0.1103`。
+  同时标注 `BROWSE_ABANDON × <10k` 的 `std_open/std_ctor=0`，为后续异常判定留出保护逻辑。
+- 小标准3.1.A.3 [1分 | 结论性] 总结基线洞察（如 PROMOTION 与 WINBACK 波动大、VIP/Launch 稳定高开），明确后续 ±2σ 异常判定将基于该基线。
+
+#### 路径3.1.B [6分 | Pandas/自定义函数]
+- 小标准3.1.B.1 [1分 | 完备性] 使用 pandas 读取近 6 个月活动，构造 `audience_band` 并按 `CAMPAIGN_TYPE × band` 计算均值/人口标准差，逻辑与路径 A 保持一致。
+- 小标准3.1.B.2 [4分 | 精确性] 打印与路径 A 相符的总体/分组数值（容差同上），并明确 `std=0` 的分组需在后续异常处理中跳过或单独判定。
+- 小标准3.1.B.3 [1分 | 结论性] 输出针对不同类型/规模的健康基线描述，指出后续异常识别与根因分析的着力点。
+
+———
+
+## 需求4：活动健康异常识别与 2σ 判定（最高 6 分）
+
+### 标准4.1：单次活动 vs 基线的异常标记
+
+#### 路径4.1.A [6分 | 2σ Z-score 判定]
+- 小标准4.1.A.1 [1分 | 完备性] 将近 6 个月单次活动与标准 3.1 的均值/人口标准差 join，计算 `z_open=(open-avg_open)/std_open`、`z_ctor=(ctor-avg_ctor)/std_ctor`，判定 `|z|≥2` 为异常；对 `std=0` 的分组需跳过或追加逻辑保护。
+- 小标准4.1.A.2 [4分 | 精确性] 复现以下锚点（容差±0.1）：仅发现 1 条异常——`campaign_id=C000177（CAMPAIGN_TYPE=EXPERIMENT，aud_band=<10k）`，其 `z_ctor≈+2.23`（`email_click_to_open_rate=0.1510`、`group avg=0.14979`、`std_pop=0.00054`）被识别为“点击率高于 +2σ”；同时确认无 open 异常，并说明 `BROWSE_ABANDON × <10k` 因 `std=0` 被排除在 z 判定之外。
+- 小标准4.1.A.3 [1分 | 结论性] 说明异常含义（如异常高点击暗示实验素材正向），并为后续根因分析留出线索（如着重复盘 high-ctor 的素材/受众）。
+
+#### 路径4.1.B [6分 | 分位/IQR 判定]
+- 小标准4.1.B.1 [1分 | 完备性] 采用稳健口径：按 `CAMPAIGN_TYPE × audience_band` 计算 `p10/p90`（当 `p90>p10` 时启用）构建上下界，并说明该方法能避开 `std=0` 档的分母为零问题。
+- 小标准4.1.B.2 [4分 | 精确性] 给出阈值与异常列表：`EXPERIMENT × <10k` 的 `ctor_p90≈0.15037`，`C000177` 以 `0.1510` 被判定为“高点击”；整体共识别 59 条分位异常（PROMOTION 14 / WINBACK 13 / PRODUCT_LAUNCH 6 / VIP 6 / DIGEST 5 / FLASH_SALE 4 / NEWSLETTER 4 / SURVEY 4 / EXPERIMENT 3），需指出该方法相较 2σ 更敏感，并解释如 PROMOTION 低开低点落入 `p10` 下界的原因。
+- 小标准4.1.B.3 [1分 | 结论性] 比较两种口径优劣：2σ 更稳健、分位法便于在样本较小或波动大的档位捕捉异常；对于 `std≈0` 档建议优先采用稳健分位或人工规则。
+
+———
+
+## 需求5：触达节奏与内容要素的表现对比（最高 6 分）
+
+### 标准5.1：触达节奏与内容要素的表现对比
+
+#### 路径5.1.A [6分 | 多维交叉对比]
+- 小标准5.1.A.1 [1分 | 完备性] 必须同时覆盖四个维度：① 发送日/时间段（Weekday/Weekend × AM/PM）；② 模板复用度（`EMAIL_TEMPLATE_ID` 占比>50% 判断及 Top 模板列表）；③ `source_relation`（主题/故事化来源）；④ 高频更新（相邻 `updated_at` 间隔 <24h）。
+- 小标准5.1.A.2 [4分 | 精确性] 输出下列锚点（允许误差±0.01；模板占比±0.01；高频次数允许误差±2）：
+  - Weekday AM 平均 `open≈0.294`、`ctor≈0.135`（n=44）；Weekend PM `open≈0.205`、`ctor≈0.080`（n=19）；
+  - Top 模板近 6 个月最大占比 17.36%（`TPL-WINBACK-1`，21/121），无任何模板超过 50%；
+  - `source_relation` 表现：`vip_hub avg_open≈0.520`、`promotion_engine≈0.270`、`content_studio≈0.360`、`digest_automations≈0.340`，`campaign_manager`/`browse_recovery` 长期低效（open=0, ctor=0）；
+  - 高频更新：相邻 `updated_at` 间隔 <24h 的活动 60 / 184 ≈ 32.6%。
+- 小标准5.1.A.3 [1分 | 结论性] 综合判读：指出周末晚间表现差、模板复用虽高但未超 50%、部分来源长期低效（campaign_manager/browse_recovery）、高频更新占比三成需警惕疲劳风险。
+
+#### 路径5.1.B [6分 | 统计建模视角]
+- 小标准5.1.B.1 [1分 | 完备性] 构建多变量模型（如逻辑回归或决策树）预测异常/高效活动概率，特征至少包含发送时间、模板频次、`source_relation`、`updated_at` 间隔。
+- 小标准5.1.B.2 [4分 | 精确性] 说明建模步骤（特征编码、训练/验证划分）并给出关键系数/重要度方向：如 Weekend PM 系数为负、模板过度使用时系数为负、`updated_at<24h` 为正的风险提示；同时校验模型能正确识别 Weekday AM / `TPL-WINBACK-1` 等高效特征方向。
+- 小标准5.1.B.3 [1分 | 结论性] 根据模型输出解释各因素对异常/高效的边际影响，形成频率控制与内容治理建议。
+
+———
+
+## 需求6：诊断报告与改进方案（含实验与收益预估）（最高 6 分）
+
+### 标准6.1：结构化报告、改进方向与对照实验
+
+#### 路径6.1.A [6分 | 全面诊断+试验设计]
+- 小标准6.1.A.1 [1分 | 完备性] 报告需覆盖：异常结果回溯（含 C000177 等示例）、模板治理（如降低单模板>50% 的潜在风险）、主题优化（指出低效 `source_relation`）、发送节律（针对 Weekend PM/高频更新问题）与冷却策略。
+- 小标准6.1.A.2 [4分 | 精确性] 必须引用上一需求的量化发现并提出具体目标：如“将 Weekend PM 活动迁移至 Weekday AM 预计打开率提升约 0.09（相对+5~10pp）、点击率提升约 0.055（+2~5pp）”、“控制 `updated_at<24h` 比例降至 <20%（基线 32.6%）”、“VIP 模板保持但为 PROMOTION（avg_open≈0.205、std≈0.205）引入新模板并验证波动收敛”、“复盘 C000177 高点击实验并扩展至相同受众带来 +0.001~-0.002 ctor 预期”。需给出至少 1 个具体 A/B 或阶梯实验（如“Weekday AM vs Weekend PM 发送时段实验，监测 open/ctor/下单”或“PROMOTION 新旧模板对照”），并明确监控指标与验证周期（如 2-4 个发送周期）。
+- 小标准6.1.A.3 [1分 | 结论性] 对改进措施进行风险与收益评估（如注意 SMS 退订、样本仅 4 条 person_campaign_flow 需扩大验证），形成可执行行动路线图。
+
+#### 路径6.1.B [6分 | 轻量框架+闭环治理]
+- 小标准6.1.B.1 [1分 | 完备性] 输出“诊断→策略→监控”三段式框架，覆盖异常、模板、主题、节奏与高频更新，并说明与活跃/付费洞察（需求2）的联动。
+- 小标准6.1.B.2 [4分 | 精确性] 给出可量化阈值与收益假设（如“当 `z_open<-2` 时自动纳入冷却队列”“目标将 Weekday AM 打开率保持在 ≥0.29，点击率≥0.13”“高频更新降至≤25%”），并提出滚动看板或告警设计；收益区间需与业务假设一致（如打开率+5~10pp、点击率+2~5pp）。
+- 小标准6.1.B.3 [1分 | 结论性] 说明如何利用实验/监控闭环持续迭代，强调样本与数据缺口（person_campaign_flow=4、缺事件明细）并建议后续数据扩充或验证步骤。

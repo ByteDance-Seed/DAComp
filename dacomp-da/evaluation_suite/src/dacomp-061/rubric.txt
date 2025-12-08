@@ -1,0 +1,131 @@
+# [Total Score | 36 Points] Scoring Rubric for "Fast Delivery but Low Stability" Project Health Assessment
+---
+## Requirement 1: Data Foundation Review and Redefinition of the Team Stability Metric (Up to 9 Points)
+### Criterion 1.1: Confirmation of Core Data Tables and Field Definitions (Up to 3 Points)
+#### Path 1.1.A (Database Three-Table Mapping + Key Description)
+- Criterion 1.1.A.1 [1 Point | Completeness] Clearly identifies the three tables and their purposes: `jira__project_enhanced` (200-row snapshot covering 70 `project_name`s, providing close/open definitions), `jira__issue_intelligence_analytics` (13,799,108 rows of issue-level quality factors), and `jira__team_performance_dashboard` (4,374 rows of member behavior for only 5 projects). States that `project_name` is the only common field across the three tables.
+- Criterion 1.1.A.2 [1 Point | Accuracy] Points out the correct join strategy and verification method: `SELECT COUNT(DISTINCT project_name) ...` results in 70 for the project table, 70 for the issue table, and 5 for the team table; `project_id` in the team table only has 5 distinct values, which does not match the 200 in the project table; `COUNT(DISTINCT health_status)=1` proves this column is a constant; obtains an intersection of 70 using `SELECT COUNT(*) FROM (SELECT DISTINCT project_name FROM issue JOIN project USING(project_name))`.
+- Criterion 1.1.A.3 [1 Point | Accuracy] Provides example comparison SQL (or pseudocode): `SELECT DISTINCT project_name FROM jira__project_enhanced`, similarly retrieving sets from the issue/team tables, and then verifying with `INTERSECT`; states that the subsequent wide table will be aggregated by `project_name`.
+
+#### Path 1.1.B (Offline Export / Intermediate Table Construction)
+- Criterion 1.1.B.1 [1 Point | Completeness] Describes the process of exporting the three tables → generating a wide table aggregated by `project_name` → performing the join and analysis in a Notebook/Python environment.
+- Criterion 1.1.B.2 [1 Point | Accuracy] Specifies the verification steps: read CSVs; `project` has 70 unique items after deduplication, `issue` has 13,799,108 rows, `team` has 5 projects; the table maintains 70 rows after `merge(on='project_name', how='left')`; missing fields are kept as NA without additional cleaning.
+- Criterion 1.1.B.3 [1 Point | Accuracy] Provides verification code: `len(df['project_name'].unique())==70`, output of `df.isna().sum()`; summarizes `open+closed` and `total_issues` to check against inputs for subsequent modeling.
+(Points are awarded for one of the two paths)
+
+### Criterion 1.2: Redefinition of the Team Stability Metric (Up to 4 Points)
+#### Path 1.2.A (Stable Contributor Ratio Method—Recommended Primary Definition)
+- Criterion 1.2.A.1 [1 Point | Completeness] Defines a stable contributor: `inactive_recently=0 AND at_churn_risk=0 AND consistency_percentage≥60 AND (days_since_first_issue≥90 OR sprint_count≥3)`; Stability = (Number of stable contributors / `COUNT(DISTINCT user_id)`) × 100%.
+- Criterion 1.2.A.2 [2 Points | Accuracy] Calculation results must match anchor values (tolerance ±0.5pp): Data Analytics Delta 33.333%, Mobile App Delta 60.000%, Mobile App Gamma 50.000%, API Gateway V3 80.000%, User Management V3 82.375%. Example SQL: `SUM(CASE WHEN ... THEN 1 END) / COUNT(DISTINCT user_id)`.
+- Criterion 1.2.A.3 [1 Point | Conclusiveness] States that this metric shows clear differentiation (33%~82%) and can be used for the subsequent "Fast/Slow × Stable/Unstable" quadrant analysis; also points out that the original `team_stability_percentage=100%` is distorted.
+
+#### Path 1.2.B (Issue Behavior Proxy: Turnover/Engagement Risk)
+- Criterion 1.2.B.1 [1 Point | Completeness] Defines proxy metrics: `churn_ratio = COUNT(DISTINCT assignee_name)/COUNT(*)`, `avg_engagement_risk_score`; Criterion for low stability = metric ≥ 75th percentile of the entire sample, where `Q75(churn_ratio)=5.77×10⁻⁴` and `Q75(engagement_risk)=2.885`.
+- Criterion 1.2.B.2 [2 Points | Accuracy] Describes the calculation logic: `GROUP BY project_name` to calculate numerator and denominator; use `NTILE(4)` or window function `PERCENT_RANK()` to estimate quantiles; produces a label `is_low_stability = churn_ratio≥5.8e-4 OR avg_engagement_risk_score≥2.885`.
+- Criterion 1.2.B.3 [1 Point | Conclusiveness] Explains that high churn/high engagement risk implies knowledge gaps and collaboration risks, which can be cross-validated with the stable contributor ratio from Path 1.2.A.
+
+#### Path 1.2.C (Active Month Stability)
+- Criterion 1.2.C.1 [1 Point | Completeness] Defines a stable member: an assignee with active months ≥3 after aggregating by `strftime('%Y-%m', resolved_at)`; Stability = (Number of stable members / Total assignees for a project) × 100%, ignoring records where `resolved_at` is NULL.
+- Criterion 1.2.C.2 [2 Points | Accuracy] Describes calculation steps: construct a `month_tag` → calculate `COUNT(DISTINCT month_tag)` → filter for ≥3 → `GROUP BY project_name` to get the ratio. Anchor values (±0.2pp): Data Analytics Delta 3.81%, Mobile App Delta 0.00%, Mobile App Gamma 0.00%, API Gateway V3 3.96%, User Management V3 1.30%.
+- Criterion 1.2.C.3 [1 Point | Conclusiveness] States that the active months metric focuses on continuity of participation and can complement the consistency/churn risk perspectives to identify short-term, sprint-focused contributors.
+
+### Criterion 1.3: Fast Project Identification and Quadrant Construction (Up to 2 Points)
+#### Path 1.3.A (Fixed Threshold + Four Quadrants)
+- Criterion 1.3.A.1 [1 Point | Completeness] Defines `is_fast = avg_close_time_days<15`; among the 70 projects in the table, there are only 2 fast projects (Data Analytics Delta 12.6 days, Mobile App Delta 13.67 days).
+- Criterion 1.3.A.2 [1 Point | Accuracy] Outputs a four-quadrant example with representative values: fast∧low (Data Analytics Delta: stability 33.3%, bug_rate 0.186, open_ratio 0.092), fast∧high (Mobile App Delta: stability 60.0%, bug_rate 0.155, open_ratio 0.125), slow∧high (API Gateway V3, User Management V3; bug_rate 0.171/0.207, stability ≥80%), slow∧low (Mobile App Gamma: stability 50.0%, open_ratio 0.187). Provides a `CASE WHEN` tagging SQL.
+
+#### Path 1.3.B (Quantile Threshold Method)
+- Criterion 1.3.B.1 [1 Point | Completeness] Uses `Q10(avg_close_time_days)=36.5` as the speed threshold and notes that the low-sample fast group still only contains the two aforementioned projects.
+- Criterion 1.3.B.2 [1 Point | Accuracy] Calculates `speed_quantile = avg_close_time_days≤36.5` to tag the fast group, lists the project names, and points out the sample size is only 2; provides pseudocode and verification method for `NTILE(10)`.
+
+---
+## Requirement 2: Construction of a Quality and Sustainability Metrics System (Up to 9 Points)
+### Criterion 2.1: Aggregation of Issue-Level Quality/Risk (Up to 4 Points)
+#### Path 2.1.A (Core Four-Metric Aggregation)
+- Criterion 2.1.A.1 [1 Point | Completeness] Constructs metrics: `bug_rate`, `avg_regression_ratio`, `avg_lifecycle_quality_score`, `avg_lifecycle_deviation_ratio`. Can be extended with `avg_total_risk_score`, `avg_completion_probability`.
+- Criterion 2.1.A.2 [2 Points | Accuracy] Aggregates by `project_name` (n_fast=2, n_slow=68), with anchor values (tolerance ±0.005/±0.05): bug_rate fast 0.171 vs slow 0.195; avg_regression_ratio fast 0.133 vs slow 0.065; avg_lifecycle_quality_score fast 6.455 vs slow 7.712; avg_lifecycle_deviation_ratio fast 18.371 vs slow 15.021. Example SQL: aggregate then group by `CASE WHEN avg_close_time_days<15` to calculate means.
+- Criterion 2.1.A.3 [1 Point | Conclusiveness] Points out that fast projects have higher rework metrics, lower quality scores, and larger deviations, which serve as a quality baseline for subsequent analysis.
+
+#### Path 2.1.B (Threshold Ratio / Alerting Metrics)
+- Criterion 2.1.B.1 [1 Point | Completeness] Defines high-risk ratios: `AVG(regression_ratio>0.1)`, `AVG(lifecycle_deviation_ratio>30)`, `share_unusually_fast`, `share_stat_outlier`.
+- Criterion 2.1.B.2 [2 Points | Accuracy] Anchor values (±0.01): high_regression_share fast 0.334 vs slow 0.010; high_deviation_share fast 0.276 vs slow 0.238; share_unusually_fast fast 0.242 vs slow 0.225; share_stat_outlier fast 0.066 vs slow 0.061.
+- Criterion 2.1.B.3 [1 Point | Conclusiveness] States that the high ratios in the fast group imply insufficient process control and a higher likelihood of triggering anomaly alerts.
+
+### Criterion 2.2: Team-Level and Stability-Related Metrics (Up to 3 Points)
+#### Path 2.2.A (Team Dashboard Aggregation)
+- Criterion 2.2.A.1 [1 Point | Completeness] Outputs project-level averages: `avg_consistency`, `avg_estimate_accuracy`, `avg_sprint_completion_rate`, `churn_risk_share`, `avg_days_since_first_issue`, `avg_unique_collaborators`.
+- Criterion 2.2.A.2 [2 Points | Accuracy] Anchor values (±5% or ±0.02): Data Analytics Delta 56.79 / 90.07 / 0.759 / 0.333 / 1825 / 6.42; Mobile App Delta 75.08 / 86.99 / 0.739 / 0.200 / 1845 / 6.80; Mobile App Gamma 57.42 / 85.62 / 0.723 / 0.125 / 1808 / 7.00; API Gateway V3 72.48 / 86.81 / 0.733 / 0.100 / 1889 / 6.80; User Management V3 82.58 / 87.56 / 0.776 / 0.176 / 1714 / 6.97.
+
+#### Path 2.2.B (Team Stability Index / TSI Design)
+- Criterion 2.2.B.1 [1 Point | Completeness] Proposes a formula: `TSI = 100×[0.3×active_ratio + 0.2×(1-churn_risk_share) + 0.3×high_consistency_ratio + 0.2×single_project_focus_ratio]`, with each component derived from team table fields.
+- Criterion 2.2.B.2 [1 Point | Accuracy] Explains the calculation process: `active_ratio = 1-AVG(inactive_recently)`; `high_consistency_ratio = AVG(consistency_percentage≥70)`; sets a threshold of `TSI≥70` to determine high stability; provides pseudocode or SQL.
+- Criterion 2.2.B.3 [1 Point | Conclusiveness] Notes that a composite index is more robust in scenarios with high churn risk (e.g., Data Analytics Delta at 33.3%) and can corroborate the stable contributor ratio.
+
+### Criterion 2.3: Proxies for Long-Term Sustainability (Up to 2 Points)
+#### Path 2.3.A (Backlog and Unfinished Work Pressure)
+- Criterion 2.3.A.1 [1 Point | Completeness] Defines `open_ratio = count_open_issues / (count_open_issues + count_closed_issues)`.
+- Criterion 2.3.A.2 [1 Point | Accuracy] Anchor values (±0.01): Data Analytics Delta 0.092, Mobile App Delta 0.125, Mobile App Gamma 0.187, API Gateway V3 0.166, User Management V3 0.122. States that a high `open_ratio` indicates sustained delivery pressure.
+
+#### Path 2.3.B (Risk Decomposition)
+- Criterion 2.3.B.1 [1 Point | Completeness] Selects `avg_total_risk_score`, `avg_engagement_risk_score`, and `avg_process_risk_score` for comparison.
+- Criterion 2.3.B.2 [1 Point | Accuracy] Anchor values (±0.05/±0.02): fast vs slow total risk 99.625 vs 99.338; engagement risk 2.664 vs 2.696; process risk 39.986 vs 39.996. Notes that while differences are small, trends should be monitored continuously.
+- Criterion 2.3.B.3 [1 Point | Conclusiveness] States that higher risk scores imply potential failures and delivery instability, and should be interpreted in conjunction with quality metrics.
+
+---
+## Requirement 3: Quantitative Analysis of the Speed-Stability-Quality Relationship (Up to 12 Points)
+### Criterion 3.1: Group/Quadrant Comparison (Up to 4 Points)
+#### Path 3.1.A (Fast/Slow Mean Comparison)
+- Criterion 3.1.A.1 [1 Point | Completeness] Uses `avg_close_time_days<15` to divide into fast and slow groups, noting the fast group has a sample size of only 2.
+- Criterion 3.1.A.2 [2 Points | Accuracy] Compares core metrics (tolerance ±0.005/±0.05): regression ratio 0.133 vs 0.065; quality score 6.455 vs 7.712; deviation 18.371 vs 15.021; bug_rate 0.171 vs 0.195; share_unusually_fast 0.242 vs 0.225.
+- Criterion 3.1.A.3 [1 Point | Conclusiveness] Concludes that "fast" is associated with higher rework/deviation and lower quality scores, indicating a significant tension between speed and quality.
+
+#### Path 3.1.B (Four Quadrants: Speed × Stability)
+- Criterion 3.1.B.1 [1 Point | Completeness] Uses stability ≥60% from Path 1.2.A to define high stability and outputs the mean values for the four quadrants.
+- Criterion 3.1.B.2 [2 Points | Accuracy] Anchor values for representative projects (tolerance ±0.005/±0.01): fast&low (Data Analytics Delta: bug_rate 0.186, consistency 56.79, churn_risk_share 0.333, open_ratio 0.092); fast&high (Mobile App Delta: bug_rate 0.155, consistency 75.08, churn_risk_share 0.200, open_ratio 0.125); slow&high (User Management V3: bug_rate 0.207, consistency 82.58, regression_ratio 0.062, open_ratio 0.122; API Gateway V3 can be used for support with bug_rate 0.171, consistency 72.48); slow&low (Mobile App Gamma: bug_rate 0.191, consistency 57.42, churn_risk_share 0.125, open_ratio 0.187).
+- Criterion 3.1.B.3 [1 Point | Conclusiveness] States that "fast and low-stability" projects have high defect rates and significant churn risk, while "slow and stable" projects have the best quality but are slow, thus identifying governance priorities.
+
+### Criterion 3.2: Correlation Analysis (Up to 4 Points)
+#### Path 3.2.A (Pearson)
+- Criterion 3.2.A.1 [1 Point | Completeness] Calculates at least three sets of correlations: speed vs. regression/quality, stability proxy (churn_ratio|engagement) vs. quality, and speed vs. stability proxy; based on a sample of 70 projects.
+- Criterion 3.2.A.2 [2 Points | Accuracy] Pearson results (±0.05): corr(speed, regression)=-0.466; corr(speed, lifecycle_quality)=+0.467; corr(churn_ratio, regression)=-0.241; corr(engagement_risk, regression)=-0.115; corr(speed, churn_ratio)=+0.129.
+- Criterion 3.2.A.3 [1 Point | Conclusiveness] Explains the directions: the faster the speed (shorter cycle time), the higher the regression and the lower the quality; improved stability (lower churn) reduces rework.
+
+#### Path 3.2.B (Spearman/Robustness Add-on)
+- Criterion 3.2.B.1 [1 Point | Completeness] Uses rank correlation or stratification (e.g., by project family) to verify directionality.
+- Criterion 3.2.B.2 [2 Points | Accuracy] Spearman results (±0.05): ρ(speed, regression)≈-0.037, ρ(speed, lifecycle_quality)≈+0.033, ρ(churn_ratio, regression)≈-0.083, ρ(speed, churn_ratio)≈+0.077; states sample size n=70.
+- Criterion 3.2.B.3 [1 Point | Conclusiveness] Notes that the rank correlation direction is consistent with Pearson but the magnitude is smaller, suggesting that outlier projects dominate the linear correlation and that group analysis should be used in conjunction.
+
+### Criterion 3.3: Linear Model / Slope Analysis (Up to 4 Points)
+#### Path 3.3.A (Linear Regression or Cov/Var Slope)
+- Criterion 3.3.A.1 [1 Point | Completeness] Constructs a model: `avg_regression_ratio ~ avg_close_time_days + churn_ratio + avg_engagement_risk_score` (or equivalent slope calculation).
+- Criterion 3.3.A.2 [2 Points | Accuracy] Slope anchor values (tolerance ±20%): β(speed→regression)=-0.000488, β(speed→quality)=+0.00895, β(churn_ratio→regression)=-27.21, β(churn_ratio→quality)=+498.64. Explains that the extremely small numerical value of `churn_ratio` leads to a large coefficient magnitude.
+- Criterion 3.3.A.3 [1 Point | Conclusiveness] Emphasizes the direction: shortening cycle times increases rework and lowers quality; team dispersion (rising churn) increases rework risk, which must be understood in context of scale.
+
+#### Path 3.3.B (Intra-Fast-Group Comparison / Non-parametric Test)
+- Criterion 3.3.B.1 [1 Point | Completeness] Within the fast group (2 projects), divides them by stability ≥60% and compares key metrics.
+- Criterion 3.3.B.2 [2 Points | Accuracy] Describes the differences: bug_rate 18.6% (low-stability) vs 15.5% (high-stability); avg_consistency 56.79 vs 75.08; churn_risk_share 0.333 vs 0.200; open_ratio 0.092 vs 0.125. If a test is performed, it must be noted that the sample size is extremely small and is for trend reference only.
+- Criterion 3.3.B.3 [1 Point | Conclusiveness] States that "fast and low-stability" projects have high defect rates and significant personnel risks, which are unsustainable signals and should be prioritized for intervention.
+
+---
+## Requirement 4: Structured Conclusions and Governance Recommendations (Up to 6 Points)
+### Criterion 4.1: Delivery of Conclusions and Insights (Up to 3 Points)
+#### Path 4.1.A (Evidence-Chain Summary)
+- Criterion 4.1.A.1 [1 Point | Completeness] Conclusions cover: relationship between speed and quality/rework, relationship between stability and quality, backlog/risk status, and sample limitations.
+- Criterion 4.1.A.2 [1 Point | Accuracy] Each conclusion references an anchor value: e.g., `corr(speed, regression)=-0.466`, `bug_rate_fast=0.171 vs slow=0.195`, `open_ratio(Data Analytics Delta)=0.092 vs API Gateway V3=0.166`, `fast group sample size is only 2`.
+- Criterion 4.1.A.3 [1 Point | Conclusiveness] Makes a clear judgment: "Fast and low-stability" projects (Data Analytics Delta) deliver quickly in the short term but have high rework/churn risks and are unsustainable long-term; "fast and stable" projects (Mobile App Delta) need to strengthen engineering and team governance to maintain their advantage.
+
+#### Path 4.1.B (Risk Tiering / Alerting Framework)
+- Criterion 4.1.B.1 [1 Point | Completeness] Constructs alert conditions: e.g., `avg_close_time_days<15 AND stability<60% AND avg_regression_ratio≥0.12 AND high_regression_share≥0.25` is classified as Red.
+- Criterion 4.1.B.2 [1 Point | Accuracy] Explains the source of the thresholds (fast group means 0.133, 0.334, etc.) and provides pseudocode/SQL; for example, a `CASE WHEN` statement that outputs `risk_level in ('Red','Amber','Green')`.
+- Criterion 4.1.B.3 [1 Point | Conclusiveness] Articulates how alerts can guide governance priorities (fast/low-stability first, followed by slow/low-stability).
+
+### Criterion 4.2: Governance Recommendations (Up to 3 Points)
+#### Path 4.2.A (Engineering Quality Guardrails)
+- Criterion 4.2.A.1 [1 Point | Completeness] Proposes at least 3 measures aligned with the data: ① For the fast group's `high_regression_share=0.334`, implement mandatory regression testing/quality gates; ② For `high_deviation_share=0.276`, establish change impact assessments and rollback drills; ③ In line with `share_unusually_fast=0.242`, implement and track a release checklist.
+
+#### Path 4.2.B (Team Stability and Knowledge Retention)
+- Criterion 4.2.B.1 [1 Point | Completeness] Provides ≥3 measures: set tenure goals for core members, pair programming/job rotation, knowledge bases/ADRs, mentorship programs, retention incentives.
+- Criterion 4.2.B.2 [1 Point | Accuracy] Aligns recommendations with data insights: for Data Analytics Delta's `churn_risk_share=0.333` and `avg_consistency=56.79`, propose co-assignment of tasks/cross-training, quarterly consistency reviews, and specify monitoring metrics (e.g., `AVG(at_churn_risk)`, `consistency`).
+- Criterion 4.2.B.3 [1 Point | Conclusiveness] Describes how implementation supports the long-term goal of being "fast and stable" (reducing churn, increasing TSI) and outlines a review cadence.
+
+---

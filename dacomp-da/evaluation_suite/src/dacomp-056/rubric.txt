@@ -1,0 +1,121 @@
+# [Total Points | 30] 'Low Consistency, High Value' Customer Insight Rubric
+
+---
+
+## Requirement 1: Data Preparation and Segment Definition (Up to 6 Points)
+
+### Standard 1.1: Build a Reproducible Data Foundation and Complete Customer Segmentation
+
+#### Path 1.1.A: Single-Table Validation and Rule-Based Segmentation
+
+- Standard 1.1.A.1 [1 Point | Completeness]: Confirm that the sole valid data source is `customer360__customer_value_analysis` (5001 rows) and identify the key fields: `primary_email`, `customer_tier`, `portfolio_contribution_pct`, `recency_score`, `frequency_score`, `monetary_score`, `rfm_avg_score`, `estimated_customer_ltv`, `customer_health_score`, `churn_probability`, `recommended_engagement_model`, `lifecycle_stage`, `account_age_days`, and `days_since_last_activity`. State that all subsequent analysis will be based on this table.
+- Standard 1.1.A.2 [4 Points | Accuracy]: Complete all of the following validations: 1) The value range of `portfolio_contribution_pct` is [0.000400318586, 0.5], and the table-wide average is 0.009133645071 (tolerance ≤1e-6); 2) `primary_email` has no missing values (0 rows), with 4734 unique values after deduplication, indicating 111 duplicate records with a maximum repetition count of 24. The deduplication/aggregation logic must be explained in the analysis; 3) The `customer360__conversion_funnel_analysis` and `customer360__customer_activity_metrics` tables both contain 0 records; 4) Segment customers where `customer_tier`∈{Gold,Platinum} AND `portfolio_contribution_pct`>5% to define the HV group (N=103), and where `customer_tier`∈{Basic,Bronze,Silver} AND ≤5% to define the SMB group (N=4875), with the remaining categorized as Other (N=23) (tolerance ±1).
+- Standard 1.1.A.3 [1 Point | Conclusion]: Clearly state that the funnel and activity tables are empty, requiring the use of RFM/LTV as proxies to measure consistency and value. Explain how deduplication or aggregation of the 111 duplicate emails ensures the credibility of the conclusions.
+
+#### Path 1.1.B: Constructing a Data Foundation with Proxy Metrics
+
+- Standard 1.1.B.1 [1 Point | Completeness]: Provide a complete system of proxy metrics: `rfm_mean=mean(R,F,M)`, `rfm_variance=var(R,F,M)`, `consistency_proxy=1/(1+rfm_variance)`, `ltv_velocity=estimated_customer_ltv/(account_age_days/30.44)`, `inactivity_ratio=days_since_last_activity/account_age_days`. State that all are derived from `customer360__customer_value_analysis`.
+- Standard 1.1.B.2 [4 Points | Accuracy]: The calculation logic is correct, and the metrics for the HV/SMB groups fall within the following ranges (tolerance ±0.002): avg_consistency_proxy(HV)=0.749, avg_consistency_proxy(SMB)=0.805; avg_ltv_velocity(HV)=1046.6, avg_ltv_velocity(SMB)=142.0; avg_inactivity_ratio(HV)=0.790, avg_inactivity_ratio(SMB)=0.933.
+- Standard 1.1.B.3 [1 Point | Conclusion]: Analyze the business rationale of the proxies (e.g., a high `inactivity_ratio` represents a gap in engagement) and point out the potential bias in diagnosing consistency due to the lack of detailed funnel/activity data.
+
+#### Path 1.1.C: Quantile and Multi-Condition Segmentation
+
+- Standard 1.1.C.1 [1 Point | Completeness]: Propose percentile-based definitions: HV=`customer_tier`∈{Gold,Platinum} AND `portfolio_contribution_pct`≥P98 (0.051471937), SMB=`customer_tier`∈{Basic,Bronze,Silver} AND ≤P80 (0.011773760). State that the percentiles are derived from the full sample of 5001 rows.
+- Standard 1.1.C.2 [4 Points | Accuracy]: Provide SQL/pseudocode demonstrating how to extract percentile values and assign labels. Verify sample sizes: HV=101, SMB=4001 (tolerance ±5). If duplicate `primary_email` values cause conflicts, describe the deduplication priority rule.
+- Standard 1.1.C.3 [1 Point | Conclusion]: Compare the applicable scenarios for the rule-based vs. quantile-based methods and explain how to maintain metric consistency when coordinating strategies.
+
+---
+
+## Requirement 2: Composite RFM Scoring Model Construction (Up to 6 Points)
+
+### Standard 2.1: Develop an RFM System that Differentiates Customer Value Structures
+
+#### Path 2.1.A: Equal-Weight RFM Validation
+
+- Standard 2.1.A.1 [1 Point | Completeness]: Clearly state the RFM calculation formula `rfm_calculated=(recency_score+frequency_score+monetary_score)/3` and perform a row-by-row comparison with `rfm_avg_score`.
+- Standard 2.1.A.2 [4 Points | Accuracy]: 1) The maximum value of `|rfm_calculated-rfm_avg_score|` is 0.0 (must be ≤0.05); 2) For the HV group, average R=4.0291, F=4.0485, M=4.5340, RFM=4.203883; 3) For the SMB group, average R=1.8082, F=1.8484, M=1.8326, RFM=1.829744. Tolerance of ±0.02 is allowed.
+- Standard 2.1.A.3 [1 Point | Conclusion]: Summarize that the HV group exhibits a "high M, medium-high R/F" pattern, while the SMB group shows a "uniformly low value" pattern, and explain the significance for value assessment.
+
+#### Path 2.1.B: Differentiated Weighted RFM
+
+- Standard 2.1.B.1 [1 Point | Completeness]: Explain that the weights for the HV group (0.2, 0.3, 0.5) emphasize monetary value, while the weights for the SMB group (0.4, 0.4, 0.2) focus on activity frequency.
+- Standard 2.1.B.2 [4 Points | Accuracy]: Calculate the weighted RFM scores. Verify that the HV group average is 4.2874, the SMB group average is 1.8292, and the difference multiplier is 2.344 (tolerance ±0.02). Provide pseudocode/SQL to demonstrate the calculation.
+- Standard 2.1.B.3 [1 Point | Conclusion]: Articulate the advantage of the weighted model in distinguishing between "high monetary value" and "high activity level" paths.
+
+#### Path 2.1.C: RFM Standardization or Clustering Model
+
+- Standard 2.1.C.1 [1 Point | Completeness]: Describe the process: apply z-score normalization to R/F/M → cluster using KMeans(k=6, random_state=42) → label the high-value cluster.
+- Standard 2.1.C.2 [4 Points | Accuracy]: Reproduce the KMeans results, identifying the high-value cluster with a sample size of 259. Its centroid is approximately [z(R)=2.094, z(F)=2.108, z(M)=2.500]. Within this cluster, the HV group constitutes 39.768% and the SMB group constitutes 60.232% (tolerance ±2pct). Explain the label mapping logic.
+- Standard 2.1.C.3 [1 Point | Conclusion]: Explain that although the high-value cluster includes some SMB customers, it can reveal potential upsell customers and inform subsequent operational priorities.
+
+---
+
+## Requirement 3: Validation of the 'Low Consistency, High Value' Phenomenon (Up to 6 Points)
+
+### Standard 3.1: Corroborate the Phenomenon with Multi-Angle Metrics
+
+#### Path 3.1.A: Linking RFM Imbalance with Value Metrics
+
+- Standard 3.1.A.1 [1 Point | Completeness]: Define `rfm_imbalance = monetary_score - (recency_score+frequency_score)/2` and relate it to consistency/frequency.
+- Standard 3.1.A.2 [4 Points | Accuracy]: Validate the metrics: HV avg_imbalance=0.495, SMB=0.004308; HV avg_estimated_customer_ltv=7205.13, SMB=1285.47; HV avg_ltv_velocity=1046.56, SMB=142.01. Provide the multipliers: imbalance ≈114.9×, LTV ≈5.61×, velocity ≈7.37× (tolerance ±0.1).
+- Standard 3.1.A.3 [1 Point | Conclusion]: Conclude that a positive relationship exists where "higher imbalance correlates with faster value realization," thus validating the 'low consistency, high value' phenomenon.
+
+#### Path 3.1.B: Robustness Check via Imbalance Binning
+
+- Standard 3.1.B.1 [1 Point | Completeness]: Define three bins for imbalance: ≤0, 0~0.5, >0.5, corresponding to Low/Mid/High, and explain their business meaning.
+- Standard 3.1.B.2 [4 Points | Accuracy]: Output statistics for each bin (tolerance ±0.05 for health, ±100 for LTV): HV Low count=42, LTV≈7903.9, Health≈3.057; Mid count=21, LTV≈6592.6; High count=40, LTV≈6793.1. SMB Low count=2998, LTV≈1273.2; Mid count=992, LTV≈1111.4; High count=885, LTV≈1522.1. Emphasize that HV bins still maintain a ≥5× LTV gap compared to SMB bins.
+- Standard 3.1.B.3 [1 Point | Conclusion]: Point out that the phenomenon holds true across different bins, ruling out the possibility that it is driven by extreme values.
+
+#### Path 3.1.C: Correlation Analysis of Consistency Proxy and Velocity
+
+- Standard 3.1.C.1 [1 Point | Completeness]: Frame a correlation analysis between `consistency_proxy` and `ltv_velocity`, using covariance/correlation coefficient.
+- Standard 3.1.C.2 [4 Points | Accuracy]: Provide the results: HV correlation coefficient=0.175, SMB correlation coefficient=-0.212 (tolerance ±0.01). Include pseudocode: first calculate mean, variance, covariance → corr=cov/(σ_x·σ_y).
+- Standard 3.1.C.3 [1 Point | Conclusion]: Explain how the slight positive correlation for HV and the negative correlation for SMB structurally supports the idea that 'low consistency is conversely accompanied by high velocity'.
+
+---
+
+## Requirement 4: Customer Health and Lifecycle Characteristic Analysis (Up to 6 Points)
+
+### Standard 4.1: Multi-Dimensional Health Index and Lifecycle/Channel Profiling
+
+#### Path 4.1.A: Composite Health Index
+
+- Standard 4.1.A.1 [1 Point | Completeness]: Clearly state the index formula: `0.5*health_norm + 0.3*(1-churn_probability) + 0.2*min(LTV/10000,1)`. Explain that `health_norm` is derived from a Min-Max normalization of `customer_health_score`.
+- Standard 4.1.A.2 [4 Points | Accuracy]: Validate the metrics (tolerance ±0.01): For HV, health_norm=0.759, risk_norm=0.588, value_norm=0.688, composite=0.693. For SMB, the respective values are 0.184/0.236/0.129/0.188. Calculate the composite index multiplier ≈3.68.
+- Standard 4.1.A.3 [1 Point | Conclusion]: Summarize that the HV group significantly leads in health, stability, and value dimensions, and explain how this supports the value assessment.
+
+#### Path 4.1.B: Linking Activity Efficiency Proxy with Health
+
+- Standard 4.1.B.1 [1 Point | Completeness]: Define `activity_efficiency=1-inactivity_ratio`, explaining it is derived from `account_age_days` and `days_since_last_activity`.
+- Standard 4.1.B.2 [4 Points | Accuracy]: Output HV avg_activity_efficiency=0.210, customer_health_score=2.970, churn_probability=0.412. The corresponding SMB values are 0.067/1.704/0.764 (tolerance ±0.005). Discuss the link between low efficiency and high churn probability.
+- Standard 4.1.B.3 [1 Point | Conclusion]: Explain that this proxy can identify potential at-risk customers and support engagement strategies.
+
+#### Path 4.1.C: Lifecycle + Channel Preference Analysis
+
+- Standard 4.1.C.1 [1 Point | Completeness]: Tally the distributions for `lifecycle_stage` and `recommended_engagement_model` separately and combine them into a matrix.
+- Standard 4.1.C.2 [4 Points | Accuracy]: Provide the distributions (tolerance ±1 person): HV: Retention=46, Dormant=45, Growth=6, Maturity=5, Activation=1. SMB: Dormant=4119, Retention=584, Growth=127, Maturity=28, Activation=17. For channels: HV: Executive=52, Standard=44, Retention&Recovery=6, Dedicated=1. SMB: Standard=4875. Also provide representative combined averages, e.g., HV·Executive avg_health≈3.160, avg_ltv≈7812; HV·Standard avg_health≈2.757, avg_ltv≈6268.4; Retention stage avg_health≈2.811, avg_ltv≈7684.435; SMB·Standard avg_health≈1.704, avg_ltv≈1285.472.
+- Standard 4.1.C.3 [1 Point | Conclusion]: Explain that the combination of lifecycle stages and multiple engagement channels for the HV group leads to periodic engagement, which provides a structural reason for the 'low consistency, high value' observation.
+
+---
+
+## Requirement 5: Differentiated Operational Strategies and Resource Allocation (Up to 6 Points)
+
+### Standard 5.1: Formulate Actionable Strategies and a Monitoring Loop Based on Insights
+
+#### Path 5.1.A: Tiered Operational Strategy
+
+- Standard 5.1.A.1 [1 Point | Completeness]: Propose core operational frameworks for HV and SMB groups, linking them to lifecycle, channel, and time efficiency factors (must reference the distributions and proxies from above).
+- Standard 5.1.A.2 [4 Points | Accuracy]: Quantitative targets must cover: HV: Executive coverage ≥80% (current 52/103≈50.5%), Dedicated model pilot for ≥ top 10% of customers, health score target ≥3.5, churn rate (proxied by `churn_probability`) ≤25%, LTV ≥7205, imbalance maintained at 0.3~0.8, CSM coverage 1:20, 100% QBR coverage, ≥2 custom plans/year. SMB: 30-day active rate (proxied by `activity_efficiency`) increased to ≥60%, core feature adoption ≥80%, LTV target ≥1600, health score ≥2.0, automation coverage ≥95%, manual intervention threshold health<1.5, pooled CSM 1:500, community self-service ≥70%.
+- Standard 5.1.A.3 [1 Point | Conclusion]: Articulate the principle of "HV=high-value, high-touch; SMB=scale and efficiency." Explain that when `marketing_to_sales_days` is missing, use `rfm_velocity` and `account_age_days/days_since_last_activity` as time-efficiency proxies.
+
+#### Path 5.1.B: KPI Monitoring and Dynamic Resource Optimization
+
+- Standard 5.1.B.1 [1 Point | Completeness]: Construct a three-stage feedback loop for each tier (HV/SMB): KPI monitoring, alerts, and resource adjustment.
+- Standard 5.1.B.2 [4 Points | Accuracy]: Articulate key thresholds: HV: health score ≥3.0, alert <2.5; Executive coverage ≥80%, alert <70%; imbalance normal 0.3~0.8, alert >1.0/<0.2; quarterly LTV ≥7205, alert on >10% drop; renewal rate ≥95%, alert <90%. SMB: active rate ≥60%, alert <50%; feature adoption ≥80%, alert <60%; automation ≥95%, alert <90%; quarterly LTV growth ≥25%, alert <15%; health score ≥2.0, alert <1.8; self-service ≥70%, alert <60%. Explain the calculation of ROI = Incremental LTV / Incremental Investment and the resource migration strategy.
+- Standard 5.1.B.3 [1 Point | Conclusion]: Emphasize the "Strategy → Monitoring → Optimization" loop. Describe how yellow/red alerts trigger resource adjustments and urgent interventions, respectively.
+
+#### Path 5.1.C: Time Efficiency and Channel Synergy Strategy
+
+- Standard 5.1.C.1 [1 Point | Completeness]: Propose an efficiency-tiered process centered on `marketing_to_sales_days` and `sales_to_support_days`. If fields are missing, note this and use `ltv_velocity` and `inactivity_ratio` as substitutes.
+- Standard 5.1.C.2 [4 Points | Accuracy]: Provide threshold recommendations: if original fields exist, HV should be ≤45/≤30 days, SMB ≤30/≤14 days. If fields are missing, this must be documented in the report and proxy-based labels should be used, such as `rfm_velocity`>1000 (HV) / ≥150 (SMB) and `inactivity_ratio`<0.75 (HV) / <0.90 (SMB). Channel preference should be combined with `recommended_engagement_model` (e.g., Executive model must cover ≥3 high-value touchpoints, Standard model must have ≥90% automation). Provide pseudocode showing the logic for labeling based on efficiency and channel.
+- Standard 5.1.C.3 [1 Point | Conclusion]: Explain how synergy between time efficiency and channels drives resource reallocation, ensuring that low-consistency customers receive targeted interventions at critical moments.

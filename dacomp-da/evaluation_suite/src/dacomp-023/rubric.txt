@@ -1,0 +1,144 @@
+# [Total | 24 points]  The solution must satisfy the following two core requirements:
+- Requirement 1: Trends for the three major categories and the "fastest-growing each year" determination
+- Requirement 2: Summarize by Region and assess performance differences among Regional Managers
+---
+## Requirement 1: Trends for the three major categories and the "fastest-growing each year" determination (Max 12 points)
+### Criterion 1.1: Data definitions, scope, and reproducibility (Max 3 points)
+#### Path 1.1.A [3 points | Field mapping + definition lock-in + reproducibility info]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Provide the Field Mapping (source→standard) and unified definitions:
+  1) `Order Date` → aggregate by calendar year (must declare usage of UTC or the business timezone; if timezone T is chosen, then "year" is computed in T);
+  2) `Category` ∈ {**Office Supplies**, **Technology**, **Furniture**} (if the source uses synonyms or localized names, provide a standardized mapping table);
+  3) `Region` (region naming uses the company standard dictionary; if hierarchical areas exist, choose the Level-1 region definition);
+  4) `Sales` (must declare currency and tax inclusion/exclusion. If FX conversion is required, fix a base currency and FX table/version and keep it consistent throughout);
+  5) Scope: include only records from **2015-01-01 00:00:00** to **2018-12-31 23:59:59** (in the chosen timezone definition).
+  Sample 10 rows to verify the year attribution and whether the three categories are complete (if a category has no transactions in a given year, it must be explicitly marked as 0 later).
+  All field and definition notes appear; time range is explicit and sampled year attributions all pass; if any category is missing, subsequent analysis must enter "0" in the tables and flag it in conclusions.
+- Sub-criterion 1.1.A.2 [1 point | Accuracy]: Clarify the "year" computation (e.g., `year = YEAR(Order Date in timezone T)`); amounts use either sales net of tax or gross including tax—must be explicit and consistent throughout.
+  Randomly select 1 cross-year-boundary order (e.g., 2015-12-31 vs 2016-01-01) and verify its year attribution aligns with the chosen timezone and rules; randomly verify 3 records for consistency of amount units/currency definition.
+  Timezone and amount definition are both explicit and spot checks all pass.
+- Sub-criterion 1.1.A.3 [1 point | Completeness]: Provide a Reproducibility Info Block in the report: `script_ver` / `run_at_UTC` / `input_md5` / `seed (for sampling)` / `source table or view name` / `final record row count`.
+  Info block fields are complete and values are self-consistent (e.g., row counts align with the pivot totals).
+  All six elements are present. If charts cannot be referenced, directly cite specific values from tables/code output and note the source (e.g., "see 'Annual Category YoY' table"); counted as equivalent compliance.
+
+### Criterion 1.2: Annual pivot and growth metrics (Max 4 points)
+#### Path 1.2.A [4 points | Annual pivot table + YoY + CAGR]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Build `pivot(year, category) -> sum(Sales)`, and add a "by-year data" column for reconciliation.
+  Four rows for 2015–2018 × three categories (fill **0** if a category has no transactions in a given year).
+- Sub-criterion 1.2.A.2 [2 points | Accuracy]:
+  `YoY(y) = (Sales_y - Sales_{y-1}) / Sales_{y-1}` (y ∈ {2016, 2017, 2018}; if `Sales_{y-1}=0`, then that year's YoY is **NA** and is skipped in champion determination);
+  `CAGR_2015→2018 = (Sales_2018 / Sales_2015)^(1/3) - 1` (if `Sales_2015=0`, CAGR is **NA** and must be explained separately in long-term comparison).
+  Randomly pick **1 category × 2 years** to hand-calculate YoY; pick **1 category** to hand-calculate CAGR; deviations from table values ≤ **0.1 percentage points**.
+  YoY and CAGR each account for 1 point; if one is correct, award 1 point.
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: Complete set of trend conclusions (hit at least one and provide evidence)
+  Optional conclusions (must include specific values or chart references):
+  1) Monotonic increase: 2015<2016<2017<2018 (at least three segments with YoY>0);
+  2) Volatile increase: CAGR>0 and YoY<0 in at least one year;
+  3) Significant acceleration: `YoY_2018 ≥ YoY_2017 + 10pct`;
+  4) Slowdown: `YoY_2018 ≤ YoY_2017 - 10pct`.
+  Choose at least one and list corresponding YoY/CAGR values in parentheses and provide chart references. If charts cannot be referenced, directly cite specific values from tables/code output and note the source; counted as equivalent compliance.
+
+#### Path 1.2.B [4 points | Monthly resampling → annual aggregation + robust mean]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: Aggregate by month `sum(Sales)` → then aggregate by year (sum), and provide a textual explanation of potential holiday/seasonality impacts on monthly volatility (definition-only).
+  Pipeline steps are complete and totals are consistent with the annual pivot (≤0.1%).
+  Compliant.
+- Sub-criterion 1.2.B.2 [2 points | Accuracy]: Output `{sum, trimmed_mean(10%)}` per year per category; if the difference exceeds **5%**, provide a "tail impact explanation" (e.g., concentration of large orders).
+  Randomly pick **1 year × 1 category** and hand-calculate the difference ratio, within the error threshold.
+  Comparisons and explanation are complete.
+- Sub-criterion 1.2.B.3 [1 point | Conclusion]: Reuse the template from 1.2.A.3 and cite evidence for consistency between **sum** and **trimmed_mean**.
+  Compliant.
+
+### Criterion 1.3: Determination and verification of the "fastest-growing category each year" (Max 3 points)
+#### Path 1.3.A [3 points | Champion identification based on YoY]
+- Sub-criterion 1.3.A.1 [1 point | Completeness]: For each year y∈{2016, 2017, 2018}, compute each category's `YoY_y`, and take `argmax(YoY_y)` as the champion for that year; if tied (difference ≤ **0.1pct**), display as a tie. Categories with YoY = NA are skipped for that year's determination.
+  Provide an "Annual Champions" table: `{year, champion_category, YoY%}`.
+  Table is complete.
+- Sub-criterion 1.3.A.2 [1 point | Accuracy]: Consistency verification
+  Pseudoflow:
+  ```
+  FOR year IN {2016, 2017, 2018}:
+      recompute YoY from annual_pivot
+      assert champion == argmax(YoY among non-NA)
+  ```
+  Assertions for all three years pass; if a category's sales are 0 in a base year → YoY=NA → remove from candidate set, and add a footnote below the table.
+  (New addition) It is allowed to provide assertions/logs in code (e.g., `assert` / print "PASS") as verification evidence; no need to re-table.
+- Sub-criterion 1.3.A.3 [1 point | Conclusion]: Annual champion combinations (hit any one and provide evidence)
+  Candidate combinations & triggers:
+  - "Furniture" leads 2016/2018, "Office Supplies" leads 2017: `YoY_Furniture_2016`, `YoY_Furniture_2018`, `YoY_Office Supplies_2017` are all the largest of their respective years;
+  - "Technology" wins ≥2 years: Technology is the YoY maximum in at least 2 years among {2016, 2017, 2018};
+  - "Office Supplies" surges: Office Supplies' YoY in 2017 or 2018 exceeds the next-largest category by **≥5pct** at least once;
+  - No significant difference: in any year, `max(YoY) - second(YoY) < 2pct`.
+  Replace the end of each line with: "State which item is met and list the corresponding YoY values (to one decimal place in percentage points) in parentheses; allow semantically equivalent wording, and evidence may directly cite the prior YoY table/code output."
+
+### Criterion 1.4: Visualization and self-check (Max 2 points)
+#### Path 1.4.A [2 points | Line/Bar + numeric spot-check]
+- Sub-criterion 1.4.A.1 [1 point | Completeness]: At least **2 charts**: ① Annual **Sales** by category (line or clustered bars; unit = base currency); ② Annual **YoY** by category (line, unit = pp). Titles/axis units/legends are complete, and years are discrete ticks.
+  Charts are complete and annotations are thorough.
+  (New addition) If plotting is constrained (e.g., no plotting capability in the evaluation environment), provide reproducible plotting code and the corresponding data table (including axis units/series meaning); counted as complete.
+- Sub-criterion 1.4.A.2 [1 point | Accuracy]: Randomly pick **1 category × 2 years**; compare chart readings to table values, difference ≤ **±0.5%**; if rounding causes minor discrepancies, note this in the chart caption.
+  Spot-check passes. Spot-checks may be done by comparing values generated from the data table and plotting code.
+
+---
+## Requirement 2: Summarize by Region and assess performance differences among Regional Managers (Max 12 points)
+### Criterion 2.1: Regional annual and long-term growth (Max 4 points)
+#### Path 2.1.A [4 points | Regional annual table + YoY + CAGR]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: `pivot(year, region) -> sum(Sales)`; regions use the company's standard macro-regions (e.g., East China/North China/Central South/Northeast/Southwest/Northwest, or English equivalents).
+  2015–2018 × each region must have a value; if a region has no transactions in a given year, reflect it as **0** and explain in a note.
+  Pivot is complete.
+- Sub-criterion 2.1.A.2 [2 points | Accuracy]: For each region, compute YoY for 2016–2018 and CAGR for 2015→2018 (same definition as 1.2.A; base year = 2015; if base = 0, that region's CAGR is **NA** and must be explained separately).
+  Randomly pick **1 region × 2 years** to hand-calculate YoY; pick **1 region** to hand-calculate CAGR; deviations from table values ≤ **0.1 percentage points**.
+  YoY and CAGR each account for 1 point; if one is correct, award 1 point.
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: Regional growth landscape (hit any one and provide evidence)
+  Candidate conclusions:
+  1) Top-end high growth: The Top1 region is simultaneously "highest total" & "Top-2 CAGR";
+  2) High elasticity but volatile: A region has the highest YoY variance overall and at least 1 year with **YoY < 10%**;
+  3) Low-speed region: A region's **CAGR < company overall CAGR - 5pct**.
+  Hit at least one and include numerical evidence (rank/ratio/pp).
+
+#### Path 2.1.B [4 points | Region×Category matrix + contribution decomposition]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: `pivot(region, category) -> sum(Sales_2015_2018)`; also compute `share = region_category / region_total`.
+  Matrix and share column are complete.
+- Sub-criterion 2.1.B.2 [2 points | Accuracy]: Decompose 2015→2018 regional growth into "structure effect" (impact from changes in category shares) + "scale effect" (overall growth of each category), and output both contributions (%).
+  Provide the decomposition formula and a sample region's decomposition details so a third party can recompute.
+  Decomposition and sample are complete and recomputable.
+- Sub-criterion 2.1.B.3 [1 point | Conclusion]: Structural insights
+  Candidate conclusions:
+  - Furniture-driven region: furniture share **≥50%** and furniture YoY median **≥ other categories +5pp**;
+  - Balanced: differences among the three category shares **≤15pp**.
+  Hit any one and provide share/YoY evidence.
+
+### Criterion 2.2: Regional Manager performance ranking and fairness adjustment (Max 4 points)
+#### Path 2.2.A [4 points | Manager = Regional proxy + ranking + sensitivity]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: If there is no `Regional Manager` field, explicitly declare the use of the "regional lead as a managerial proxy"; if a Manager–Region mapping exists, provide the mapping table (one-to-one/one-to-many rules).
+  Declaration and mapping definitions are clear.
+- Sub-criterion 2.2.A.2 [2 points | Accuracy]: Scoring and ranking (pseudo algorithm)
+  ```
+  score(region) = 0.5·norm(Cumulative Sales_2015–2018)
+                + 0.3·norm(CAGR_2015→2018)
+                + 0.2·norm(2018 Sales)
+  where norm(x) is min-max normalization within the region dimension
+  Ranking: sort score descending
+  Sensitivity: individually ±20% each weight; check whether the Top3 remain in the Top3 in at least 2 out of 3 weight sets
+  ```
+  Output `{Region/Regional Manager, Cumulative Sales, CAGR, 2018 Sales, score, rank}` and the weight sensitivity results.
+  (Modified) Sensitivity results may be a table, or a textual list of Top3 under three weight sets (baseline, +20%, −20%) plus occurrence counts (counted as equivalent).
+  Sensitivity is compliant (Top3 stability ≥2/3), or provide a reasonable explanation (e.g., boundary regions with similar scale).
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]: Manager conclusions set (hit any one and provide evidence)
+  Candidate conclusions:
+  1) Robust leader: both cumulative sales and CAGR rank in the Top-2 (include values and ranks);
+  2) High growth to be scaled: CAGR ranks Top-2 but cumulative sales are mid-range (score above average);
+  3) Large scale but slowing: cumulative sales rank Top-2 and **2018 YoY < 10%**;
+  4) Weak region: cumulative sales rank bottom-2 and CAGR < global median.
+  Hit an item and include evidence in parentheses (values/ranks/pp).
+
+### Criterion 2.3: Business interpretation and action recommendations (Max 4 points)
+#### Path 2.3.A [4 points | "Plain language" conclusions matrix (aligned to data evidence)]
+- Sub-criterion 2.3.A.1 [2 points | Completeness]: Four blocks must be covered:
+  ① Annual growth champions (each category for 2016/2017/2018 + YoY values);
+  ② Three-category trends (labels such as monotonic/volatile/accelerating, with YoY/CAGR values);
+  ③ Regional differences (≥2 head regions and ≥2 weak regions with features and evidence);
+  ④ Manager evaluation conclusions (mapped to the four types in 2.2.A.3).
+  All four blocks are complete.
+- Sub-criterion 2.3.A.2 [2 points | Conclusion]: Each recommendation contains "trigger condition + target metric + timeline", examples:
+  - "Furniture 2018 YoY ≥ +35% → increase peak-season inventory and installation capacity; Target: 2019 Furniture YoY ≥ +20%, Timeline: four quarters rolling";
+  - "A region with CAGR < company overall CAGR - 5pp → launch a quarterly special campaign; Target: YoY in the next two quarters consecutively **≥ +10%**".
+  Recommendations are consistent with data from 1.2 / 2.1 / 2.2, and each recommendation includes all three elements.

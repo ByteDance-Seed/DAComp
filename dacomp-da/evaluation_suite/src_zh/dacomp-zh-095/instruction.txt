@@ -1,0 +1,1 @@
+基于 klaviyo__persons、klaviyo__person_campaign_flow 与 marts.klaviyo__events，对用户进行生命周期分层（冷启动：首次触达且无历史活跃；回流：过去 90 天无活跃后再次触达），并用 days_span、active_months、paid_retained_month_count、paid_retention_rate_month 衡量从首次触达到活跃高峰的速度及其与长期留存/付费的关系，结合 email_open_rate、email_open_rate_touch、email_click_to_open_rate_touch、has_converted 对比触达效率，同时基于 touch_type 序列 探索典型触达路径对留存和付费的作用，并提出频率、冷却期和内容节奏的优化建议。

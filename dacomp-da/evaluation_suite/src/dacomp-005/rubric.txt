@@ -1,0 +1,41 @@
+# [Total Score | 35 points] Solutions must satisfy two requirements:
+- Requirement 1: Precisely analyze the characteristics of low-margin orders
+- Requirement 2: Develop remedies for low-margin orders
+---
+## Requirement 1: Low-margin order characteristic analysis (maximum 24 points)
+### Standard 1.1: Average profit margin calculation and low-margin order filtering (maximum 3 points)
+#### Path 1.1.A [3 points | Complete calculation and filtering method]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Explicitly refer to the `Profit Margin` column, calculate the average profit margin over all records, define low-margin orders as those with `Profit Margin` below 50% of that average, and accurately filter the full order set accordingly.
+- Sub-criterion 1.1.A.2 [2 points | Accuracy]: Execute the formula correctly, demonstrate that the average profit margin is 0.7952 or the low-margin threshold is approximately 0.3976, and identify every order whose `Profit Margin` is below half the average.  When reporting counts, cite 1,243 low-margin orders (±1 order allowed) representing 6.81% of total orders with a share deviation no greater than 0.5 percentage points.
+### Standard 1.2: Low-margin order feature analysis (maximum 28 points)
+#### Path 1.2.A [15 points | Multi-dimensional analysis]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Include at least one sales-scale-related feature such as `Sales Quantity` or `Total Logistics Revenue` in the comparison between low-margin orders and normal orders.
+- Sub-criterion 1.2.A.2 [2 points | Accuracy]: When citing reference numbers, allow a fluctuation up to 0.005% around the documented values.  Low-margin orders average 6.727 in `Sales Quantity` versus 53.18 for normal orders (an 87.4% difference), with totals of 8,355 and 904,493 items respectively.  `Total Logistics Revenue` averages 98.19 for low-margin orders and 1,482.09 for normal orders.  Reporting either averages or totals (or both) is acceptable.
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: Conclude that low-margin orders exhibit very low sales volume and revenue scale.
+- Sub-criterion 1.2.A.4 [1 point | Completeness]: Address discount-related features by analyzing at least `Discount Amount` or `Discount Rate` (calculated as `Discount Amount` divided by `List Price Revenue`) and comparing against normal orders.
+- Sub-criterion 1.2.A.5 [2 points | Accuracy]: Provide either the discount amount or the discount rate while keeping values aligned with reference numbers (tolerating standard rounding).  Low-margin orders show an average `Discount Amount` of 10.14 and `Discount Rate` of 0.2167; normal orders show 9.986 and 0.0141; the overall population shows 9.9964 and 0.02789.
+- Sub-criterion 1.2.A.6 [1 point | Conclusion]: Conclude that the deep discounts on low-margin orders are materially eroding profit.
+- Sub-criterion 1.2.A.7 [1 point | Completeness]: Analyze at least one cost-related field (e.g., `Total Logistics Cost`, `Freight Cost`, `Warehousing Cost`, `Other Operating Costs`) for low-margin orders versus normal or all orders.
+- Sub-criterion 1.2.A.8 [2 points | Accuracy]: Mention one or more of the documented cost figures, keeping them consistent with the source data (allowing typical rounding).  According to reference data, low-margin orders average `Total Logistics Cost` 104.20, `Other Operating Costs` 11.217, `Warehousing Cost` 29.699, and `Freight Cost` 63.279 (approximately 16% higher than normal orders, a gap near 8.89).  Low-margin orders' total cost-to-revenue ratio is 166.83% per order and 106.11% overall, while normal orders have a total cost-to-revenue ratio of 6.273%.  The full dataset averages `Total Logistics Cost` 93.73, `Other Operating Costs` 11.044, `Warehousing Cost` 27.695, and `Freight Cost` 54.995 with an overall total cost-to-revenue ratio of 6.754%.
+- Sub-criterion 1.2.A.9 [1 point | Conclusion]: State that low-margin orders cannot cover their costs, resulting in an anomalously high cost-to-revenue ratio.
+- Sub-criterion 1.2.A.10 [1 point | Completeness]: Include region-related feature analysis by either showing the share of low-margin orders within each geographic region or the distribution of regions inside low-margin orders.
+- Sub-criterion 1.2.A.11 [2 points | Accuracy]: If showing low-margin share within regions, highlight that Southwest has the highest share (7.14%) or provide province-level breakdowns.  If showing composition within low-margin orders, point out that South China contributes the largest portion (36.15%) or provide equivalent provincial data.
+- Sub-criterion 1.2.A.12 [1 point | Conclusion]: Conclude that Southwest (or South China) deserves priority attention because of its disproportionate low-margin share, or draw another reasonable conclusion grounded in the data.
+- Sub-criterion 1.2.A.13 [1 point | Completeness]: Conduct a temporal feature analysis that includes month-level behavior for low-margin orders.
+- Sub-criterion 1.2.A.14 [2 points | Accuracy]: Determine that March holds the largest count of low-margin orders, representing 10.38% of the year’s low-margin orders.
+- Sub-criterion 1.2.A.15 [1 point | Conclusion]: Conclude that March (or generally the first quarter) is the most severe period for low-margin orders.
+- Sub-criterion 1.2.A.16 [1 point | Completeness]: Analyze customer type characteristics of low-margin orders.
+- Sub-criterion 1.2.A.17 [2 points | Accuracy]: Note that the low-margin order base is dominated by retail customers (indicated by `Sales Quantity` equal to 1) accounting for 15.61%, or provide a comparable figure consistent with the dataset.
+- Sub-criterion 1.2.A.18 [1 point | Completeness]: Include analysis of customer age ranges for low-margin orders.
+- Sub-criterion 1.2.A.19 [2 points | Accuracy]: Identify that the dominant age bands are 30-39, 40-49, and 50-59.
+- Sub-criterion 1.2.A.20 [1 point | Completeness]: Examine product composition by `Consigned Product` type.
+- Sub-criterion 1.2.A.21 [2 points | Accuracy]: Report that Bedding Sets represent the largest share (approximately 20%) within low-margin orders.
+---
+## Requirement 2: Low-margin order remedy design (maximum 4 points)
+### Standard 2.1: Remedy specification (maximum 4 points)
+#### Path 2.1.A [4 points | Targeted remedies based on characteristics]
+- Sub-criterion 2.1.A.1 [2 points | Completeness]: Propose remedies tailored to the identified low-margin characteristics, covering both cost-control tactics (cost reduction) and revenue/profit enhancement tactics (efficiency or price improvement).
+- Sub-criterion 2.1.A.2 [2 points | Conclusion]: Ensure the remedies are logically coherent, grounded in the data, and do not contradict the dataset.
+#### Path 2.1.B [2 points | General remedy suggestions]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Offer general low-margin order remedies that are not necessarily tied to the above analysis.
+- Sub-criterion 2.1.B.2 [1 point | Conclusion]: Ensure the remedies are reasonable and actionable.

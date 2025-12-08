@@ -1,0 +1,146 @@
+# [Total 28 points] Scoring rubric for root cause analysis of declining project delivery efficiency
+---
+## Requirement 1: Identify the user cohort with high completion durations (up to 6 points)
+### Criterion 1.1: Average completion duration calculation and threshold setting (up to 6 points)
+#### Path 1.1.A [6 points | Direct extraction from asana__user (recommended approach)]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly use `asana__user.avg_close_time_assigned_days` as the baseline for individual completion duration, first compute the overall mean `overall_avg_close_time_assigned_days`, then construct a high-duration threshold as 1.5× this mean.
+- Sub-criterion 1.1.A.2 [4 points | Accuracy]: Execute the approach `SELECT AVG(avg_close_time_assigned_days) FROM asana__user`. Key anchors must meet tolerance (value ±0.05, headcount ±5, cohort share ±0.5pp): `overall_avg_close_time_assigned_days = 8.169388`, `threshold = 12.254082`, high-duration user count `= 191`, share `= 19.1%`; example user `Collin Carlson` has `avg_close_time_assigned_days ≈ 35.395`.
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness]: In the conclusion, state the size and share of the high-duration user cohort, and explain that “1.5× overall mean” is the threshold rationale for identifying abnormally inefficient individuals.
+
+#### Path 1.1.B [6 points | Re-computation using asana__task_lifecycle_analysis (independent approach)]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Based on `asana__task_lifecycle_analysis`, filter `is_completed=1` and `hours_assigned_to_completion>0`, aggregate by `assignee_user_id` the `AVG(hours_assigned_to_completion/24)`.
+- Sub-criterion 1.1.B.2 [4 points | Accuracy]: Show the full process “filter → aggregate → overall mean → threshold → select”. Anchor tolerances ±5%: `overall_avg_close_days = 8.907`, `threshold = 13.361`, high-duration user count `≈108`, and explain that when scaled to the full 1000-user basis, the high-duration share is `≈10.8%` (on the task sample basis `108/878 ≈12.30%`).
+- Sub-criterion 1.1.B.3 [1 point | Conclusiveness]: Explain that differences vs Path 1.1.A arise from different sample bases, and state that subsequent analysis will use the threshold derived from the user table.
+
+#### Path 1.1.C [6 points | Robust statistics (resistant to extremes)]
+- Sub-criterion 1.1.C.1 [1 point | Completeness]: State the use of P5–P95 trimmed mean / median or similar robust statistics to mitigate the influence of extreme values.
+- Sub-criterion 1.1.C.2 [4 points | Accuracy]: Describe in pseudocode `sort → remove top/bottom 5% → mean/median → ×1.5`, and provide anchors (tolerances: mean/median ±0.1, threshold ±0.1, high-duration headcount ±10): `trimmed_mean = 8.130901`, `median = 8.031949`, `threshold = 12.196`, high-duration user count `= 197`.
+- Sub-criterion 1.1.C.3 [1 point | Conclusiveness]: Explain that the robust method yields a slightly tighter threshold and a smaller abnormal cohort (197 individuals), improving robustness of subsequent diagnostics against extremes.
+
+#### Path 1.1.D [6 points | Z-Score anomaly detection]
+- Sub-criterion 1.1.D.1 [1 point | Completeness]: Compute overall mean μ and standard deviation σ, and set `mean + k*std` (k=1.5 or 2.0) as the threshold, clarifying the rationale for choosing k.
+- Sub-criterion 1.1.D.2 [4 points | Accuracy]: Key anchors (tolerances: mean/std ±0.05, threshold ±0.1, high-duration headcount ±5): `mean = 8.169388`, `std = 3.927677`, `threshold = 14.060904` (k=1.5), high-duration user count `≈71`, share `≈7.1%`; show application logic for `z = (x-μ)/σ`.
+- Sub-criterion 1.1.D.3 [1 point | Conclusiveness]: Compare the Z-Score threshold with the 1.5× mean threshold, and explain the scenarios where standardized methods are suitable for focusing on extreme outliers.
+
+---
+## Requirement 2: Distribution analysis of task characteristics for high-duration users (up to 7 points)
+### Criterion 2.1: Comparison of complexity/urgency/project health (up to 4 points)
+#### Path 2.1.A [4 points | Mean comparison (recommended)]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Join on `CAST(assignee_user_id AS TEXT)=user_id`, distinguish the high-duration group vs the rest, and provide task counts and means for the three metrics in both groups.
+- Sub-criterion 2.1.A.2 [2 points | Accuracy]: Anchor tolerances ±0.02 (means)/±20 (sample counts): High-duration group `n=424`, `avg_complexity = 2.974057`, `avg_urgency = 2.351415`, `avg_project_health = 60.837264`; other group `n=3571`, `avg_complexity = 2.905349`, `avg_urgency = 2.301316`, `avg_project_health = 60.298796`.
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness]: Note that tasks handled by high-duration users have slightly higher complexity/urgency while project health is essentially comparable; task attributes are not the main driver of efficiency differences.
+
+#### Path 2.1.B [4 points | Binning and share distribution]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Define unified bins: complexity/urgency (1–2 = low, 3 = medium, 4–5 = high), project health (≤40 unhealthy, 41–69 average, ≥70 healthy), and compute shares for each.
+- Sub-criterion 2.1.B.2 [2 points | Accuracy]: Share tolerance ±2pp: high-complexity `35.38%` vs `31.03%`, high-urgency `16.04%` vs `14.51%`, unhealthy projects `24.53%` vs `26.35%`.
+- Sub-criterion 2.1.B.3 [1 point | Conclusiveness]: Emphasize that the increase in high complexity/high urgency shares is only slight, and project health differences are limited.
+
+#### Path 2.1.C [4 points | Robust statistical comparison]
+- Sub-criterion 2.1.C.1 [1 point | Completeness]: Compare median, IQR, and P90 for each group.
+- Sub-criterion 2.1.C.2 [2 points | Accuracy]: Anchor tolerances ±0.1: complexity `median=3`, `IQR=2`, `P90=4` (consistent across both groups); project health median `≈62` (high-duration) vs `≈61` (others).
+- Sub-criterion 2.1.C.3 [1 point | Conclusiveness]: State that even with robust measures the differences remain small, further verifying that task attributes are not the core cause.
+
+#### Path 2.1.D [4 points | Standardized effect size]
+- Sub-criterion 2.1.D.1 [1 point | Completeness]: Provide the steps for computing Cohen’s d/Hedges’ g (mean difference / pooled standard deviation).
+- Sub-criterion 2.1.D.2 [2 points | Accuracy]: Effect size tolerances ±0.02: `d_complexity = 0.061994`, `d_urgency = 0.046443`, `d_health = 0.023254`.
+- Sub-criterion 2.1.D.3 [1 point | Conclusiveness]: The conclusion must explicitly state “all effect sizes are very small,” indicating limited business impact.
+
+#### Path 2.1.E [4 points | Nonparametric significance tests]
+- Sub-criterion 2.1.E.1 [1 point | Completeness]: Perform Mann–Whitney U tests (for complexity/urgency/project health).
+- Sub-criterion 2.1.E.2 [2 points | Accuracy]: Anchor tolerances: statistic ±1%, p-value ±0.01: complexity `U=782367.5, p≈0.244`; urgency `U=775919.0, p≈0.383`; project health `U=766605.5, p≈0.670`.
+- Sub-criterion 2.1.E.3 [1 point | Conclusiveness]: State that none of the three tests are significant; differences in task attributes are insufficient to explain efficiency imbalance.
+
+### Criterion 2.2: Execution match and process efficiency comparison (up to 3 points)
+#### Path 2.2.A [3 points | Cross-sectional comparison of process metrics (recommended)]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Compare task matching (share of non `appropriate` in `complexity_execution_match`), response duration, delay, work hours, and activity rate.
+- Sub-criterion 2.2.A.2 [1 point | Accuracy]: Anchor tolerances: proportion ±1pp, time ±0.2 days, hours ±10h, activity rate ±0.1: high-duration `mismatch = 59.2%` (n=424), `response_time_days = 4.16`, `delay_days = 4.86`, `hours_assigned_to_completion = 259.49` (n=148), `avg_daily_activity_rate = 1.43` (n=378); other users `mismatch = 57.69%` (n=3571), `response_time_days = 4.00`, `delay_days = 4.12`, `hours_assigned_to_completion = 212.52` (n=1404), `avg_daily_activity_rate = 1.81` (n=3189).
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness]: Point out that the high-duration cohort exhibits higher mismatch, longer delays, heavier hour investment, and lower activity frequency.
+
+#### Path 2.2.B [3 points | Lifecycle health and status]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Analyze the distributions of `lifecycle_efficiency_category`, `activity_level`, and `lifecycle_health_score`.
+- Sub-criterion 2.2.B.2 [1 point | Accuracy]: Anchor tolerances ±2pp/±1 point: high-duration `urgent_delayed = 41.27%`, `low activity (including low_activity/dormant) = 54.25%`, `average lifecycle health = 43.74`; other users `34.64% / 51.11% / 46.68`.
+- Sub-criterion 2.2.B.3 [1 point | Conclusiveness]: Emphasize that the high-duration cohort lags noticeably in lifecycle efficiency and activity level.
+
+#### Path 2.2.C [3 points | Temporal phase breakdown analysis]
+- Sub-criterion 2.2.C.1 [1 point | Completeness]: Split stages `hours_to_assignment` (response), `hours_assigned_to_completion` (execution), and `delay_days*24` (blockage), and compute shares by stage.
+- Sub-criterion 2.2.C.2 [1 point | Accuracy]: Pseudocode must cover the sample `is_completed=1 AND hours_assigned_to_completion>0` (high-duration n=129, others n=1308). Key share tolerances ≤5pp: high-duration `response≈6.85%`, `execution≈93.15%`, with `delay_hours/total_hours ≈58.85%`; others `response≈9.32%`, `execution≈90.66%`, `delay share≈53.29%`.
+- Sub-criterion 2.2.C.3 [1 point | Conclusiveness]: State that the blockage/delay stage occupies a significantly higher proportion for high-duration users and is the main bottleneck.
+
+---
+## Requirement 3: Team-level completion rate and health analysis (up to 6 points)
+### Criterion 3.1: Team metrics and low-performance identification (up to 4 points)
+#### Path 3.1.A [4 points | Standard team aggregation]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: By `team_id`, compute `total_tasks`, `completed_tasks`, `completion_rate`, and `avg_project_health`, and set low-performance thresholds (e.g., `completion_rate < 40%` or `avg_project_health < 60`).
+- Sub-criterion 3.1.A.2 [2 points | Accuracy]: Metric tolerances: completion rate ±1pp, health ±1 point; example teams: `1158861054404 → 23.68%, 64.61`; `4089666169022 → 25.71%, 59.17`; `9875082170329 → 27.59%, 55.00`; `8287548362685 → 29.27%, 65.27`; `5107197657954 → 30.77%, 61.08`, etc.
+- Sub-criterion 3.1.A.3 [1 point | Conclusiveness]: List the priority remediation teams and explain their lagging performance relative to the thresholds.
+
+#### Path 3.1.B [4 points | Expanded efficiency metrics]
+- Sub-criterion 3.1.B.1 [1 point | Completeness]: Add two metrics: `avg_hours_assigned_to_completion` (hours) and `avg_delay_days`.
+- Sub-criterion 3.1.B.2 [2 points | Accuracy]: Anchor tolerances: hours ±25h, delay ±1 day: `5107197657954 → avg_hours = 453.25h, avg_delay = 14.71d`; `1158861054404 → avg_hours = 238.28h, avg_delay = 6.44d`; provide SQL that can be recomputed.
+- Sub-criterion 3.1.B.3 [1 point | Conclusiveness]: Point out that “low completion rate and high hours/delay” constitute structural bottlenecks, and lock in remediation priority.
+
+#### Path 3.1.C [4 points | Quantile stratified comparison]
+- Sub-criterion 3.1.C.1 [1 point | Completeness]: Stratify by completion rate using `NTILE(4)`, then compute per-tier averages for completion rate, project health, average hours, and average delay.
+- Sub-criterion 3.1.C.2 [2 points | Accuracy]: Tolerances: completion rate ±0.02, other metrics ±2: `Q1 ≈0.3085 / 59.64 / 231.23h / 5.85d`, `Q4 ≈0.4652 / 60.02 / 220.25h / 5.45d`.
+- Sub-criterion 3.1.C.3 [1 point | Conclusiveness]: Emphasize that bottom-tier teams show clear deviations in completion rate and hours, highlighting the necessity of bottom-tier remediation.
+
+### Criterion 3.2: Task concentration among high-duration users (up to 2 points)
+#### Path 3.2.A [2 points | Concentration comparison (recommended)]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Compute `pct_tasks_by_flagged = flagged_tasks / total_tasks`, and link this with team completion rate/hours for analysis.
+- Sub-criterion 3.2.A.2 [1 point | Accuracy]: Anchor tolerances ±1.5pp: `1158861054404 → 10.53%`, `5016121440524 → 12.24%`, `5107197657954 → 9.89%`; note that concentration shows a weak negative correlation with performance.
+
+#### Path 3.2.B [2 points | Correlation tests]
+- Sub-criterion 3.2.B.1 [1 point | Completeness]: Compute Pearson & Spearman correlations between team `completion_rate` and `flagged_share`.
+- Sub-criterion 3.2.B.2 [1 point | Accuracy]: Correlation tolerances ±0.03, p-value ±0.05: `Pearson r = 0.0907, p≈0.53` (t distribution approximation), `Spearman ρ = -0.0145, p≈0.92` (normal approximation).
+
+---
+## Requirement 4: Root cause diagnosis and time trend analysis (up to 6 points)
+### Criterion 4.1: Correlation of key drivers (up to 3 points)
+#### Path 4.1.A [3 points | Pearson correlation analysis (recommended)]
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: On the sample `is_completed=1 AND hours_assigned_to_completion>0`, compute `close_days = hours_assigned_to_completion/24` and Pearson correlations with key factors.
+- Sub-criterion 4.1.A.2 [1 point | Accuracy]: Anchor tolerances ±0.02: `corr(close, delay) = 0.9919`, `corr(close, response) = -0.0154`, `corr(close, activity_rate) = -0.1758`, `corr(close, complexity) = 0.0448`, `corr(close, urgency) = -0.0511`, `corr(close, project_health) = 0.0030` (n=1437).
+- Sub-criterion 4.1.A.3 [1 point | Conclusiveness]: Clearly state that delay is the dominant factor for completion duration; response/activity and others are secondary.
+
+#### Path 4.1.B [3 points | Linear regression]
+- Sub-criterion 4.1.B.1 [1 point | Completeness]: Build an OLS model `close_days = β0 + β1*delay_days + ε`, and describe modeling assumptions.
+- Sub-criterion 4.1.B.2 [1 point | Accuracy]: Coefficient tolerances ±0.05, R² ±0.03: `β1 ≈ 1.037`, `β0 ≈ 3.76`, `R² ≈ 0.984`.
+- Sub-criterion 4.1.B.3 [1 point | Conclusiveness]: Emphasize that delay nearly fully explains completion duration, with the remainder representing baseline processing time.
+
+#### Path 4.1.C [3 points | Partial correlation/residual analysis]
+- Sub-criterion 4.1.C.1 [1 point | Completeness]: Controlling for `delay_days`, compute partial correlations or residual correlations between `close_days` and activity rate/complexity.
+- Sub-criterion 4.1.C.2 [1 point | Accuracy]: Partial correlation tolerances ±0.05: `partial_corr(close, activity | delay) ≈ -0.306`, `partial_corr(close, complexity | delay) ≈ 0.058`.
+- Sub-criterion 4.1.C.3 [1 point | Conclusiveness]: Reaffirm that delay is dominant and other factors have limited impact; the independent negative effect of activity rate still warrants attention.
+
+### Criterion 4.2: Time trends and efficiency deterioration (up to 3 points)
+#### Path 4.2.A [3 points | Monthly trend aggregation (recommended)]
+- Sub-criterion 4.2.A.1 [1 point | Completeness]: Aggregate by completion month: `completed_tasks`, `avg_hours_assigned_to_completion`, `avg_days`, `overdue_rate (delay>0)`, `pct_completed_by_flagged`.
+- Sub-criterion 4.2.A.2 [1 point | Accuracy]: Anchor tolerances: hours ±30h, days ±1d, overdue rate ±5pp, flagged share ±2pp, e.g., `2024-04 → 102.67h / 4.28d / 20.63% / 11.64%`; `2024-08 → 244.72h / 10.20d / 40.55% / 11.81%`; `2024-10 → 457.72h / 19.07d / 53.66% / 9.76%`.
+- Sub-criterion 4.2.A.3 [1 point | Conclusiveness]: State that both hours and overdue rate surged rapidly in Q3–Q4, indicating clear efficiency deterioration.
+
+#### Path 4.2.B [3 points | Moving window and inflection points]
+- Sub-criterion 4.2.B.1 [1 point | Completeness]: Build a 3-month moving average (MA3) to identify trend inflection points.
+- Sub-criterion 4.2.B.2 [1 point | Accuracy]: Key node tolerances ±5%: `MA3(2024-08) ≈ 186.5h`, `MA3(2024-10) ≈ 323.9h`.
+- Sub-criterion 4.2.B.3 [1 point | Conclusiveness]: Identify 2024-08 and 2024-10 as clear inflection points, and note the need to adjust resources in line with business cycles.
+
+#### Path 4.2.C [3 points | Quarter/event comparison]
+- Sub-criterion 4.2.C.1 [1 point | Completeness]: Compare quarterly metrics such as `avg_hours` and `overdue_rate`.
+- Sub-criterion 4.2.C.2 [1 point | Accuracy]: Tolerances ±7%: `2024-Q2 → 156.61h / 26.36%`, `2024-Q3 → 239.95h / 35.06%` (+53%/+8.7pp), `2024-Q4 → 754.40h / 62.38%`.
+- Sub-criterion 4.2.C.3 [1 point | Conclusiveness]: Propose plausible hypotheses for external shocks based on stage comparisons, and state that further validation is needed.
+
+---
+## Requirement 5: Root cause synthesis and efficiency improvement recommendations (up to 3 points)
+### Criterion 5.1: Structured root cause synthesis and recommendations (up to 3 points)
+#### Path 5.1.A [3 points | Three-layer attribution + stratified governance]
+- Sub-criterion 5.1.A.1 [1 point | Completeness]: Attribute across direct factors (correlation between delay and completion duration 0.9919), intermediate factors (mismatch 59.2%, activity rate 1.43 vs 1.81), and external factors (team bottlenecks, time trends).
+- Sub-criterion 5.1.A.2 [1 point | Accuracy]: Recommendations must be anchored in data: delay remediation (build SLA alerts and blockage boards based on `delay_days` mean 4.86 vs 4.12), match optimization (identify `non-appropriate` share 59.2% using `complexity_execution_match`, combined with skill profiling and mentorship), team-specific actions (e.g., `1158861054404`, `5107197657954` lagging in completion rate/hours), and time-window scheduling (MA3 rising rapidly after 2024-08).
+- Sub-criterion 5.1.A.3 [1 point | Conclusiveness]: Propose quantitative targets and monitoring: reduce high-duration share to <10% within 30 days; within 90 days achieve completion rate ≥42% and overdue rate <25%; continuously monitor team completion rate, user distribution, and monthly trends.
+
+#### Path 5.1.B [3 points | OKR-driven plan]
+- Sub-criterion 5.1.B.1 [1 point | Completeness]: Build an OKR system covering delay, matching, and collaboration.
+- Sub-criterion 5.1.B.2 [1 point | Accuracy]: Bind key results to data (tolerances ±10%): `KR1: delay_days mean from 4.86 → ≤4.0`; `KR2: mismatch from 59.2% → ≤50%`; `KR3: completion_rate +8pp for low-completion teams`.
+- Sub-criterion 5.1.B.3 [1 point | Conclusiveness]: Explain the OKR cadence, review rhythm, and responsibility assignment.
+
+#### Path 5.1.C [3 points | Scenario simulation and risk mitigation]
+- Sub-criterion 5.1.C.1 [1 point | Completeness]: Construct at least two scenarios (e.g., surge in demand, departure of key members) and corresponding mitigation measures.
+- Sub-criterion 5.1.C.2 [1 point | Accuracy]: Explain the estimation logic in pseudocode or tabular form, allowing ±10% variation; reference current baselines (e.g., `avg_hours`, `flagged_share`).
+- Sub-criterion 5.1.C.3 [1 point | Conclusiveness]: Provide scenario priorities and monitoring indicators (e.g., track `avg_hours_assigned_to_completion` and `flagged_share` four weeks in advance).

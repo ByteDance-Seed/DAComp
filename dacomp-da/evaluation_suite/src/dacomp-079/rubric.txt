@@ -1,0 +1,214 @@
+# [Total Score | 42 Points] Scoring Rubric for Behavioral Insights into the Single-Feature-Use User Segment
+
+  - Requirement 1: Constructing the Study Cohort and Baseline Comparison
+  - Requirement 2: Primary Feature and Product Area Analysis
+  - Requirement 3: Assessing Usage Intensity and Retention Impact
+  - Requirement 4: Causal Attribution and Strategic Recommendations
+
+———
+
+## Requirement 1: Constructing the Study Cohort and Baseline Comparison (Up to 12 points)
+
+### Criterion 1.1: Verifying Segmentation Criteria and Sample Size
+
+#### Path 1.1.A [6 Points | SQL Visitor Aggregation Method]
+
+- Sub-criterion 1.1.A.1 [1 Point | Completeness]: States the segmentation criteria (`count_active_days` > 60; number of distinct features clicked = `COUNT(DISTINCT CASE WHEN sum_clicks>0 THEN feature_id END)`; single_group < 5, normal_group ≥ 5), and implements them in the query.
+- Sub-criterion 1.1.A.2 [4 Points | Accuracy]: The SQL must reproduce the following logic:
+  ```
+  WITH feature_counts AS (
+      SELECT visitor_id,
+             COUNT(DISTINCT CASE WHEN sum_clicks>0 THEN feature_id END) AS distinct_features
+      FROM pendo__visitor_feature
+      GROUP BY visitor_id
+  ),
+  visitor_base AS (
+      SELECT v.visitor_id,
+             v.count_active_days,
+             COALESCE(fc.distinct_features,0) AS distinct_features
+      FROM pendo__visitor v
+      LEFT JOIN feature_counts fc USING (visitor_id)
+  )
+  SELECT COUNT(*) AS total_visitors,
+         SUM(count_active_days>60) AS active_gt60,
+         SUM(count_active_days>60 AND distinct_features<5) AS single_group,
+         SUM(count_active_days>60 AND distinct_features>=5) AS normal_group
+  FROM visitor_base;
+  ```
+  Expected Anchor Points: Total visitors = 8000, count of visitors with active days > 60 = 3171, single_group = 1184, normal_group = 1987; Proportions (single_group / active>60 = 37.34%, single_group / total = 14.80%). Allowable error ≤ ±0.5pp.
+- Sub-criterion 1.1.A.3 [1 Point | Conclusion]: Clearly states the denominator used and explains the source of the discrepancy between the '≈15%' mentioned in the prompt and the calculated 37.34% (the prompt uses the total visitor count as the denominator, whereas this analysis is limited to visitors with `count_active_days` > 60).
+
+#### Path 1.1.B [6 Points | Field Mapping Process Description]
+
+- Sub-criterion 1.1.B.1 [1 Point | Completeness]: Explains field by field how `count_active_days` (visitor-level active days) and `distinct_features` (deduplicated feature count, filtered for `sum_clicks` > 0) are mapped from `pendo__visitor` and `pendo__visitor_feature`, defines the criteria for the single/normal groups, and retains `visitor_id` to join with the main table.
+- Sub-criterion 1.1.B.2 [4 Points | Accuracy]: The process must include: ① Aggregating `distinct_features` from `pendo__visitor_feature` by `visitor_id`; ② Joining with `pendo__visitor` and filtering for `count_active_days` > 60; ③ Calculating the sample size and proportion for the single/normal groups:
+  ```
+  visitors = Filter(pendo__visitor, count_active_days > 60)
+  features = GroupBy(pendo__visitor_feature, visitor_id)
+             .Agg(distinct_features = COUNT_DISTINCT(feature_id WHERE sum_clicks>0))
+  base = LeftJoin(visitors, features, on='visitor_id').FillNA(0)
+  ```
+  The output must reproduce the anchor points: single_group = 1184, normal_group = 1987, 37.34% and 14.80%. Error tolerance is the same as in 1.1.A.
+- Sub-criterion 1.1.B.3 [1 Point | Conclusion]: Provides a comparison of the proportions based on two different denominators (total visitors vs. `count_active_days` > 60) and clarifies the reason for the difference (the activity threshold narrows the denominator, causing the proportion to increase from 14.80% to 37.34%).
+
+### Criterion 1.2: Core Baseline Metric Comparison
+
+#### Path 1.2.A [6 Points | Mean Comparison Method]
+
+- Sub-criterion 1.2.A.1 [1 Point | Completeness]: Compares the average NPS (`latest_nps_rating`) and average daily minutes (`average_daily_minutes`) for both the single and normal groups; may optionally include average active months (`count_active_months`).
+- Sub-criterion 1.2.A.2 [4 Points | Accuracy]: Recommended SQL:
+  ```
+  SELECT group_name,
+         AVG(latest_nps_rating) AS avg_nps,
+         AVG(average_daily_minutes) AS avg_daily_minutes,
+         AVG(count_active_months) AS avg_active_months
+  FROM visitor_base
+  GROUP BY group_name;
+  ```
+  Expected Anchor Points: NPS single_group = 5.5828 ± 0.02, normal_group = 8.0070 ± 0.02; Average daily minutes single_group = 32.4677 ± 0.1 minutes, normal_group = 82.2691 ± 0.1 minutes; Average active months single_group = 3.5659 ± 0.02, normal_group = 3.8863 ± 0.02.
+- Sub-criterion 1.2.A.3 [1 Point | Conclusion]: States that "the single-feature-use group has significantly lower satisfaction (–2.42 points) and significantly less usage depth (–49.80 minutes); active months are only slightly lower, indicating the gap is primarily due to a lack of deep experience."
+
+#### Path 1.2.B [6 Points | NPS Distribution Structure]
+
+- Sub-criterion 1.2.B.1 [1 Point | Completeness]: Outputs the proportion of Promoters (≥9), Passives (7–8), and Detractors (≤6), and compares it with the normal group.
+- Sub-criterion 1.2.B.2 [4 Points | Accuracy]: A reference implementation:
+  ```
+  SELECT group_name,
+         100.0*AVG(latest_nps_rating>=9) AS promoter_pct,
+         100.0*AVG(latest_nps_rating BETWEEN 7 AND 8) AS passive_pct,
+         100.0*AVG(latest_nps_rating<=6) AS detractor_pct
+  FROM visitor_base
+  GROUP BY group_name;
+  ```
+  Anchor Points: single_group Promoter = 0.00% ± 0.1pp, Passive = 26.35% ± 0.5pp, Detractor = 73.65% ± 0.5pp; normal_group Promoter = 39.56% ± 0.5pp, Passive = 40.97% ± 0.5pp, Detractor = 19.48% ± 0.5pp.
+- Sub-criterion 1.2.B.3 [1 Point | Conclusion]: Points out that the single-feature-use group has "almost no promoters, while detractors make up 73.65%, posing a strong word-of-mouth risk."
+
+———
+
+## Requirement 2: Primary Feature and Product Area Analysis (Up to 12 points)
+
+### Criterion 2.1: Concentrated Use of Primary Features/Product Areas
+
+#### Path 2.1.A [6 Points | Top Features by Coverage Method]
+
+- Sub-criterion 2.1.A.1 [1 Point | Completeness]: For the single-feature-use group, calculates the number of visitors who used each feature, the coverage percentage, total clicks, and total minutes, and links this to `feature_name` and `product_area_name`.
+- Sub-criterion 2.1.A.2 [4 Points | Accuracy]: Sample SQL:
+  ```
+  SELECT f.feature_name,
+         f.product_area_name,
+         COUNT(DISTINCT vf.visitor_id) AS visitors,
+         100.0*COUNT(DISTINCT vf.visitor_id)/1184 AS coverage_pct,
+         SUM(vf.sum_clicks) AS total_clicks,
+         SUM(vf.sum_minutes) AS total_minutes
+  FROM single_visitors sv
+  JOIN pendo__visitor_feature vf USING (visitor_id)
+  JOIN pendo__feature f USING (feature_id)
+  WHERE vf.sum_clicks>0
+  GROUP BY f.feature_id
+  ORDER BY visitors DESC;
+  ```
+  The top features must include at least 8 of the following (allowable error for rank ≤ ±2 positions, for coverage ≤ ±0.2pp): logout (6.42%), contact_support (6.08%), user_profile (6.00%), view_analytics (6.00%), trend_analysis (5.91%), subscription_manage (5.91%), billing_info (5.83%), export_api (5.74%), user_roles (5.74%), permissions (5.66%), widgets_config (5.66%), preferences (5.57%), settings (5.57%), create_report (5.49%), login (5.41%), custom_metrics (5.32%), invoices (5.32%), share_content (5.24%).
+- Sub-criterion 2.1.A.3 [1 Point | Conclusion]: Summarizes that "usage is highly focused on authentication/permissions/billing/support/analytics features, which are mostly operational support entry points and do not naturally lead to core business workflows."
+
+#### Path 2.1.B [6 Points | Primary Feature Determination Method]
+
+- Sub-criterion 2.1.B.1 [1 Point | Completeness]: For each user in the single-feature-use group, identifies their primary feature (the one with the max `sum_clicks`, using the minimum `feature_id` as a tie-breaker), and provides a list of the top primary features along with their product areas.
+- Sub-criterion 2.1.B.2 [4 Points | Accuracy]: Logic example:
+  ```
+  ranked = WindowRank(single_visitors_features,
+                      partition_by='visitor_id',
+                      order_by='sum_clicks DESC, feature_id')
+  main = Filter(ranked, rn == 1)
+  ```
+  The Top 10 primary features must cover the following (allowable error ±1 visitor): contact_support (34), permissions (31), signup (30), trend_analysis (30), user_profile (30), view_analytics (30), custom_metrics (29), filter_data (29), invoices (29), schedule_report (29); may also include widgets_config (29), feedback (28), etc.
+- Sub-criterion 2.1.B.3 [1 Point | Conclusion]: Explains that "primary feature usage is concentrated in support/management/reporting/configuration workflows, lacking core value-producing actions, trapping users in peripheral administrative scenarios."
+
+### Criterion 2.2: Quantifying Feature Concentration
+
+#### Path 2.2.A [6 Points | Top Feature Click Share Distribution]
+
+- Sub-criterion 2.2.A.1 [1 Point | Completeness]: Calculates each user's Top-1 feature click share (`top_feature_share`) and outputs the mean value as well as the distribution across buckets (<50%, 50–70%, 70–90%, ≥90%).
+- Sub-criterion 2.2.A.2 [4 Points | Accuracy]: Implementation example:
+  ```
+  top_share = sum_clicks_top1 / sum_clicks_total
+  buckets = {
+      '<50%': AVG(top_share < 0.5),
+      '50-70%': AVG(0.5 <= top_share AND top_share < 0.7),
+      ...
+  }
+  ```
+  Anchor Points: single_group mean = 0.643 ± 0.01; <50% = 36.40% ± 1pp, 50–70% = 29.31% ± 1pp, 70–90% = 7.52% ± 1pp, ≥90% = 26.77% ± 1pp; normal_group mean = 0.170 ± 0.01, <50% = 99.85%, ≥90% = 0.00%.
+- Sub-criterion 2.2.A.3 [1 Point | Conclusion]: Emphasizes that "the majority of single-feature-use users concentrate ≥50% of their clicks on a single feature, indicating extremely low exploration."
+
+#### Path 2.2.B [6 Points | Primary Product Area Click Share]
+
+- Sub-criterion 2.2.B.1 [1 Point | Completeness]: Aggregates `sum_clicks` by product area, and for each user, calculates the share of their primary product area, the group mean, and the percentage of users with a share ≥60% / ≥80%.
+- Sub-criterion 2.2.B.2 [4 Points | Accuracy]: Pseudo-code:
+  ```
+  clicks_by_area = GroupBy(visitor_id, product_area_name).Sum(sum_clicks)
+  top_area_share = max(clicks_by_area) / total_clicks
+  ```
+  Anchor Points: single_group mean = 0.679 ± 0.01, ≥60% = 52.28% ± 1pp, ≥80% = 34.38% ± 1pp; normal_group mean = 0.281 ± 0.01, ≥60% = 0.65% ± 0.2pp, ≥80% = 0.15% ± 0.1pp.
+- Sub-criterion 2.2.B.3 [1 Point | Conclusion]: Points out that "the single-feature-use group remains highly concentrated in a single product area, showing a severe lack of cross-domain exploration."
+
+#### Path 2.2.C [6 Points | Core Event Minute Share]
+
+- Sub-criterion 2.2.C.1 [1 Point | Completeness]: Calculates the core event minute share (based on `sum_minutes` for features where `pendo__feature.is_core_event=1`), and outputs the mean value and the percentage of users with a share ≥60% / ≥80%.
+- Sub-criterion 2.2.C.2 [4 Points | Accuracy]: Core formula:
+  ```
+  core_share = SUM(sum_minutes WHERE is_core_event=1) / SUM(sum_minutes)
+  ```
+  Anchor Points: single_group mean = 0.411 ± 0.01, ≥60% = 32.26% ± 0.8pp, ≥80% = 22.97% ± 0.7pp; normal_group mean = 0.321 ± 0.01, ≥60% = 4.48% ± 0.3pp, ≥80% = 0.81% ± 0.2pp.
+- Sub-criterion 2.2.C.3 [1 Point | Conclusion]: States that "the single-feature-use group spends more time on core entry-point actions but fails to extend into high-value workflows."
+
+———
+
+## Requirement 3: Assessing Usage Intensity and Retention Impact (Up to 12 points)
+
+### Criterion 3.1: Daily Duration Distribution and Event Density
+
+#### Path 3.1.A [6 Points | Distribution + Mean Method]
+
+- Sub-criterion 3.1.A.1 [1 Point | Completeness]: Provides the mean, median, Q1, Q3, and bucketed proportions (<15, 15–30, 30–60, 60–120, ≥120 minutes).
+- Sub-criterion 3.1.A.2 [4 Points | Accuracy]: Must output the anchor points: single_group mean 32.4677 ± 0.1, median 32.5926 ± 0.5, Q1=25.8344 ± 0.5, Q3=39.0825 ± 0.5; distribution 15–30=41.55% ± 1pp, 30–60=58.45% ± 1pp, ≥60=0%; normal_group mean 82.2691 ± 0.1, median 82.2667 ± 0.5, Q1=62.4967 ± 0.5, Q3=101.0881 ± 0.5; distribution 30–60=21.84% ± 1pp, 60–120=75.94% ± 1pp, ≥120=2.21% ± 0.5pp.
+- Sub-criterion 3.1.A.3 [1 Point | Conclusion]: Points out that "the single-feature-use group lacks deep usage (no tail-end users with ≥60 minutes), whereas the normal group is dominated by long sessions of 60–120 minutes."
+
+#### Path 3.1.B [6 Points | Bucketing + Event Density Method]
+
+- Sub-criterion 3.1.B.1 [1 Point | Completeness]: Uses the same buckets as 3.1.A and adds event density = `average_daily_events` / `average_daily_minutes`.
+- Sub-criterion 3.1.B.2 [4 Points | Accuracy]: Anchor Points: Event density single_group = 0.961 ± 0.02, normal_group = 0.394 ± 0.02; bucket proportions must be consistent with 3.1.A.
+- Sub-criterion 3.1.B.3 [1 Point | Conclusion]: States that "the single-feature-use group exhibits short, high-frequency clicking behavior (high events/min), reflecting fragmented workflows or user friction."
+
+### Criterion 3.2: Long-Term Retention Metrics
+
+#### Path 3.2.A [6 Points | Active Months Threshold Method]
+
+- Sub-criterion 3.2.A.1 [1 Point | Completeness]: Reports the average active months and the proportion of users with ≥4 months and ≥6 months of activity, comparing the two groups.
+- Sub-criterion 3.2.A.2 [4 Points | Accuracy]: Anchor Points: single_group mean = 3.5659 ± 0.02, ≥4 months = 52.36% ± 0.5pp, ≥6 months = 0.84% ± 0.2pp; normal_group mean = 3.8863 ± 0.02, ≥4 months = 57.42% ± 0.5pp, ≥6 months = 15.30% ± 0.5pp.
+- Sub-criterion 3.2.A.3 [1 Point | Conclusion]: Emphasizes that "the long-term retention of the single-feature-use group is significantly weaker (only 0.84% active for ≥6 months)."
+
+#### Path 3.2.B [6 Points | Usage Lifespan Method]
+
+- Sub-criterion 3.2.B.1 [1 Point | Completeness]: Calculates usage lifespan = `julianday(last_event_on) - julianday(first_event_on) + 1` and the proportion of users with a lifespan ≥180 days.
+- Sub-criterion 3.2.B.2 [4 Points | Accuracy]: Anchor Points: single_group average lifespan = 136.8 ± 1 days, ≥180 days = 13.43% ± 0.7pp; normal_group average lifespan = 145.8 ± 1 days, ≥180 days = 25.92% ± 0.7pp.
+- Sub-criterion 3.2.B.3 [1 Point | Conclusion]: States that "the difference in long-term activity thresholds is significant, necessitating the use of lifespan/monthly perspectives instead of recent 30-day metrics."
+
+#### Path 3.2.C [6 Points | Feature Diversity Correlation]
+
+- Sub-criterion 3.2.C.1 [1 Point | Completeness]: Analyzes the correlation or gradient trend between `distinct_features` and NPS, `average_daily_minutes`, and usage lifespan.
+- Sub-criterion 3.2.C.2 [4 Points | Accuracy]: Calculates the Pearson correlation coefficient, and must provide: corr(features, NPS) = 0.545 ± 0.02, corr(features, average_daily_minutes) = 0.627 ± 0.02, corr(features, lifespan_days) = 0.094 ± 0.02; or an equivalent trend across buckets.
+- Sub-criterion 3.2.C.3 [1 Point | Conclusion]: Points out that "feature diversity is a key lever for satisfaction and usage depth, and also has a positive but weak correlation with lifespan."
+
+———
+
+## Requirement 4: Causal Attribution and Strategic Recommendations (Up to 6 points)
+
+### Criterion 4.1: Chain-of-Thought Insight and Action Plan
+
+#### Path 4.1.A [6 Points | Data-Driven Attribution + Closed-Loop Strategy]
+
+- Sub-criterion 4.1.A.1 [1 Point | Completeness]: Summarizes the causal chain: "Short, high-frequency sessions (32.47 mins, events/min=0.961) → Concentrated on support/auth/billing features (Top coverage includes logout/contact_support, etc., top_feature_share=64.3%, ≥60% primary domain share reaches 52.28%) → Low NPS (5.58 vs 8.01) → Weak long-term retention (≥6 months only 0.84%, lifespan 136.8 days)."
+- Sub-criterion 4.1.A.2 [4 Points | Accuracy]: Strategies must correspond to quantifiable metrics, with at least 3 proposed. For example: ① Launch an onboarding guide to encourage single-feature-use users to unlock ≥5 features, with a goal to reduce `top_feature_share` to ≤50% and verify an NPS increase of ≥1 point via correlation; ② Conduct friction investigation on user paths with high events/min (using A/B tests to monitor an increase in `average_daily_minutes` towards ≥60 mins); ③ For customers whose primary domain is support/billing, set up cross-domain tasks or operational incentives, with the goal of increasing the ≥6 month retention rate to ≥5% and expanding the proportion of users with a core event share of ≥60%. Monitoring metrics and evaluation methods must be specified.
+- Sub-criterion 4.1.A.3 [1 Point | Conclusion]: Forms a closed loop (pilot → monitor → optimize), and notes compliance considerations (segmenting only by behavioral tags, avoiding hard thresholds based on gender/age).
+
+———

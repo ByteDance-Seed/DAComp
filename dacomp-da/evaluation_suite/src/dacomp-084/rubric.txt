@@ -1,0 +1,150 @@
+# [Total Score | 40 Points] Scoring Rubric for Organization Size and Management Configuration Optimization
+
+The analysis must satisfy the following four core requirements, presented in a "Requirement → Standard → Path → Sub-standard" structure. Unless otherwise specified, all statistics are based on the full dataset (118 records) from the `workday__organization_overview` table in `/tasks/dacomp-084/dacomp-084.sqlite`, using the fixed size tiers: Small <30; Medium 30–120; Large 121–300; Extra Large >300. No additional data cleaning is allowed.
+
+---
+
+## Requirement 1: Size Tiering and Baseline Profiling (Max 8 Points)
+
+### Standard 1.1: Size Tiering and Field Declaration (Max 2 Points | Deterministic)
+
+#### Path 1.1.A [2 Points | Fixed Threshold]
+- Sub-standard 1.1.A.1 [1 Point | Completeness] Declare that `workday__organization_overview` is the primary table and organizations are divided into four tiers based on `current_active_employees`; list the fields to be used: `organization_health_score`, `performance_category`, `management_ratio`, `avg_employee_performance_score`, `position_fill_rate`, `annual_turnover_rate`, `total_positions`.
+- Sub-standard 1.1.A.2 [1 Point | Accuracy] Output the sample count and size range for each tier, which must match: Small 46 (5–29), Medium 35 (33–116), Large 21 (122–297), Extra Large 16 (358–1156). A margin of error of ≤1 for sample counts is allowed.
+
+### Standard 1.2: Characterizing Health Score Distribution (Max 3 Points)
+
+#### Path 1.2.A [3 Points | Quantile Statistics]
+- Sub-standard 1.2.A.1 [1 Point | Completeness] For each of the four tiers, list the min, max, mean, P25, P50, and P75 of `organization_health_score`; must specify the use of the nearest-rank method or an equivalent window function.
+- Sub-standard 1.2.A.2 [2 Points | Accuracy] Values must fall within the database-calculated range (error ≤0.5):
+    - Small: min 37.4, P25 56.8, median 65.5, P75 77.2, max 93.9, mean 67.339
+    - Medium: 30.7, 56.0, 63.3, 77.7, 93.2, 65.460
+    - Large: 33.2, 53.2, 67.1, 71.8, 94.7, 65.505
+    - Extra Large: 37.9, 57.3, 71.3, 74.2, 82.7, 66.781
+
+#### Path 1.2.B [3 Points | Supplemental Robust Dispersion Metrics]
+- Sub-standard 1.2.B.1 [1 Point | Completeness] In addition to mean/extremes, provide at least one robust measure of dispersion (e.g., IQR); must explain the calculation method (based on the median or quantile difference).
+- Sub-standard 1.2.B.2 [1 Point | Accuracy] The IQR should be consistent with the quantiles above: Small ≈20.4, Medium ≈21.7, Large ≈18.6, Extra Large ≈16.9, with a tolerance of ≤0.5.
+- Sub-standard 1.2.B.3 [1 Point | Conclusion] Explain the dispersion differences in health distributions across sizes (e.g., Extra Large is more stable, Small has longer tails) and the implications for subsequent analysis.
+
+### Standard 1.3: Performance Category Composition (Max 3 Points)
+
+#### Path 1.3.A [3 Points | Proportion Method]
+- Sub-standard 1.3.A.1 [1 Point | Completeness] Output the count and percentage of `performance_category` (Excellent/Good/Satisfactory/Needs Improvement) by size tier.
+- Sub-standard 1.3.A.2 [2 Points | Accuracy] Proportions must be consistent with database results (error ≤0.5 percentage points):
+    - Small: S 39.13%, G 32.61%, E 19.57%, N 8.70%
+    - Medium: S 42.86%, G 25.71%, E 22.86%, N 8.57%
+    - Large: G 38.10%, S 28.57%, E 19.05%, N 14.29%
+    - Extra Large: G 50.00%, S 25.00%, E 12.50%, N 12.50%
+
+---
+
+## Requirement 2: Identifying the Optimal Management Ratio Range (Max 12 Points)
+
+### Standard 2.1: Management Ratio Distribution Statistics (Max 2 Points | Deterministic)
+
+#### Path 2.1.A [2 Points | Quantile Statistics]
+- Sub-standard 2.1.A.1 [1 Point | Completeness] For each tier, present the mean, min, max, P25, P50, and P75 of `management_ratio`, specifying the use of nearest-rank.
+- Sub-standard 2.1.A.2 [1 Point | Accuracy] Must align with database values (error ≤0.005): Small (mean 0.1738, P25 0.134, median 0.161, P75 0.216, range 0.100–0.246); Medium (0.1622, 0.137, 0.168, 0.186, 0.128–0.200); Large (0.2025, 0.180, 0.200, 0.231, 0.154–0.245); Extra Large (0.2476, 0.219, 0.244, 0.261, 0.200–0.299).
+
+### Standard 2.2: Comparison of Management Ratio Range Performance (Max 7 Points)
+
+#### Path 2.2.A [7 Points | Equal-Frequency Binning + Composite Scoring]
+- Sub-standard 2.2.A.1 [1 Point | Completeness] For each tier, perform equal-frequency binning on `management_ratio` using NTILE=5. Calculate the mean health, performance, position fill rate, and turnover for each bin. Explain the normalization method (e.g., min-max or z-score, with turnover inverted) and how to avoid information leakage across tiers.
+- Sub-standard 2.2.A.2 [5 Points | Accuracy] The composite score ranking must identify the following optimal ranges (tolerance ±0.01):
+    - Small: 0.195–0.223 (health≈71.50, performance≈3.854, fill≈0.903, turnover≈0.176)
+    - Medium: 0.151–0.170 (≈71.40, 3.906, 0.900, 0.174)
+    - Large: 0.221–0.233 (≈73.975, 3.815, 0.895, 0.158)
+    - Extra Large: One of two conclusions is acceptable:
+        1. If using a simple average method, 0.274–0.299 is the top bin (health≈73.20, fill rate≈0.884, turnover≈0.149).
+        2. If emphasizing high-performance cases, must state that 0.214–0.243 also falls within the Top 10% results and explain the difference between the average bin and Top 10% cases.
+- Sub-standard 2.2.A.3 [1 Point | Conclusion] Summarize the "sweet spot" and "risk zones" for each tier and explain the business impact of excessively low/high management density (e.g., redundancy in medium orgs, lack of coordination in extra-large orgs).
+
+#### Path 2.2.B [6 Points | Fixed Interval Comparison]
+- Sub-standard 2.2.B.1 [1 Point | Completeness] Use uniform intervals (<0.10, 0.10–0.15, 0.15–0.20, 0.20–0.25, ≥0.25) and report the mean of indicators and sample count for each interval (must be ≥3, otherwise state that it is not scored or is flagged as a risk).
+- Sub-standard 2.2.B.2 [4 Points | Accuracy] The identified trends must match the database:
+    - Small: 0.10–0.15 and 0.20–0.25 both perform well; 0.20–0.25 is a "high-density" option (health 67.913, fill 0.882, turnover 0.204, sample 15).
+    - Medium: 0.10–0.15 is significantly better than 0.20–0.25 (the latter has only 1 sample with very poor performance: health 30.7, perf 2.14, fill 0.612, turnover 0.301).
+    - Large: 0.15–0.20 is better than 0.20–0.25 (health 66.49 vs 64.609, turnover 0.199 vs 0.226).
+    - Extra Large: 0.20–0.25 is better than ≥0.25 (health 69.356 vs 63.471, turnover 0.204 vs 0.219).
+- Sub-standard 2.2.B.3 [1 Point | Conclusion] Provide interval selection recommendations and explain the robustness risks due to small sample sizes or outliers.
+
+#### Path 2.2.C [5 Points | Correlation and Slope Analysis]
+- Sub-standard 2.2.C.1 [1 Point | Completeness] For each size tier, calculate the Pearson correlation or equivalent regression slope between `management_ratio` and health, performance, fill rate, and turnover. Describe de-meaning and standardization steps.
+- Sub-standard 2.2.C.2 [3 Points | Accuracy] The direction of correlation must be consistent with the database (tolerance ≤0.05):
+    - Health correlation: Small -0.045, Medium -0.176, Large -0.031, Extra Large -0.011
+    - Performance correlation: Medium -0.317, Extra Large -0.295, other tiers close to 0
+    - Fill rate correlation: Medium -0.145, Large -0.159, Extra Large -0.249
+    - Turnover correlation: Medium 0.192, Large 0.096, Extra Large -0.087
+- Sub-standard 2.2.C.3 [1 Point | Conclusion] Explain what the correlation results imply for the optimal ranges (e.g., Medium size is most sensitive to high management density, Large size needs to maintain a mid-to-high density to control turnover).
+
+### Standard 2.3: Summarizing the Optimal Range (Max 3 Points | Deterministic)
+
+#### Path 2.3.A [3 Points | Interval Synthesis]
+- Sub-standard 2.3.A.1 [1 Point | Completeness] Synthesize results from binning, fixed-interval, and correlation analyses to provide a final recommended management ratio range for each of the four size tiers, along with reference mean values for health, performance, fill rate, and turnover within that range.
+- Sub-standard 2.3.A.2 [1 Point | Accuracy] Ranges must be consistent with database evidence: Small 0.20–0.22 (can supplement with a lean model of 0.12–0.14 and its pros/cons), Medium 0.15–0.17 (emphasize risks of ≥0.18), Large 0.22–0.23 (sharp decline at ≥0.24), Extra Large 0.24–0.25 (if recommending 0.27–0.30, must state it's only for conservative retention scenarios).
+- Sub-standard 2.3.A.3 [1 Point | Conclusion] Summarize the pattern that "the larger the size, the higher the optimal range" and point out the business consequences of being over or under the limit.
+
+---
+
+## Requirement 3: Common Traits of Top 10% Organizations (Max 8 Points)
+
+### Standard 3.1: Top 10% Selection (Max 3 Points)
+
+#### Path 3.1.A [3 Points | Health Score Ranking]
+- Sub-standard 3.1.A.1 [1 Point | Completeness] Within each size tier, sort by `organization_health_score` in descending order and select the top 10% (rounding up). State the number of samples: Small 5, Medium 4, Large 3, Extra Large 2.
+- Sub-standard 3.1.A.2 [2 Points | Accuracy] The Top 10% threshold, using P90 with linear interpolation (pos=1+(n−1)*0.9), must match the database value (error ≤0.5 points): Small ≥89.10, Medium ≥86.08, Large ≥88.20, Extra Large ≥79.35.
+
+#### Path 3.1.B [4 Points | Multi-Indicator Composite Ranking]
+- Sub-standard 3.1.B.1 [1 Point | Completeness] Construct a composite score (example: score=0.4·Z(health)+0.3·Z(avg_perf)+0.2·Z(fill)−0.1·Z(turnover)). Explain the normalization, weighting, and inversion of negative indicators.
+- Sub-standard 3.1.B.2 [2 Points | Accuracy] Select the top 10% (rounding up) based on the composite score and verify that the overlap with the health score ranking is ≥70%. In the database, the overlap is 100% for all four tiers; this numerical verification must be provided.
+- Sub-standard 3.1.B.3 [1 Point | Conclusion] Compare the differences between the two ranking methods (even if they are identical, must explain the value of a composite score in emphasizing multi-indicator balance and potential deviation scenarios in the future).
+
+### Standard 3.2: Top 10% Profile Statistics (Max 3 Points)
+
+#### Path 3.2.A [3 Points | Mean Comparison]
+- Sub-standard 3.2.A.1 [1 Point | Completeness] Calculate the mean management ratio, employee performance, position fill rate, annual turnover rate, and position-to-person density (`total_positions`/`current_active_employees`) for both Top 10% and non-Top samples.
+- Sub-standard 3.2.A.2 [2 Points | Accuracy] The mean values for the Top 10% must match the database (error ≤0.01 or 0.005):
+    - Small Top: mr 0.1898, performance 4.760, fill 0.973, turnover 0.123, density 1.016
+    - Medium Top: mr 0.1408, performance 4.760, fill 0.964, turnover 0.106, density 1.032
+    - Large Top: mr 0.2260, performance 4.543, fill 0.966, turnover 0.111, density 1.035
+    - Extra Large Top: mr 0.2285, performance 4.585, fill 0.960, turnover 0.119, density 1.042
+
+### Standard 3.3: Top 10% Ranges and Common Traits (Max 2 Points)
+
+#### Path 3.3.A [2 Points | Quantile Interpretation]
+- Sub-standard 3.3.A.1 [1 Point | Completeness] Provide the min, max, and P25/P50/P75 (nearest-rank) of the management ratio for the Top 10% and check if they fall into the optimal range identified in Requirement 2:
+    - Small: range 0.148–0.239, P25 0.150, median 0.198, P75 0.214
+    - Medium: 0.131–0.158, 0.131, 0.135, 0.139
+    - Large: 0.212–0.244, 0.212, 0.222, 0.244
+    - Extra Large: 0.214–0.243, 0.214, 0.214, 0.243
+- Sub-standard 3.3.A.2 [1 Point | Conclusion] Summarize the common traits of the Top 10%: high fill rate (≥0.96), low turnover (≤0.12), high performance (≥4.5), position density ≈1.02–1.05, and management ratio falls within the optimal corridor. If any individual deviations exist, their impact due to small sample size must be noted.
+
+---
+
+## Requirement 4: Quantitative Recommendations and Implementation Loop (Max 12 Points)
+
+### Standard 4.1: Quantitative Management Configuration Recommendations by Size (Max 6 Points)
+
+#### Path 4.1.A [6 Points | Interval + Span + Density]
+- Sub-standard 4.1.A.1 [1 Point | Completeness] For each of the four size tiers, provide: the optimal management ratio range, approximate span of control (1 / management ratio), target position-to-person density, and key KPI thresholds (health, performance, fill rate, turnover).
+- Sub-standard 4.1.A.2 [4 Points | Accuracy] Recommendations must be consistent with database evidence (tolerance ±0.01):
+    - Small: 0.18–0.22, span ≈4–5, density ≈1.02, targets ≥0.96 fill, ≤0.12 turnover, perf ≥4.5, health ≥85; can supplement with a lean model 0.12–0.14 (noting it saves headcount but requires stronger processes).
+    - Medium: 0.13–0.16, span ≈6–7, density ≈1.03, targets ≥0.95 fill, ≤0.12 turnover, perf ≥4.6.
+    - Large: 0.22–0.23 (up to 0.24 max), span ≈4–4.5, density ≈1.03–1.04, targets ≥0.95 fill, ≤0.12 turnover, perf ≥4.5.
+    - Extra Large: 0.24–0.25 (if adopting 0.27–0.30, note it is only for conservative retention and requires extra monitoring), span ≈4, density ≈1.04, targets ≥0.95 fill, ≤0.12 turnover, perf ≥4.5.
+- Sub-standard 4.1.A.3 [1 Point | Conclusion] Provide a manager headcount formula (Managers ≈ `management_ratio` × `current_active_employees`), example calculations, and implementation points (quarterly reviews, position streamlining, process digitalization), explaining why differentiation by size is necessary.
+
+#### Path 4.1.B [5 Points | Probation/Operations Synergy]
+- Sub-standard 4.1.B.1 [1 Point | Completeness] Propose quantitative metrics for probationary periods (e.g., number of times away from post, total time away from post, effective work hours, disciplinary actions, position backfill rate) and their target values.
+- Sub-standard 4.1.B.2 [3 Points | Accuracy] Metrics should reference the mean values from the database's Top 10%: ≤5 instances of being away from post per shift, ≤60 minutes total time away, ≥7 effective work hours, 0 disciplinary actions, post-probation rolling average ≤0.2/person·month, probationary fill rate reaches 0.96.
+- Sub-standard 4.1.B.3 [1 Point | Conclusion] Explain how to achieve these metrics through job coaching, process support, and prioritized position backfilling.
+
+### Standard 4.2: Risk Disclosure and Continuous Iteration (Max 6 Points)
+
+#### Path 4.2.A [6 Points | Risks and Closed Loop]
+- Sub-standard 4.2.A.1 [1 Point | Completeness] List data and execution risks, such as the absence of actual `span_of_control` values, `management_role_employees` being 0, small sample size for extra-large orgs, industry differences, etc.
+- Sub-standard 4.2.A.2 [2 Points | Accuracy] Propose remediation and monitoring measures (collecting real span of control, quarterly rolling assessments, A/B testing by size, verifying the definition of management ratio, introducing complexity weights, etc.) that are consistent with the analysis conclusions.
+- Sub-standard 4.2.A.3 [3 Points | Conclusion] Emphasize that conclusions are based on correlation and high-performance indicators, not causation. Recommend phased pilots, setting up a KPI dashboard (management ratio, fill rate, turnover, health), and establishing trigger thresholds with corrective actions to form a closed-loop governance model.
+
+---

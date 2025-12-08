@@ -1,0 +1,116 @@
+# [Total Score | 30 points] The solution must satisfy two core requirements:
+- Requirement 1: Cost deviation and distribution across different Project Types
+- Requirement 2: Links between cost deviation and Team Size/Risk Level/Customer Satisfaction
+
+
+## Requirement 1: Cost deviation and distribution across different Project Types (Max 15 points)
+Goal: Under a unified statistical definition, compare cost deviation statistics and distribution shapes across Project Types, identify outliers and unstable types, and provide verifiable results.
+
+### Criterion 1.1: Definition statement and calculation consistency (no data cleaning) (Max 3 points)
+#### Path 1.1.A [3 points | Field mapping + definition statement + recalculation/reproduction]
+- Sub-criterion 1.1.A.1 [1 point | Completeness] Field mapping and metric definition  
+  - Key points: List original → analytical field mapping (Budget Amount, Actual Cost, Project Type, Team Size, Risk Level, Customer Satisfaction), explicitly define `cost_dev = Budget Amount − Actual Cost`; state whether to additionally compute relative deviation % (optional).  
+  - Must specify statistical scope (e.g., whether to include In Progress / only Completed / time window) and measurement unit/currency and conversions.  
+  - Scoring: Mapping and scope/unit statements complete → 1 point; otherwise 0 points.
+
+- Sub-criterion 1.1.A.2 [1 point | Accuracy] Consistency of calculation and group alignment verification  
+  - Key points: Random sample ≥5 records, show manual checks for Budget Amount, Actual Cost, and cost_dev consistent with program outputs; and verify for at least 1 Project Type that group sample counts match original records; units are consistent across tables/plots.  
+  - If random sampling is involved, provide a fixed random seed (e.g., `seed=2025`).  
+  - Scoring: All three met → 1 point; otherwise 0 points.
+
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness] Boundary of definition and applicability statement  
+  - Key points: Explain how the chosen definition potentially affects conclusions (examples: including In Progress projects often makes cost_dev skew positive; only Completed is closer to actual control; absolute deviation vs percentage affects cross-scale comparability), and provide a one-sentence applicability summary.  
+  - Scoring: Provide impact analysis + one-sentence scope summary → 1 point; otherwise 0 points.
+
+### Criterion 1.2: Type-wise grouping statistics (Max 6 points)
+#### Path 1.2.A [6 points | Descriptive statistics + consistency verification]
+- Sub-criterion 1.2.A.1 [2 points | Completeness] Six core columns  
+  - Key points: Compute by `Project Type` the mean / median / std / count / IQR / 95% CI (mean); ensure unified units and clear column names.  
+  - Scoring: All types have all 6 columns → 2 points; ≥80% of types covered and ≥4 columns → 1 point; otherwise 0 points.
+- Sub-criterion 1.2.A.2 [2 points | Accuracy] Recalculation consistency  
+  - Key points: Independently recompute any ≥1 type (show intermediate quantities/sample size/variance term) and ensure differences from the main table ≤1%.  
+  - Scoring: Meets threshold → 2 points; otherwise 0 points.
+- Sub-criterion 1.2.A.3 [2 points | Conclusiveness] Skewness and robustness interpretation  
+  - Key points: Report for each type `|mean−median|/std` and mark "skewed" using a threshold (recommended 0.3); provide reasons and business interpretation for at least 1 type.  
+  - Scoring: Per-type marking and explain ≥1 type → 2 points; only overall explanation → 1 point; otherwise 0 points.
+
+### Criterion 1.3: Distribution and outliers (Max 3 points)
+#### Path 1.3.A [3 points | Histogram/boxplot + IQR outlier table + distribution conclusion]
+- Sub-criterion 1.3.A.1 [1 point | Completeness] Visualization and elements  
+  - Key points: Overall histogram (indicate binning method/width) + per-type boxplots (median/IQR/whiskers/outliers); or provide equivalent statistical substitutes.  
+  - Scoring: Both visualization types (or equivalent substitutes) provided → 1 point; otherwise 0 points.
+- Sub-criterion 1.3.A.2 [1 point | Accuracy] IQR outlier list and spot check  
+  - Key points: Produce per-type outlier lists using the IQR rule; spot-check ≥3 records within any one chosen type; manual classification consistent with program.  
+  - Scoring: List + spot-check consistency → 1 point; otherwise 0 points.
+- Sub-criterion 1.3.A.3 [1 point | Conclusiveness] Distribution-shape conclusion (with decision conditions)  
+  - Key points: Choose at least one from "right-skewed/left-skewed/approximately symmetric/heavy-tailed" and state the trigger conditions (e.g., "mean > median and right-tail outliers > 1%").  
+  - Scoring: Conclusion + conditions → 1 point; otherwise 0 points.
+
+#### Path 1.3.B[1 point | Simple binning method]
+- Sub-criterion 1.3.B.1 [1 point | Completeness] Use two statistics among min|max|median|mean|std to describe the distribution shape
+
+### Criterion 1.4: Significance and ranking across types (Max 3 points)
+#### Path 1.4.A [3 points | Normality/homoscedasticity tests + main test + post-hoc comparison]
+- Sub-criterion 1.4.A.1 [1 point | Completeness] Method selection rationale  
+  - Key points: First perform normality (Shapiro/QQ) and homogeneity (Levene); if assumptions hold, use ANOVA + Tukey; otherwise use Kruskal–Wallis + Dunn.  
+  - Scoring: All four steps described → 1 point; otherwise 0 points.
+- Sub-criterion 1.4.A.2 [1 point | Accuracy] Test statistics and effect size  
+  - Key points: Report F/H, df, p, effect size (η²/ε²).  
+  - Scoring: All four items provided → 1 point; otherwise 0 points.
+- Sub-criterion 1.4.A.3 [1 point | Conclusiveness] Ranking and evidence  
+  - Key points: Provide ranking consistent with the chosen test (or "not significant"), with pairwise p-values/CI in parentheses.  
+  - Scoring: Ranking + evidence → 1 point; otherwise 0 points.
+
+#### Path 1.4.B[1 point | Simple ranking]
+- Sub-criterion 1.4.B.1 [1 point | Completeness] Provide qualitative comparison of average deviation or distribution characteristics across different Project Types, supported by corresponding numbers such as mean or median
+
+
+## Requirement 2: Links between cost deviation and Team Size/Risk Level/Customer Satisfaction (Max 15 points)
+
+### Criterion 2.1: Correlation and direction consistency (Max 5 points)
+#### Path 2.1.A [5 points | Pearson+Spearman matrices + significance marking]
+- Sub-criterion 2.1.A.1 [2 points | Completeness] Two 3×3 matrices  
+  - Key points: For `{cost_dev, Team Size, Customer Satisfaction}`, produce Pearson and Spearman two sets of 3×3 matrices (including p-values / sample size), diagonals = 1.  
+  - Scoring: Both sets complete → 2 points; only one set or missing p-values → 1 point; otherwise 0 points.
+- Sub-criterion 2.1.A.2 [2 points | Accuracy] Three core relationships  
+  - Key points: Separately report r or p for cost_dev with Team Size / Customer Satisfaction / Risk Level.  
+  - Scoring: Answer any two pairs → 2 points; only one pair → 1 point; otherwise 0 points.
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness] Directional threshold conclusion  
+  - Key points: Provide conclusions such as "positive/negative/weak correlation/nonlinear monotonic" according to thresholds, and mark whether thresholds are met.  
+  - Scoring: Provide ≥1 conclusion and mark thresholds → 1 point; otherwise 0 points.
+
+
+
+
+### Criterion 2.2: Stratification/grouping and Risk Level effects (Max 5 points)
+#### Path 2.2.A [5 points | Risk-level boxplots + mean/CI table + monotonicity test]
+- Sub-criterion 2.2.A.1 [2 points | Completeness] Visualization and statistical table  
+  - Key points: For `Risk Level` (Low/Medium/High) provide boxplots; output for each level `mean/median/count/95% CI`; or equivalent substitutes.  
+  - Scoring: Both plots + table → 2 points; either one → 1 point; otherwise 0 points.
+- Sub-criterion 2.2.A.2 [2 points | Accuracy] Significance/trend  
+  - Key points: Main test (ANOVA/K-W or trend test) + at least one pairwise comparison or trend statistic (p/effect size).  
+  - Scoring: Main test + at least one comparison/trend → 2 points; only main test → 1 point; otherwise 0 points.
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness] Order relationship statement  
+  - Key points: Provide one of "Medium > High > Low / High > Medium > Low / (High ≈ Low) < Medium / Not significant", with p/CI/effect size in parentheses.  
+  - Scoring: Order + evidence → 1 point; otherwise 0 points.
+
+### Criterion 2.3: Multivariable modeling (Max 3 points)
+#### Path 2.3.A [3 points | Linear/robust/quantile regression (choose one)]
+- Sub-criterion 2.3.A.1 [1 point | Completeness] Model specification and diagnostics  
+  - Key points: Model includes `Team Size, Customer Satisfaction, Risk Level (can be ordinal-coded), C(Project Type)`; output coefficients, SE, t, p, R²/Adj.R²; at least one diagnostic (residuals/heteroskedasticity or robust loss/VIF).  
+  - Scoring: Specification + table + diagnostics → 1 point; otherwise 0 points.
+- Sub-criterion 2.3.A.2 [1 point | Accuracy] Directional consistency  
+  - Key points: Directions for core variables are consistent with 2.1, and ≥1 core variable is significant (p<0.05).  
+  - Scoring: Met → 1 point; otherwise 0 points.
+- Sub-criterion 2.3.A.3 [1 point | Conclusiveness] Template-style conclusions  
+  - Key points: Choose one or more from "size positive effect/satisfaction negative effect/risk positive effect/multiple factors significant/all not significant (with explanation)", with β/SE/p (or robust equivalents) in parentheses.  
+  - Scoring: Conclusion + evidence → 1 point; otherwise 0 points.
+
+### Criterion 2.4: From statistics to business statements (Max 2 points)
+#### Path 2.4.A [2 points | Evidence-aligned business conclusion matrix]
+- Sub-criterion 2.4.A.1 [1 point | Completeness] Coverage of four blocks  
+  - Key points: Must cover 1) Project Type differences; 2) Team Size impact (including thresholds/segmentation); 3) Risk Level differences (mean or variability/outliers); 4) Customer Satisfaction relationship.  
+  - Scoring: All four complete → 1 point; otherwise 0 points.
+- Sub-criterion 2.4.A.2 [1 point | Conclusiveness] Directionality + statistical evidence  
+  - Key points: Each conclusion must include at least one of r/p or β/p or test p/CI; point estimates alone do not count.  
+  - Scoring: All four conclusions include statistical evidence → 1 point; otherwise 0 points.

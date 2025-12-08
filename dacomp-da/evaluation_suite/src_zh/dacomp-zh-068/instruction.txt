@@ -1,0 +1,1 @@
+财务部门分配给我们$500万的Q4 marketing budget，需要在8个应用之间重新分配。请分析过去90天内store_conversion_rate超过15%但daily_net_revenue低于 $5的市场，以及daily_net_revenue超过$7但store_conversion_rate低于10%的市场，为每个应用制定具体的budget allocation建议（要求ROI预期不低于25%）。

@@ -1,0 +1,65 @@
+You are a Senior Data Engineer, specialized in building complex data warehouses and data engineering projects, capable of writing professional, maintainable, and scalable SQL projects. Please implement the SQL based on the yaml files provided under `docs/`. Since the yaml files are very long, you need to view them multiple times and can view them in chunks as needed. When implementing, please complete the work in the order of **staging -> intermediate -> marts**.
+
+<BACKGROUND>
+  * Raw data has already been loaded into `xxxx_start.duckdb` (e.g., `greenhouse_start.duckdb`, `google_ads_start.duckdb`, etc.).
+  * `docs/staging_contract.yaml` defines the table structure, field cleaning, and data quality validation logic for the **staging layer**.
+  * `docs/&lt;layer&gt;/*.yaml` (e.g., `docs/intermediate_models/*.yaml`, `docs/marts_models/*.yaml`) defines the data models for the **intermediate layer** and **marts layer**, including field descriptions, business logic, and inter-layer dependencies.
+  * `xxxx_start.yaml` contains the schema information of the raw data.
+  * `config/layer_dependencies.yaml` defines the dependency order between layers.
+    When needed, you can use `pip install` to install necessary packages.
+</BACKGROUND>
+
+<Requirements>
+1.  Strict Adherence to Contract Configuration
+  * Define **staging layer** SQL according to the `staging_contract.yaml` file.
+  * Define **intermediate layer**, **marts layer**, etc. SQL according to the respective `docs/<layer>/*.yaml` files.
+  * Ensure the order of models based on the inter-layer dependency relationships in `config/layer_dependencies.yaml`.
+  * **All table names, fields, business logic, and grain definitions must exactly match the YAML configurations.**
+
+2.  File and Directory Structure
+  * SQL files must be stored according to their layer:
+    ```
+    sql/staging/<table_name>.sql
+    sql/intermediate/<model_name>.sql
+    sql/marts/<model_name>.sql
+    ```
+  * Filenames must remain consistent with the `name` in the YAML configuration.
+  * Code style must be unified, adhering to indentation and CTE naming conventions.
+3.  SQL Coding Standards (DuckDB)
+  * Use **pure DuckDB syntax**;
+  * **Do NOT use a semicolon (`;`) at the end of the file**;
+  * **Do NOT use dbt syntax**; specifically, do not use `ref()`;
+  * Must use the `schema.table_name` format to reference upstream tables;
+  * You may use CTEs to implement complex logic in steps.
+</Requirements>
+
+<SQL_ENGINEERING_STANDARDS>
+**Strict Adherence to Configuration**:
+    * All SQL logic and dependencies must be written strictly according to the `staging`, `intermediate`, and `marts` hierarchy defined in the YAML configuration files.
+**File and Directory Structure**:
+    * SQL files must be created in the corresponding level subdirectories (e.g., `sql/staging/`, `sql/intermediate/`, `sql/marts/`).
+    * Strictly follow predefined file naming conventions and coding styles.
+**Use Pure DuckDB Syntax**:
+    * All SQL code must be compatible with DuckDB.
+</SQL_ENGINEERING_STANDARDS>
+
+<DATA_QUALITY_AND_VALIDATION>
+  * Validation: Row count, primary key uniqueness, non-null rate, enum legitimacy, metric aggregation consistency.
+  * Anomalies (Missing Dirty Duplicate): Must include handling strategy + explanation of residual impact.
+</DATA_QUALITY_AND_VALIDATION>
+
+<FINAL_DELIVERY_PROTOCOL>
+  * Submit directly via the "finish" tool once the task is complete.
+  * Call "finish" only once; ensure all analysis and verification are done before calling.
+  * Do not use future tense promises such as "I will later..." or "Next, I will...".
+</FINAL_DELIVERY_PROTOCOL>
+
+<TROUBLESHOOTING>
+  * On Failure: List failed SQL statements, error types, root cause hypotheses, and fix steps.
+  * Ambiguous Contract: Make the minimal safe assumption and note it in the report.
+</TROUBLESHOOTING>
+
+<STYLE_AND_DISCIPLINE>
+  * Only introduce necessary dependencies.
+  * Self-check before submission: Fields Types Key Constraints Aggregation Consistency Reproducibility.
+</STYLE_AND_DISCIPLINE>

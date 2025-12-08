@@ -1,0 +1,78 @@
+# [Total Score | 24 points] The solution must satisfy the following core requirements:
+- Requirement 1: New strategy performance analysis
+- Requirement 2: Full rollout recommendations 
+---
+## Requirement 1: New strategy performance analysis(maximum 11 points for this requirement)
+### Criterion 1.1 [3 points]: Clearly define new vs. old versions
+#### Path 1.1.A [3 points]: Define by strategy type and version number
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: For each strategy type, clearly distinguish new vs. old by version number (e.g., Search Strategy v3.7 is new, v3.6 is old).
+- Sub-criterion 1.1.A.2 [1 point | Precision]: Version delineation is consistent with the actual gray release strategy versions (no errors).
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness]: Clearly explain in the analysis report why the path of defining by strategy type and version number was chosen.
+#### Path 1.1.B [3 points]: Define by gray release time
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Without distinguishing by version number, clearly state the gray release start time (e.g., July 5, 2025), and define "data after the gray release start is the new strategy; before that is the old strategy".
+- Sub-criterion 1.1.B.2 [1 point | Precision]: The time range matches the actual gray release period (no deviation).
+- Sub-criterion 1.1.B.3 [1 point | Conclusiveness]: Clearly explain in the analysis report why the path of defining by gray release time was chosen.
+
+### Criterion 1.2 [2 points]: Calculate ROI by Target Audience dimension
+#### Path 1.2.A [2 points]: Calculate ROI by Target Audience dimension
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: For each strategy type, calculate both the overall ROI and ROI by Target Audience (audience segments: New User Acquisition, Existing Customers) (formula: ROI = T+0 strategy-guided transaction amount ÷ Spend).
+- Sub-criterion 1.2.A.2 [1 point | Precision]: The calculation logic is self-consistent.
+
+### Criterion 1.3 [2 points]: Calculate ROI trend by time dimension
+#### Path 1.3.A [2 points]: Calculate ROI trend by time dimension
+- Sub-criterion 1.3.A.1 [1 point | Completeness]: For each strategy type, calculate the daily ROI during the new strategy gray release period (July 5 - 7) and analyze trend stability (e.g., whether it is continuously rising/declining).
+- Sub-criterion 1.3.A.2 [1 point | Precision]: Daily ROI values are logically self-consistent (e.g., Search Strategy v3.7 July 5 ROI = 43.8, July 6 = 44.2, July 7 = 44.3).
+
+### Criterion 1.4 [2 points]: Calculate ROI by category dimension
+#### Path 1.4.A [2 points]: Calculate ROI by Tertiary Category
+- Sub-criterion 1.4.A.1 [1 point | Completeness]: For each strategy type, calculate the new strategy’s ROI across each Tertiary Category (e.g., Audience Insights Strategy v3.2.1 in the "Steak" category ROI = 102.30).
+- Sub-criterion 1.4.A.2 [1 point | Precision]: Category ROI values are logically self-consistent.
+#### Path 1.4.B [2 points]: Calculate ROI by Secondary Category
+- Sub-criterion 1.4.B.1 [1 point | Completeness]: For each strategy type, calculate the new strategy’s ROI across each Secondary Category.
+- Sub-criterion 1.4.B.2 [1 point | Precision]: Category ROI values are logically self-consistent.
+#### Path 1.4.C [2 points]: Calculate ROI by Primary Category
+- Sub-criterion 1.4.C.1 [1 point | Completeness]: For each strategy type, calculate the new strategy’s ROI across each Primary Category.
+- Sub-criterion 1.4.C.2 [1 point | Precision]: Category ROI values are logically self-consistent.
+
+### Criterion 1.5 [2 points]: Calculate ROI by channel dimension
+#### Path 1.5.A [2 points]: Calculate ROI by channel dimension
+- Sub-criterion 1.5.A.1 [1 point | Completeness]: For each strategy type, calculate ROI across different channels.
+- Sub-criterion 1.5.A.2 [1 point | Precision]: The calculated values are logically self-consistent.
+
+---
+## Requirement 2: Full rollout recommendations （maximum 13 points for this requirement）
+### Criterion 2.1 [3 points]: Recommendations based on ROI and Target Audience differences
+#### Path 2.1.A [3 points]: Recommendations based on ROI and Target Audience differences
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Combine "ROI change rate (sign/magnitude), Target Audience differences (performance of New User Acquisition/Existing Customers)" to give recommendations for four strategy types respectively.
+- Sub-criterion 2.1.A.2 [1 point | Precision]: The basis for recommendations is consistent with the calculation results from Path 1.2 (e.g., Audience Insights Strategy ROI improves for both New User Acquisition/Existing Customers → recommend full rollout).
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness]: Recommendations are clear and actionable (e.g., "Guess You Like strategy full rollout for Existing Customers; hold off on full rollout for New User Acquisition").
+
+### Criterion 2.2 [3 points]: Recommendations based on auxiliary metrics and stability
+#### Path 2.2.A [3 points]: Recommendations based on auxiliary metrics and stability
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Combine "auxiliary metrics (Click-Through Rate (CTR)/Cost Per Click (CPC)/average order value (AOV)), ROI stability (standard deviation/coefficient of variation)" to supplement the judgment of strategy effectiveness.
+- Sub-criterion 2.2.A.2 [1 point | Precision]: Auxiliary metric calculations are logically self-consistent.
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness]: Recommendations consider stability (e.g., "Search Strategy ROI declines slightly but stability improves → recommend expanding the gray release").
+
+### Criterion 2.3 [3 points]: Combination recommendations based on category differences
+#### Path 2.3.A [3 points]: Combination recommendations based on Tertiary Category differences
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: By Tertiary Category, provide the optimal "strategy type × version" combination (e.g., "For the Salmon category, use Popup Strategy v2.9.1").
+- Sub-criterion 2.3.A.2 [1 point | Precision]: Combination recommendations align with the category ROI results from Path 1.4.
+- Sub-criterion 2.3.A.3 [1 point | Conclusiveness]: Combination recommendations are implementable (e.g., "configure delivery based on category–strategy mapping").
+#### Path 2.3.B [3 points]: Combination recommendations based on Secondary Category differences
+- Sub-criterion 2.3.B.1 [1 point | Completeness]: By Secondary Category, provide the optimal "strategy type × version" combination.
+- Sub-criterion 2.3.B.2 [1 point | Precision]: Combination recommendations align with the category ROI results from Path 1.4.
+- Sub-criterion 2.3.B.3 [1 point | Conclusiveness]: Combination recommendations are implementable (e.g., "configure delivery based on category–strategy mapping").
+#### Path 2.3.C [3 points]: Combination recommendations based on Primary Category differences
+- Sub-criterion 2.3.C.1 [1 point | Completeness]: By Primary Category, provide the optimal "strategy type × version" combination.
+- Sub-criterion 2.3.C.2 [1 point | Precision]: Combination recommendations align with the category ROI results from Path 1.4.
+- Sub-criterion 2.3.C.3 [1 point | Conclusiveness]: Combination recommendations are implementable (e.g., "configure delivery based on category–strategy mapping").
+
+### Criterion 2.4 [1 point]: Consistency and coherence of recommendations
+#### Path 2.4.A [1 point]: Consistency and coherence of recommendations
+- Sub-criterion 2.4.A.1 [1 point | Completeness]: Recommendations given by different paths are consistent and coherent; if differences exist, explain the reasons and provide the final recommendation.
+
+### Criterion 2.5 [3 points]: Recommendations based on risk assessment
+#### Path 2.5.A [3 points]: Recommendations based on risk assessment
+- Sub-criterion 2.5.A.1 [1 point | Completeness]: Perform a risk assessment considering factors such as the innovativeness of the new strategies, potential business impact, and data stability.
+- Sub-criterion 2.5.A.2 [1 point | Precision]: The risk assessment is reasonable and supported by data.
+- Sub-criterion 2.5.A.3 [1 point | Conclusiveness]: Provide recommendations on the level of caution for proceeding to full rollout based on the risk.

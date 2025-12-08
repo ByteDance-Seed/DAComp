@@ -1,0 +1,123 @@
+==============================
+# [Total Score | 60 points] Email Send Timing x Subject Copy Interaction Analysis Scoring Criteria
+==============================
+---
+## Requirement 1: Data and definition notes (max 12 points)
+### Standard 1.1: Field mapping and data quality check (6 points, deterministic)
+#### Path 1.1.A [6 points | Field verification and anchor confirmation]
+- Sub-criterion 1.1.A.1 [1 point | Completeness] Explain campaign-level roles for klaviyo__campaigns fields SENT_AT, SUBJECT, is_archived, variation_id, campaign_variation_key, total_count_unique_people, count_received_email/count_opened_email/count_clicked_email, total_placed_orders, gmv_net_campaign, etc., and note that klaviyo__persons is used for email_open_rate, count_clicked_email, active_retention_rate_week/month, timezone, etc., to relate engagement and retention.
+- Sub-criterion 1.1.A.2 [4 points | Precision] Verify anchors from SQLite data (allowed error: counts +/-0.5%, amounts/ratios +/-0.005, time +/-1 minute): n_campaigns = 184; SENT_AT range 2023-01-02 09:20:00 to 2024-07-04 14:35:00; is_archived false 153 / true 31; variation_id: single 92, variant_a 46, variant_b 46; sum count_received_email = 2,077,925; sum count_opened_email = 654,473; sum count_clicked_email = 90,978; total_count_unique_people min 9,573, max 15,708, mean ~12,213.15; count_received_email / total_count_unique_people min ~0.89298, max ~0.95704, mean ~0.92456.
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness] State the definition: analysis centers on campaign-level time, subject, archive status, variant, scale, and behavior counts; persons-level data is only for explaining engagement and retention associations, without a per-customer exposure chain.
+
+### Standard 1.2: Time window and subject-derived definitions (6 points, multi-path)
+#### Path 1.2.A [6 points | Rule-based derivation]
+- Sub-criterion 1.2.A.1 [1 point | Completeness] Derive day_type = weekday/weekend (strftime('%w')), daypart = morning (06-11) / afternoon (12-17) / evening (18-23) / overnight (other hours), and map SUBJECT by keywords into discount/new/story/other; retain is_archived and variation_id.
+- Sub-criterion 1.2.A.2 [4 points | Precision] Keyword dictionary must cover English and Chinese terms (Chinese given in pinyin only): discount includes off, sale, discount, save, deal, zhe kou, you hui, jian; new includes new, launch, arrival, drop, xin pin, shang xin; story includes story, behind, guide, journal, inspiration, gu shi, ling gan. After mapping, anchors (allowed error +/-0.5%): discount = 62, new = 61, story = 61; day_type x daypart counts: weekday-afternoon = 46, weekday-evening = 44, weekday-morning = 44, weekend-afternoon = 16, weekend-evening = 16, weekend-morning = 18; if overnight has no samples, state it explicitly.
+- Sub-criterion 1.2.A.3 [1 point | Conclusiveness] Explain that this derived definition supports "send timing x subject" combination analysis and that missing overnight samples mean nighttime conclusions need caution.
+
+#### Path 1.2.B [6 points | Data-driven derivation]
+- Sub-criterion 1.2.B.1 [1 point | Completeness] Using actual send hours (five hours appear: 09/10/14/16/20), run weighted KMeans or quantile clustering to split into at least three segments (example: cluster_9 ~ 9.50h, cluster_15 ~ 15.05h, cluster_20 = 20h), retaining day_type and subject_group.
+- Sub-criterion 1.2.B.2 [4 points | Precision] Describe algorithm, weights (use count_received_email), and leakage prevention; report sample sizes per segment (cluster_9 = 62, cluster_15 = 62, cluster_20 = 60) and weighted open rates (cluster_15 ~ 0.3263, cluster_9 ~ 0.3134, cluster_20 ~ 0.3042), ensuring all samples are covered.
+- Sub-criterion 1.2.B.3 [1 point | Conclusiveness] Discuss advantages of data-driven binning for fine time-of-day differences and note interpretability and overfitting risks.
+
+---
+## Requirement 2: Send timing x subject performance measurement (max 18 points)
+### Standard 2.1: Overall subject performance and metric definitions (6 points, multi-path)
+#### Path 2.1.A [6 points | Keyword dictionary + weighted aggregation]
+- Sub-criterion 2.1.A.1 [1 point | Completeness] Use weighted metrics: open_rate_w = sum opened / sum received; click_rate_w = sum clicked / sum received; ctor_w = sum clicked / sum opened; plus orders_per_1k = 1000 x sum total_placed_orders / sum received; gmv_per_1k = 1000 x sum gmv_net_campaign / sum received.
+- Sub-criterion 2.1.A.2 [4 points | Precision] With Path 1.2.A groupings, anchors (tolerance +/-0.005): discount open ~0.3416, ctr ~0.0510, ctor ~0.1492, orders ~6.04 per 1k, gmv ~1000.07 per 1k; new open ~0.3255, ctr ~0.0459, ctor ~0.1411, orders ~4.57 per 1k, gmv ~920.30 per 1k; story open ~0.2760, ctr ~0.0340, ctor ~0.1230, orders ~2.80 per 1k, gmv ~464.33 per 1k.
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness] Note the gradient "discount > new > story" in open rate and conversion density, linking to order/GMV density differences.
+
+#### Path 2.1.B [6 points | Topic discovery model]
+- Sub-criterion 2.1.B.1 [1 point | Completeness] Describe using a topic model (LDA/BERT, etc.) to map topics to discount/new/story/other, keeping consistency with the dictionary definitions.
+- Sub-criterion 2.1.B.2 [4 points | Precision] Explain training data, topic-to-label mapping, and validation; reproduce the weighted metric calculations from Path 2.1.A and describe alignment between model groupings and dictionary groupings.
+- Sub-criterion 2.1.B.3 [1 point | Conclusiveness] Compare ranking consistency between model and dictionary groupings and assess maintenance cost and use cases.
+
+### Standard 2.2: Time x subject interaction effects (6 points, multi-path)
+#### Path 2.2.A [6 points | Cross-tab and anchor verification]
+- Sub-criterion 2.2.A.1 [1 point | Completeness] Output weighted open/ctr/ctor for subject_group x day_type x daypart combinations and provide sample sizes.
+- Sub-criterion 2.2.A.2 [4 points | Precision] Key anchors (tolerance +/-0.005): discount weekday-afternoon open ~0.3517, weekend-afternoon ~0.3682, weekday-evening ~0.3343; new weekend-afternoon ~0.3525, weekday-afternoon ~0.3358, weekday-evening ~0.3178; story weekday-morning ~0.2892, weekday-evening ~0.2582; also show CTR/CTOR directions (weekend-afternoon discount CTR ~0.0569, higher than weekday-evening discount ~0.0498).
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness] Summarize the pattern "discount/new -> afternoon, especially weekends; story -> weekday mornings," and flag underperformers (story x weekday x evening open ~0.2582, ctr ~0.0302).
+
+#### Path 2.2.B [6 points | Weighted regression (WLS/GLM)]
+- Sub-criterion 2.2.B.1 [1 point | Completeness] Build WLS/GLM with open_rate or click_rate as dependent; predictors include day_type, daypart, subject_group, is_archived, variation_mode (variation_id grouped as single vs variant), log(total_count_unique_people), high-send window dummies; weights = count_received_email.
+- Sub-criterion 2.2.B.2 [4 points | Precision] Report key coefficient signs and magnitudes: daypart_evening on open ~ -0.0101, on click ~ -0.0015; subject_group_new ~ -0.0132, story ~ -0.0600 (negative vs discount); log(scale) on open ~ +0.0867, on click ~ +0.0184; on_high_send ~ +0.0188, on click ~ +0.0043; pre/post_high_send around -0.010 to -0.011; weekend slightly positive (open ~ +0.0023).
+- Sub-criterion 2.2.B.3 [1 point | Conclusiveness] State alignment with cross-tabs (afternoon/weekend discount advantage, nighttime disadvantage, positive scale effect) and note limits such as multicollinearity and heteroskedastic residuals.
+
+### Standard 2.3: High send window and scale stratification (6 points, multi-path)
+#### Path 2.3.A [6 points | High send-day window]
+- Sub-criterion 2.3.A.1 [1 point | Completeness] Define high send day by daily recipient volume P90 = 12,979; by send_date classify on_high_send, pre_high_send (1-3 days before), post_high_send (1-3 days after), non_high_send; state sample sizes (19/21/16/128).
+- Sub-criterion 2.3.A.2 [4 points | Precision] Weighted anchors (tolerance +/-0.005): on_high_send open ~0.3575, ctr ~0.0533; pre_high_send open ~0.3074, ctr ~0.0416; post_high_send open ~0.3044, ctr ~0.0417; non_high_send open ~0.3098, ctr ~0.0427.
+- Sub-criterion 2.3.A.3 [1 point | Conclusiveness] Note "slightly better on high send day, clearly lower before/after" and discuss operational meaning (peak-day traffic concentration needs pacing/volume control).
+
+#### Path 2.3.B [6 points | Scale quartiles]
+- Sub-criterion 2.3.B.1 [1 point | Completeness] Use NTILE(4) to split total_count_unique_people into Q1-Q4; provide sample sizes (46 each).
+- Sub-criterion 2.3.B.2 [4 points | Precision] Anchors (tolerance +/-0.005): Q1 open ~0.2927, ctr ~0.0388, mean scale ~10,526; Q2 open ~0.3048, ctr ~0.0414; Q3 open ~0.3193, ctr ~0.0448; Q4 open ~0.3362, ctr ~0.0485, mean scale ~13,962.
+- Sub-criterion 2.3.B.3 [1 point | Conclusiveness] Conclude that larger scale corresponds to better performance, hinting at list quality and brand maturity effects.
+
+---
+## Requirement 3: Subsequent active retention association (max 12 points)
+### Standard 3.1: Individual engagement x retention association (6 points, multi-path)
+#### Path 3.1.A [6 points | Correlation coefficients]
+- Sub-criterion 3.1.A.1 [1 point | Completeness] State that Pearson correlations use email_open_rate and count_clicked_email with active_retention_rate_week/month.
+- Sub-criterion 3.1.A.2 [4 points | Precision] Anchors (tolerance +/-0.01): corr(open, week) ~0.9616, corr(open, month) ~0.9126; corr(click_count, week) ~0.8026, corr(click_count, month) ~0.7731.
+- Sub-criterion 3.1.A.3 [1 point | Conclusiveness] Note high positive correlation but not causality; recommend experimental validation.
+
+#### Path 3.1.B [6 points | Stratified trends]
+- Sub-criterion 3.1.B.1 [1 point | Completeness] Stratify email_open_rate and click_rate (= count_clicked_email / count_received_email) each by NTILE(4); compute mean weekly/monthly retention per tier.
+- Sub-criterion 3.1.B.2 [4 points | Precision] Monotonic anchors (tolerance +/-0.01): open-rate Q1 -> Q4 weekly retention ~0.3874 -> ~0.7176, monthly ~0.4108 -> ~0.7293; click-rate Q1 -> Q4 weekly ~0.3867 -> ~0.7186, monthly ~0.4094 -> ~0.7298.
+- Sub-criterion 3.1.B.3 [1 point | Conclusiveness] Emphasize that raising email engagement may boost retention; AB/attribution needed to confirm.
+
+### Standard 3.2: Reverse relationship of reach frequency x retention (6 points, multi-path)
+#### Path 3.2.A [6 points | Received frequency stratification]
+- Sub-criterion 3.2.A.1 [1 point | Completeness] Use count_received_email NTILE(5) to compute weekly/monthly retention per tier.
+- Sub-criterion 3.2.A.2 [4 points | Precision] Anchors (tolerance +/-0.01): Q1 avg_recv ~64.62, week ~0.7294, month ~0.7402; Q5 avg_recv ~151.67, week ~0.3778, month ~0.3998, maintaining monotonic decline.
+- Sub-criterion 3.2.A.3 [1 point | Conclusiveness] Offer the insight "overly frequent reach reduces retention" and suggest frequency caps.
+
+#### Path 3.2.B [6 points | Campaign-level approximate retention]
+- Sub-criterion 3.2.B.1 [1 point | Completeness] Map persons-level retention to campaigns (for example, average retention by send window) or build approximate indicators using active_days, orders_per_1k, gmv_per_1k.
+- Sub-criterion 3.2.B.2 [4 points | Precision] Describe association/weighting steps, ensuring trends match Path 3.2.A or explain differences.
+- Sub-criterion 3.2.B.3 [1 point | Conclusiveness] Note limits of approximate definitions and stress the need for detailed exposure chains to verify causality.
+
+---
+## Requirement 4: Archive / variant / scale and high send window (max 12 points)
+### Standard 4.1: Archive and variant splits (6 points, multi-path)
+#### Path 4.1.A [6 points | Archive definition]
+- Sub-criterion 4.1.A.1 [1 point | Completeness] Compute weighted open/ctr/ctor, orders_per_1k, gmv_per_1k for is_archived = false vs true.
+- Sub-criterion 4.1.A.2 [4 points | Precision] Anchors (tolerance +/-0.005): false open ~0.3120, ctr ~0.0428, ctor ~0.1371, orders ~4.29 per 1k, gmv ~777.57 per 1k; true open ~0.3297, ctr ~0.0487, ctor ~0.1478, orders ~5.56 per 1k, gmv ~909.92 per 1k.
+- Sub-criterion 4.1.A.3 [1 point | Conclusiveness] Explain that higher archived performance may reflect survivor bias/selection; caution on extrapolation.
+
+#### Path 4.1.B [6 points | Variant definition]
+- Sub-criterion 4.1.B.1 [1 point | Completeness] Group variation_id as single vs variant; compute the same weighted metrics.
+- Sub-criterion 4.1.B.2 [4 points | Precision] Anchors (tolerance +/-0.005): single open ~0.3146, ctr ~0.0437, ctor ~0.1389; variant open ~0.3154, ctr ~0.0439, ctor ~0.1391.
+- Sub-criterion 4.1.B.3 [1 point | Conclusiveness] Note "variant ~ single"; recommend focusing testing on subject/timing optimization.
+
+### Standard 4.2: Intra-subject splits and combination insights (6 points, multi-path)
+#### Path 4.2.A [6 points | Discount subject archive split]
+- Sub-criterion 4.2.A.1 [1 point | Completeness] Within subject_group = discount, split weighted open/ctr by is_archived.
+- Sub-criterion 4.2.A.2 [4 points | Precision] Anchors (tolerance +/-0.005): non-archived open ~0.3527, ctr ~0.0531; archived open ~0.3297, ctr ~0.0487.
+- Sub-criterion 4.2.A.3 [1 point | Conclusiveness] State that non-archived discounts perform better; prioritize keeping high-performing discount templates.
+
+#### Path 4.2.B [6 points | High- and low-performance combinations]
+- Sub-criterion 4.2.B.1 [1 point | Completeness] List at least four subject x day_type x daypart x is_archived/variation combinations with the highest and lowest open rates, noting sample size/received volume.
+- Sub-criterion 4.2.B.2 [4 points | Precision] Cover anchors (tolerance +/-0.005): discount x weekend x afternoon open ~0.3682 (n=5, sum received ~62,499); new x weekend x afternoon open ~0.3525 (n=6, sum received ~73,854); discount x weekday x afternoon open ~0.3517 (n=16, sum received ~192,537); story x weekday x evening open ~0.2582 (n=15, sum received ~163,184).
+- Sub-criterion 4.2.B.3 [1 point | Conclusiveness] Summarize: top combos cluster in "discount/new x afternoon/weekend"; worst combos cluster in "story x evening." Offer send recommendations (for example, reschedule or change theme for nighttime story sends).
+
+---
+## Requirement 5: Strategy recommendations and risk identification (max 12 points)
+### Standard 5.1: Strategy and experiment framework (6 points, multi-path)
+#### Path 5.1.A [6 points | Combination strategy checklist]
+- Sub-criterion 5.1.A.1 [1 point | Completeness] Propose at least three strategy types tied to findings, covering discount/new, storytelling, pre-/post-holiday, frequency control/list health.
+- Sub-criterion 5.1.A.2 [4 points | Precision] Strategies must cite anchors: discount -> weekend afternoon open ~0.3682, CTR ~0.0569; new -> weekend afternoon open ~0.3525; story -> weekday morning open ~0.2892; pre-holiday window open ~0.3074 needs caution; frequency control references Q5 received retention week ~0.3778. Define experiment thresholds (e.g., open uplift >= 1.5pp, CTR >= 0.3pp).
+- Sub-criterion 5.1.A.3 [1 point | Conclusiveness] Provide prioritized steps (e.g., first run weekend discount AB, then implement frequency control/retention handoff) and plan validation.
+
+#### Path 5.1.B [6 points | Brand/audience stratified strategies]
+- Sub-criterion 5.1.B.1 [1 point | Completeness] Combine retention and scale tiers (e.g., Q4 high engagement vs Q1 low engagement, list scale Q4 vs Q1) to design differentiated strategies.
+- Sub-criterion 5.1.B.2 [4 points | Precision] Cite anchors: high-open cohort weekly retention ~0.7176 vs low-open ~0.3874; high-frequency received weekly retention drops to ~0.3778; scale Q4 open ~0.3362. Define pilot rules (e.g., off-position <= 5 times, zero violations to expand).
+- Sub-criterion 5.1.B.3 [1 point | Conclusiveness] Give execution paths (e.g., high-value audience -> story morning plus discount afternoon; low-activity -> pre-holiday discount plus frequency caps) and stress quantitative monitoring.
+
+### Standard 5.2: Risk and limitation identification (6 points, deterministic)
+#### Path 5.2.A [6 points | Comprehensive risk alerts]
+- Sub-criterion 5.2.A.1 [1 point | Completeness] List at least three risks: discount dependence, pre-holiday crowding fatigue, limited variant lift, single-brand samples, subject-grouping errors, timezone not localized (persons timezone only America/Los_Angeles 149, Asia/Shanghai 894, Asia/Singapore 149).
+- Sub-criterion 5.2.A.2 [4 points | Precision] Link risks to anchors: pre_high_send open ~0.3074 shows pre-holiday fatigue; single ~ variant shows limited variant gains; only three timezones require localization; high-frequency received retention dropping to ~0.3778 shows need for frequency caps; propose mitigations (stagger sending, improve subject modeling, set frequency thresholds, add more timezones).
+- Sub-criterion 5.2.A.3 [1 point | Conclusiveness] Clarify follow-up data/experiment steps: add exposure detail, strengthen AB validation, build holiday/timezone calendars.

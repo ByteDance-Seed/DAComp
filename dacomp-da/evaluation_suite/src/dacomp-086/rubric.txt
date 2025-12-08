@@ -1,0 +1,85 @@
+# [Total Score | 42 points] Final Scoring Standard for Customer Health Model + Risk Warning Matrix + Revenue Prediction + Strategy
+---
+## Requirement 1: Build a 0–100 Customer Health Score (Max 12 points)
+### Criterion 1.1: Metric Mapping and Normalization (Max 6 points)
+#### Path 1.1.A [6 points | Min–Max Normalization]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly map the four dimensions to fields. Activity = `days_since_last_activity` + `total_activities_30d`; Contact Quality = `contacts_with_email` / `total_contacts` (treat division by zero as 0; this dataset has no such cases but it must be declared); Business Value = `annual_revenue` + `total_won_amount`; Scale Potential = `account_size_segment` + `number_of_employees`. The use of the original `customer_health_score` column is prohibited throughout.
+- Sub-criterion 1.1.A.2 [4 points | Accuracy]: Perform Min–Max normalization on the full dataset of 10,000 accounts:
+  • `recency_score` = (117 − `days_since_last_activity`) / 117, verify extreme values min=0, max=117 (SQL output must match exactly);
+  • `activity_score` = `total_activities_30d` / 480 (min=0, max=480);
+  • `contacts_with_email` / `total_contacts` result falls within [0,1], with missing/0 values treated as 0;
+  • `annual_rev_norm` = (`annual_revenue` − 864088.95) / 14099905133.622;
+    `total_won_norm` = `total_won_amount` / 1075711885.359;
+  • `employees_norm` = (`number_of_employees` − 13) / 49792.0;
+  • `size_segment_score` = {Enterprise=1.0, Large=0.8, Mid-Market=0.6, Small Business=0.4};
+  • `scale_subscore` uses 0.7×`size_segment_score` + 0.3×sqrt(`employees_norm`) (where negative results are clipped to 0), with the result required to be ∈[0,1]. Submissions must include equivalent SQL/code snippets to prove the formulas and verification constants used.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: Output a summary of the value ranges or distributions of the normalized fields. Must state that: the average `recency_score`≈0.836 and `activity_score`≈0.067; the average contact ratio≈0.919; the average business dimension scores (`annual_rev_norm`≈0.075, `total_won_norm`≈0.083) are significantly less than 1; the scale dimension creates a clear gap between Enterprise and SMB. Explain in business terms why these metrics represent activity level, relationship quality, business value, and scale potential.
+
+### Criterion 1.2: Sub-score Combination and Health Tiers (Max 6 points)
+#### Path 1.2.A [6 points | Linear Combination (40/30/20/10)]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Explain the sub-score composition: `activity_subscore` = 0.5×`recency_score` + 0.5×`activity_score`; `commercial_subscore` = 0.5×`annual_rev_norm` + 0.5×`total_won_norm`; `scale_subscore` = 0.7×`size_segment_score` + 0.3×sqrt(`employees_norm`).
+- Sub-criterion 1.2.A.2 [4 points | Accuracy]: Final health score = 100×(0.4×`activity_subscore` + 0.3×`contact_ratio` + 0.2×`commercial_subscore` + 0.1×`scale_subscore`). The output must be in the [0,100] range; values outside this range must be clipped. Verification summary: min=36.72±0.01, max=85.16±0.01, mean=52.75±0.01, median=51.43±0.01. Tier counts: 80+ tier=176, 50–79 tier=6433, <50 tier=3391, for a cumulative total=10000. The submitted SQL must show the recalculation path using LIMIT+OFFSET to find the median and must again state that the original `customer_health_score` was not used.
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: Explain the distribution characteristics: the health score is slightly right-skewed, with the main peak between 50–65, and low-health accounts still make up 33.9%. Emphasize that the activity dimension contributes an average of 18.1 points but becomes the primary source of variance due to having the largest standard deviation (SD≈0.050).
+
+## Requirement 2: Industry × Scale Risk Warning Matrix and Commonality Analysis (Max 12 points)
+### Criterion 2.1: Matrix Construction and Consistency (Max 6 points)
+#### Path 2.1.A [6 points | Row-Column Aggregation Table]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Group by `industry_normalized` × `account_size_segment`, and for each cell, output the `total_accounts`, the count of accounts with `health_score`<50, and the corresponding percentage. Must verify the total counts by industry (Technology=3300, Financial Services=2900, Healthcare=2600, Manufacturing=800, Retail=300, Education=100) and by size (Mid-Market=3700, Large=3000, Small Business=1700, Enterprise=1600).
+- Sub-criterion 2.1.A.2 [4 points | Accuracy]: All 19 combinations must be presented. Key verification values (margin of error = 0): Manufacturing×Mid-Market=400/400(100%); Manufacturing×Small Business=200/200(100%); Healthcare×Small Business=600/500(83.33%); Technology×Small Business=600/400(66.67%); Retail×Mid-Market=200/100(50%); Technology×Large=1300/391(30.08%); Financial Services×Mid-Market=1400/500(35.71%); Healthcare×Large=600/100(16.67%). The total count of low-health accounts must be 3391, consistent with Requirement 1.
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: Identify at least 3 high-risk segments: Manufacturing Mid-Market and Small Business customers are 100% low-health; Healthcare Small Business at 83.33%; Technology Small Business at 66.67%. Explain their common pain points based on industry characteristics (e.g., low activity in Manufacturing, weak resources for long-tail Healthcare, lack of operational touchpoints for long-tail Technology).
+
+#### Path 2.1.B [6 points | Risk Heatmap Levels]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Define the mapping from low-health percentage to risk level: ≥70% is “High”, 40–69.99% is “Elevated”, 20–39.99% is “Watch”, <20% is “Stable”.
+- Sub-criterion 2.1.B.2 [4 points | Accuracy]: Display both the numerical values and the levels in the matrix. Verification examples: High=Manufacturing×Mid-Market/Small Business, Healthcare×Small Business; Elevated=Technology×Small Business(66.67%), Retail×Mid-Market(50%); Watch=Financial Services×Mid-Market(35.71%), Technology×Large(30.08%); Stable=Healthcare×Large(16.67%), Technology×Mid-Market(12.50%), etc. Must explain the sorting logic (first by risk level, then by the number of low-health accounts).
+- Sub-criterion 2.1.B.3 [1 point | Conclusion]: Provide an intervention priority: High level first (Manufacturing, Healthcare small businesses), then sort by the count of low-health customers within the same level, clarifying the resource allocation logic.
+
+### Criterion 2.2: Common Characteristics of High-Risk Groups (Max 6 points)
+#### Path 2.2.A [6 points | Mean Comparison]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Within the `health_score`<50 group, calculate average values for the following metrics: `days_since_last_activity`, `total_activities_30d`, `contacts_with_email`/`total_contacts`, `annual_revenue`, `total_won_amount`, `current_pipeline_amount`, `win_rate_percentage`, `number_of_employees`.
+- Sub-criterion 2.2.A.2 [4 points | Accuracy]: Verify the means for the low-health group (allowed error: numerical ±0.1, ratio ±0.005): days=36.38, activities=4.90, contact_ratio=0.908, annual_revenue=205,999,018.63, total_won_amount=19,065,435.85, pipeline=17,027,598.54, win_rate=29.15%, employees=978.27. Must state the direction of difference compared to the overall population means (19.22, 32.19, 0.919, 1,051,632,952.14, 89,355,052.59, 113,022,428.18, 29.76%, 5,954.24).
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]: Summarize the commonalities of the low-health group: activity gaps (days↑, 30-day activities↓), smaller business size (`annual_revenue`↓, `total_won_amount`↓), and shrinking pipeline (`pipeline`↓), while also pointing out that contact quality, remaining near 0.91, is not the primary cause.
+
+#### Path 2.2.B [6 points | Comparison with Non-Low-Health Group]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Use accounts with `health_score`≥50 as the control group and output the means for the same set of metrics.
+- Sub-criterion 2.2.B.2 [4 points | Accuracy]: Verify the control group means (same error tolerance as above): days=10.42, activities=46.19, contact_ratio=0.925, annual_revenue=1,485,517,755.98, total_won_amount=125,419,826.44, pipeline=162,276,243.78, win_rate=30.07%, employees=8,507.35. State the differences: low-health activity frequency is far below 46.19, revenue is only 13.9% of the high-health group's, etc.
+- Sub-criterion 2.2.B.3 [1 point | Conclusion]: Use quantitative differences to define operational priorities (first boost sales activity, then drive business expansion), and emphasize that the contact dimension only needs to be maintained at its current state.
+
+#### Path 2.2.C [6 points | Importance Ranking]
+- Sub-criterion 2.2.C.1 [1 point | Completeness]: Rank the four dimensions based on the variance of their contribution or an equivalent metric. Must explain the calculation method (e.g., calculating the standard deviation of the weighted contributions like 0.4×`activity_subscore`).
+- Sub-criterion 2.2.C.2 [4 points | Accuracy]: Verify the standard deviations of the contributions (allowed error ±0.001): `activity_contribution` SD=0.050, `commercial_contribution` SD=0.032, `scale_contribution` SD=0.020, `contact_contribution` SD=0.015. If another importance metric is used, provide numerical evidence equivalent to the results above.
+- Sub-criterion 2.2.C.3 [1 point | Conclusion]: Based on the ranking, explain that “activity is the primary driver, followed by business value, then scale, with contact having the weakest influence,” and cross-reference this result with the difference analysis in Criterion 2.2.A/B.
+
+## Requirement 3: 6-Month Revenue Contribution Prediction and Customer Tiering (Max 12 points)
+### Criterion 3.1: Prediction Formula Definition (Max 6 points)
+#### Path 3.1.A [6 points | Weighted Linear Model]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Define `predicted_6m` = (0.4×`total_won_amount` + 0.6×`current_pipeline_amount`) × (`health_score`/100). Explain that the 0.4/0.6 weights originate from the business assumption of “prioritizing the future pipeline” and that α+β=1 is maintained.
+- Sub-criterion 3.1.A.2 [4 points | Accuracy]: Based on the `health_score` from Requirement 1, calculate `predicted_6m`. Verify the statistics (allowed error ±0.1): mean=70,613,360.50, total=706,133,604,986.05, min=42,662.13, max=1,060,998,942.57. The submitted SQL must show the `health_score`, `total_won_amount`, `current_pipeline_amount`, and `predicted_6m` columns simultaneously to demonstrate monotonicity (as any of the input fields increase, the prediction does not decrease).
+- Sub-criterion 3.1.A.3 [1 point | Conclusion]: Using the data, explain the amplification effect of the health score: the average prediction for high-health accounts (80+) is ≈708.56M, while for low-health accounts it is only ≈8.22M, validating that the health score acts as a revenue amplifier.
+
+### Criterion 3.2: Contribution Tiering and Validation (Max 6 points)
+#### Path 3.2.A [6 points | Quantile Tiering + Concentration]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Use `NTILE(4)` or an equivalent method to divide accounts into four tiers in descending order of `predicted_6m`. Output the number of customers, average prediction, total prediction, and average health score for each tier.
+- Sub-criterion 3.2.A.2 [4 points | Accuracy]: Verify the metrics for the four tiers (allowed error ±0.1):
+  • Tier 1 (Top 25%): `account_count`=2500, `avg_predicted`=260,632,167.12, total=651,580,417,812.08, `avg_health`=62.25;
+  • Tier 2: 2500 / 16,113,828.00 / 40,284,570,000.04 / 51.13;
+  • Tier 3: 2500 / 4,763,629.09 / 11,909,072,735.30 / 50.06;
+  • Tier 4: 2500 / 943,817.78 / 2,359,544,438.63 / 47.56.
+  The sum should reconcile to 706,133,604,986.05.
+- Sub-criterion 3.2.A.3 [1 point | Conclusion]: Point out that the top tier accounts for 92.27% of the predicted revenue, and that it still contains 291 low-health accounts (11.64% of the top tier). A priority list strategy must be proposed.
+
+#### Path 3.2.B [6 points | Threshold Tiering + Health Linkage]
+- Sub-criterion 3.2.B.1 [1 point | Completeness]: Cross-tabulate by health score tier and predicted contribution, listing at least three tiers: 80+, 50–79, <50.
+- Sub-criterion 3.2.B.2 [4 points | Accuracy]: Verify the table (allowed error ±0.1): 80+ tier = 176 accounts / total prediction 124,706,959,632.05 / average 708,562,270.64; 50–79 tier = 6433 accounts / 553,548,755,153.20 / average 86,048,306.41; <50 tier = 3391 accounts / 27,877,890,200.80 / average 8,221,141.32. Must state the trend that “high-contribution customers are mostly concentrated in the medium-to-high health tiers.”
+- Sub-criterion 3.2.B.3 [1 point | Conclusion]: Identify the key “low-health ∩ high-contribution” segment (e.g., 391 low-health accounts in Technology×Large contribute 14.48B) and propose a monitoring and escalation plan.
+
+## Requirement 4: Differentiated Customer Success Strategies (Max 6 points)
+### Criterion 4.1: Strategy Matrix and High-Value Recovery (Max 6 points)
+#### Path 4.1.A [6 points | Health × Scale Matrix]
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: Construct a 3 (Health Tiers: 80+, 50–79, <50) × 4 (Scale Tiers: Enterprise/Large/Mid-Market/Small Business) matrix. For each cell, provide at least 3 actions (maintain/expand/recover) and quantitative KPIs (e.g., 30-day activity count, `days_since_last_activity`, pipeline amount, `win_rate`).
+- Sub-criterion 4.1.A.2 [4 points | Accuracy]: Strategies must be anchored to data points:
+  • For Manufacturing×Mid-Market (400 accounts, predicted revenue 5.77e8, all <50), require “on-site visits + joint marketing” and set KPIs like 30-day activities ≥ 20, pipeline to double;
+  • For Healthcare×Small Business (500 low-health accounts, 83.33% of segment), emphasize low-cost outreach and automated nurturing, with KPIs including `days_since_last_activity`<14, weekly active contacts ≥ 3;
+  • For Technology×Large (391 low-health accounts, contributing 14.48B), a high-touch recovery plan is mandatory (e.g., solution pilot, CXO-level QBR) with a quantitative KPI like pipeline retention rate ≥ 90%;
+  • For the high-health Enterprise segment (all 176 accounts are 80+), design expansion/upsell strategies with KPIs tied to upsell conversion rate and `current_pipeline_amount`;
+  • Each strategy must reference the corresponding customer count or predicted amount for that segment to prove it is data-driven.
+- Sub-criterion 4.1.A.3 [1 point | Conclusion]: Summarize resource prioritization: “First address High-risk segments (Manufacturing, Healthcare small businesses), then handle high-contribution, low-health accounts (Technology Large), and finally, use automation to maintain the long tail.” Must explain the success validation method (health score improvement, realization of predicted revenue).

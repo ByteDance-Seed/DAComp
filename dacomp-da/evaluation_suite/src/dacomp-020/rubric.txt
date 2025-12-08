@@ -1,0 +1,126 @@
+# [Total Score | 16 points] Solutions must satisfy three core requirements:
+- Requirement 1: Describe the overall trend of average student performance as the Mental health score changes (5 points)
+- Requirement 2: After controlling for learning habits and lifestyle factors, determine whether the Mental health score has a statistically significant marginal impact on academic performance (7 points)
+- Requirement 3: Identify which variables interact with the Mental health score effect size (4 points)
+---
+## Requirement 1: Overall trend of average Exam score by Mental health score (maximum 5 points)
+### Standard 1.1: Trend characterization (maximum 4 points)
+#### Path 1.1.A [4 points | Nonparametric smoothing (preferred LOESS/local regression)]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly document the sample selection, aggregation units, and smoothing settings (e.g., standardization or binning of `Mental health score`; `Exam score` summarized by mean or with confidence intervals).
+- Sub-criterion 1.1.A.2 [2 points | Accuracy]: Provide a pseudo workflow verifying the analysis:
+  1) Specify the smoothing configuration (span/bandwidth, weighting scheme, boundary treatment or number of support points);
+  2) Estimate the LOESS curve between `Mental health score` and `Exam score`, including a 95% confidence or standard error band;
+  3) Recompute and confirm that the output matches the configuration (node count, span, interval definition);
+  4) If the prompt supplies fixed reference values or curve coordinates, cross-check each one.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: Based on the LOESS analysis, explicitly answer Requirement 1: state that average `Exam score` increases in a significantly positive, monotonic manner as `Mental health score` rises, and support this with at least two of the following conclusions:
+  1) Monotonicity: `Mental health score` and `Exam score` exhibit an overall positive, monotonic increase with no obvious inflection, providing stable theoretical support for policy;
+  2) Marginal effect quantification: as `Mental health score` rises from 1 to 10, `Exam score` climbs from about 63 points to 78 points (≈15-point gain), showing a clear return on investing in mental health;
+  3) Growth gradient: grouped means show 1–3 ≈ 63.37, 4–7 ≈ 69.42, 8–10 ≈ 76.76, indicating a stepwise increase and supporting a three-tier intervention strategy;
+  4) Stability advantage: the highest `Mental health score` group (8–10) has a lower standard deviation (≈15.10), suggesting mental health not only raises mean performance but also reduces academic risk;
+  5) Policy implication: schools should integrate mental health assessment into academic warning systems and prioritize students scoring below 4 for targeted support.
+#### Path 1.1.B [4 points | Group mean comparisons and trend testing]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Specify grouping rules (e.g., 1–3 / 4–7 / 8–10 or quintiles) and report each group’s mean and standard deviation.
+- Sub-criterion 1.1.B.2 [2 points | Accuracy]: Provide a pseudo workflow that hits at least three of the following anchors (±0.05 tolerance):
+  1) Compute group means according to the chosen bins;
+  2) Calculate Spearman’s rank correlation (group order or center vs. group mean) or a linear slope test;
+  3) Report statistical metrics: Spearman ρ ≈ 0.329 or Pearson r ≈ 0.326;
+  4) Confirm group means: Low ≈ 63.37, Middle ≈ 69.42, High ≈ 76.76;
+  5) Provide decile detail: 1 → 63.20, 10 → 78.06, showing monotonic increase;
+  6) Evaluate statistical significance at α=0.05 (p < 0.001).
+- Sub-criterion 1.1.B.3 [1 point | Conclusion]: Based on the group tests, explicitly answer Requirement 1: state that average `Exam score` increases significantly with `Mental health score` (p<0.001), and support with at least two of the following:
+  1) Confirmed increasing trend: group means rise significantly with score (ρ≈0.33, p<0.001), which validates differential management;
+  2) Effect magnitude: the high mental health group scores ≈13.4 points higher than the lowest group, and each point increase yields ≈6-point gain, giving a quantifiable ROI;
+  3) Group differences: quintile analysis (Q1 63.1 → Q5 77.6) shows stable increments, supporting tiered interventions;
+  4) Risk identification: students scoring 1–3 face clear academic risk and should be prioritized for preventive measures;
+  5) Management suggestion: recommend a student classification system based on mental health scores to improve resource allocation.
+#### Path 1.1.C [4 points | Polynomial or piecewise linear modeling]
+- Sub-criterion 1.1.C.1 [1 point | Completeness]: Specify the chosen model (e.g., quadratic, spline, piecewise) and the selection rationale (AIC/BIC/cross-validation).
+- Sub-criterion 1.1.C.2 [2 points | Accuracy]: Provide a pseudo workflow:
+  1) Fit the specified model and report the formula or knots;
+  2) Extract coefficients/inflection points, standard errors/confidence intervals, and goodness-of-fit metrics;
+  3) Ensure the implementation matches the stated choices (knot placement, order, penalty/selective criterion);
+  4) Recompute key predicted values to verify reproducibility.
+- Sub-criterion 1.1.C.3 [1 point | Conclusion]: Based on the parametric model, explicitly answer Requirement 1: conclude that average `Exam score` rises in a stable linear manner with `Mental health score`.
+#### Path 1.1.D [4 points | Monotonic-constrained trend testing]
+- Sub-criterion 1.1.D.1 [1 point | Completeness]: Apply the Pool Adjacent Violators Algorithm (PAVA) with an isotonic regression function, perform the Jonckheere-Terpstra trend test, and report JT statistic and p-value.
+- Sub-criterion 1.1.D.2 [2 points | Accuracy]: Provide a pseudo workflow:
+  1) Run PAVA on (`Mental health score`, `Exam score`);
+  2) Compute JT statistic = ΣΣU_ij for pairwise group comparisons;
+  3) Report the standardized JT statistic and two-sided p-value;
+  4) Present differences at the endpoints of the isotonic fit and the number of constraint violations.
+- Sub-criterion 1.1.D.3 [1 point | Conclusion]: Based on the constrained test, explicitly answer Requirement 1: state that the relationship between `Mental health score` and `Exam score` is strictly monotonically increasing.
+#### Path 1.1.E [1 point | Data-processing issue identification]
+- Sub-criterion 1.1.E.1 [1 point | Completeness]: Identify and explain any data preprocessing issues (e.g., misencoded categorical variables, sample loss from missing-value removal, inconsistent variable encoding) and propose sensible remedies.
+### Standard 1.2: Trend conclusion (maximum 1 point)
+#### Path 1.2.A [1 point | Conclusion]
+- Sub-criterion 1.2.A.1 [1 point | Conclusion]: **Final answer to Requirement 1**: The average `Exam score` increases significantly and monotonically with `Mental health score` (r ≈ 0.33, p<0.001); scores move from roughly 63 to 78 from the lowest to highest mental health level, confirming that higher mental health consistently associates with higher academic performance. This finding justifies prioritizing mental health interventions in educational policy.
+---
+## Requirement 2: Significance of the Mental health score marginal effect after controlling for learning habits and lifestyle factors (maximum 7 points)
+### Standard 2.1: Control variables selection and data preparation (maximum 2 points)
+#### Path 2.1.A [2 points | Rich dimensionality]
+- Sub-criterion 2.1.A.1 [2 points | Completeness]: Clearly list at least five core control variables spanning learning habits and lifestyle factors (e.g., `Daily study time`, `Attendance rate`, `Sleep duration`, `Exercise frequency`, `Social media usage time`, `Diet quality`, `Part-time job`, `Internet quality`, etc.), and describe how any missing or anomalous values are handled (e.g., imputation, flagging). Equivalents such as `Sleep duration` for sleep quality or `Daily study time` for review frequency are acceptable.
+#### Path 2.1.B [1 point | Basic dimensionality]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: List 3–4 key control variables that cover both learning habits and lifestyle dimensions, and describe basic preprocessing steps.
+### Standard 2.2: Marginal effect estimation (maximum 4 points)
+#### Path 2.2.A [4 points | OLS with robust standard errors]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Report all core indicators: β for `Mental health score`, the 95% confidence interval, p-value, and ΔR² after adding the mental health variable.
+- Sub-criterion 2.2.A.2 [2 points | Accuracy]: Provide a pseudo workflow that hits all anchors within ±0.10:
+  1) Define the outcome Y=`Exam score`, focal predictor X=`Mental health score`, controls C as selected;
+  2) Fit baseline model M0: Y~C and full model M1: Y~C+X;
+  3) Estimate OLS with robust standard errors and report β_X ≈ 1.838, p<0.001;
+  4) Compute ΔR² = R²(M1) − R²(M0) ≈ 0.096;
+  5) Provide R²(M0) ≈ 0.758 and R²(M1) ≈ 0.854.
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]: Based on the regression, explicitly answer Requirement 2: state that the marginal effect of `Mental health score` on `Exam score` remains significant after controlling for learning and lifestyle factors.
+#### Path 2.2.B [4 points | GAM/semi-parametric approach]
+- Sub-criterion 2.2.B.1 [1 point | Completeness]: Specify the smooth term s(`Mental health score`) and linear controls; describe penalty/selection criteria (e.g., GCV, AIC).
+- Sub-criterion 2.2.B.2 [2 points | Accuracy]: Provide a pseudo workflow:
+  1) Specify the basis and penalty for s(`Mental health score`);
+  2) Fit the GAM, report the smooth’s EDF, F/χ², and p-value;
+  3) Reproduce the smooth curve and confidence band consistent with the settings;
+  4) Evaluate significance at α=0.05.
+- Sub-criterion 2.2.B.3 [1 point | Conclusion]: Based on the GAM, explicitly answer Requirement 2: the marginal impact of `Mental health score` on `Exam score` remains significant and is approximately linear after accounting for controls.
+#### Path 2.2.C [4 points | Quantile regression or instrumental variables]
+- Sub-criterion 2.2.C.1 [1 point | Completeness]: Specify either quantile regression (multiple quantiles τ ∈ {0.25, 0.5, 0.75}) with corresponding β estimates, or describe an IV strategy and exclusion restrictions.
+- Sub-criterion 2.2.C.2 [2 points | Accuracy]: Provide a pseudo workflow:
+  1) For quantile regression, estimate β_X(τ), SE, and p for each τ;
+  2) For IV, describe instrument source, verify first-stage F>10, and report second-stage β_X, SE, p;
+  3) Ensure the reported statistics match the modeling assumptions.
+- Sub-criterion 2.2.C.3 [1 point | Conclusion]: Based on the quantile or IV analysis, explicitly answer Requirement 2: the marginal effect of `Mental health score` is significant across quantiles (or robust via IV).
+#### Path 2.2.D [4 points | Robust regression and outlier analysis]
+- Sub-criterion 2.2.D.1 [1 point | Completeness]: Implement robust estimation (e.g., Huber or Tukey M-estimator), report the robust coefficient and standard error, and compute diagnostics such as Cook’s distance and DFBETAS.
+- Sub-criterion 2.2.D.2 [2 points | Accuracy]: Provide a pseudo workflow:
+  1) Re-estimate Y~C+X with robust methods;
+  2) Compare OLS and robust β for `Mental health score` and their p-values;
+  3) Identify observations with Cook’s D > 4/n;
+  4) Report coefficient changes after excluding high-leverage points.
+- Sub-criterion 2.2.D.3 [1 point | Conclusion]: Based on the robust analysis, explicitly answer Requirement 2: the marginal effect remains significant and stable to outliers, and mention at least one supporting insight (e.g., difference <10%, outlier removal leaves conclusions intact, recommend reporting robust estimates, support roll-out of mental health programs with this stability).
+#### Path 2.2.E [2 points | Computation issue detection and alternative evidence]
+- Sub-criterion 2.2.E.1 [1 point | Completeness]: Identify any technical problems in estimating the marginal effect (e.g., NaN coefficients, abnormal standard errors, high multicollinearity) and explain their causes.
+- Sub-criterion 2.2.E.2 [1 point | Conclusion]: Based on alternative evidence (e.g., descriptive or correlational patterns), answer Requirement 2: despite technical hurdles, `Mental health score` still shows a significant positive impact on `Exam score`.
+#### Path 2.2.F [2 points | Group comparisons / ANOVA]
+- Sub-criterion 2.2.F.1 [1 point | Completeness]: Define grouping rules, report group means, and use an F-statistic to test significance.
+- Sub-criterion 2.2.F.2 [1 point | Conclusion]: Answer Requirement 2 by stating that `Mental health score` significantly affects `Exam score` (high F-statistic).
+### Standard 2.3: Final conclusion on marginal impact (maximum 1 point)
+#### Path 2.3.A [1 point | Conclusion]
+- Sub-criterion 2.3.A.1 [1 point | Conclusion]: **Final answer to Requirement 2**: The marginal influence of `Mental health score` on `Exam score` is significantly positive.
+---
+## Requirement 3: Identify variables that interact with the Mental health score effect size (maximum 4 points)
+### Standard 3.1: Interaction discovery and mechanism analysis (maximum 4 points)
+#### Path 3.1.A [4 points | Regression interaction terms (preferred, with multiple testing correction)]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Select at least two moderators Z from learning, lifestyle, or demographic variables (e.g., `Daily study time`, `Social media usage time`, `Attendance rate`, `Exercise frequency`, `Sleep duration`), construct centered interaction terms, and use Benjamini–Hochberg FDR (q<0.05) to determine significance.
+- Sub-criterion 3.1.A.2 [2 points | Accuracy]: Provide a pseudo workflow:
+  1) Estimate models Y~C+X+Z_i+(X×Z_i);
+  2) Extract interaction coefficients and raw p-values;
+  3) Apply BH-FDR correction to all interaction p-values;
+  4) Report corrected p-values and conditional effects/marginal slopes;
+  5) Declare significance at q<0.05.
+- Sub-criterion 3.1.A.3 [1 point | Conclusion]: Based on the interaction analysis, answer Requirement 3: state that `Mental health score` interacts significantly with variables such as `Daily study time`, `Social media usage time`, `Attendance rate`, `Exercise frequency`, and `Sleep duration`, and support with at least two insights (e.g., lower study time groups derive greater benefit (r≈0.48 vs. r≈0.39), high social media users show stronger effects, lower attendance groups benefit more, moderate exercise amplifies effect, adequate sleep boosts impact, recommend prioritizing interventions for students with low study time or attendance due to bigger marginal gains).
+#### Path 3.1.B [4 points | Stratified regression / subgroup comparison]
+- Sub-criterion 3.1.B.1 [1 point | Completeness]: Stratify by selected Z variables (e.g., high/low attendance, regular/irregular review) while keeping controls constant.
+- Sub-criterion 3.1.B.2 [2 points | Accuracy]: Provide a pseudo workflow:
+  1) Fit Y~C+X within each stratum;
+  2) Test coefficient differences using z = (β1−β2)/SE_diff or include interactions in a pooled model;
+  3) Report test statistics and p-values.
+- Sub-criterion 3.1.B.3 [1 point | Conclusion]: Based on the stratified analysis, answer Requirement 3: state that `Mental health score` interacts with `Daily study time`, `Social media usage time`, `Attendance rate`, `Exercise frequency`, and `Sleep duration`, and support with at least two insights (e.g., effect differentials quantify differences, high social media usage shows larger effect, low attendance has stronger effect, effect size differences of 0.09–0.23 are educationally meaningful, and differential intervention strategies are recommended).
+#### Path 3.1.C [1 point | Null interaction finding]
+- Sub-criterion 3.1.C.1 [1 point | Completeness]: Clearly report that interaction tests were conducted but no significant moderators (p≥0.05) were found, and answer Requirement 3 by stating that within the presented data, `Mental health score`’s effect size does not significantly interact with other variables.

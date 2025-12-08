@@ -1,0 +1,244 @@
+# [Total Score | 30 Points] The solution needs to satisfy two requirements:
+- Requirement 1: Calculate the starting salary distribution and benefits distribution for vocational school positions
+- Requirement 2: Identify and justify the qualities/skills that significantly increase starting salaries for vocational school graduates
+ 
+ 
+## Requirement 1: Starting salary distribution and benefits distribution for vocational school positions (Max 15 points; each path score must be an integer)
+### Standard 1.1 (Max 4 points): Data understanding and filtering vocational school positions
+#### Path 1.1.A [4 points | Relevant field extraction]
+- 1.1.A.1 [1 point | Completeness]: Extract positions whose `Education Requirement` column is “vocational school or higher” as vocational school positions.
+- 1.1.A.2 [1 point | Completeness]: Extract positions whose `Job Description` column contains the Chinese words for “vocational school” (pinyin “zhong zhuan”) or “technical school” (pinyin “zhong ji”), and add them to the vocational school position set.
+- 1.1.A.3 [1 point | Completeness]: Extract positions whose `Job Description` column contains the Chinese word for “trade school” (pinyin “ji xiao”) AND whose `Education Requirement` column is not “bachelor’s degree or higher” or “senior high school or higher” or “associate degree or higher”; add them to the vocational school position set.
+- 1.1.A.4 [1 point | Accuracy]: After extraction, before handling missing values, there should be 11,838 rows of vocational school position data; the deviation must not exceed 1%.
+ 
+### Standard 1.2 (Max 5 points): Starting salary distribution calculation
+#### Path 1.2.A [5 points | Full parsing method]
+- 1.2.A.1 [1 point | Completeness]: Extract the lower bound of the salary range from the `Salary Range` column, bin the extracted lower bounds, and then count the distribution.
+- 1.2.A.2 [1 point | Completeness]: Handle salary outliers/nulls appropriately (cannot directly drop nulls on the full dataset, or the subsequent benefits distribution will be affected).
+- 1.2.A.3 [2 points | Accuracy]: The salary distribution statistics are calculated correctly. Reference answer:
+ 
+| bin | count | percent |
+|--------|-------|---------|
+| <=3k | 323 | 3.15 |
+| 3-4k | 2381 | 23.19 |
+| 4-5k | 3219 | 31.35 |
+| 5-6k | 2047 | 19.94 |
+| 6-8k | 1407 | 13.7 |
+| 8-10k | 512 | 4.99 |
+| 10-12k | 261 | 2.54 |
+| 12-15k | 50 | 0.49 |
+| 15-20k | 47 | 0.46 |
+| >=20k | 19 | 0.19 |
+ 
+(For this reference, abnormal salaries were temporarily removed, leaving 10,266 rows. The reference applies only if binning and outlier handling match; then the error cannot exceed 0.5%. Otherwise, use the **code validation method** to check the computation logic.)
+- 1.2.A.4 [1 point | Conclusion]: Output the interval distribution table/chart and summarize the “main concentration range/long-tail range” based on the results.
+ 
+#### Path 1.2.B [2 points | Direct aggregation method]
+- 1.2.B.1 [1 point | Completeness]: Directly aggregate the distribution of the `Salary Range` column.
+- 1.2.B.2 [1 point | Conclusion]: Based on the computed granular distribution, summarize the starting salary distribution for vocational school graduates.
+ 
+### Standard 1.3 (Max 6 points): Benefits distribution
+#### Path 1.3.A [6 points | Multi-source merge + dictionary counting]
+- 1.3.A.1 [1 point | Completeness]: Extract all benefits contained in each position’s `Benefits` column and, on that basis, count each benefit’s number of positions and percentage.
+- 1.3.A.2 [1 point | Completeness]: Before counting the distribution, and with priority to the `Benefits` column, additionally extract each position’s benefits from the `Job Description` column and add them to that position’s full benefit set.
+- 1.3.A.3 [1 point | Completeness]: Implement deduplication and synonym merging for benefits (e.g., “meal allowance/food allowance/catering subsidy”), robust to case and full-width/half-width.
+- 1.3.A.4 [2 points | Accuracy]: The benefits distribution calculation is correct. Reference answer:
+ 
+| Benefit Item | Number of Positions | Percent (%) |
+|--------------|------------|----------|
+| Five Social Insurances | 10041 | 84.82 |
+| Allowance | 6585 | 55.63 |
+| Paid Annual Leave | 6378 | 53.88 |
+| Holiday Benefits | 6047 | 51.08 |
+| Performance Bonus | 5108 | 43.15 |
+| Training | 4155 | 35.1 |
+| Full Attendance Bonus | 4067 | 34.36 |
+| Housing Provident Fund | 3596 | 30.38 |
+| Travel/Company Trips | 3397 | 28.7 |
+| Meal Allowance | 2966 | 25.06 |
+| Meals Provided | 2549 | 21.53 |
+| High Temperature Allowance | 2074 | 17.52 |
+| Housing Provided | 2028 | 17.13 |
+| Physical Examination | 1734 | 14.65 |
+| Transportation Allowance | 1699 | 14.35 |
+ 
+(Considering naming differences after merging benefit synonyms, the answer need not exactly match the reference. For synonymous benefits a 3% error is allowed; as long as 75% of the benefit distribution is correct, award the full 2 points; 50% correctness earns 1 point. If benefits appear that are not in the reference answer, check the computation logic using the **code validation method**.)
+- 1.3.A.5 [1 point | Conclusion]: Clearly present the benefits distribution and interpret leading benefits (e.g., “Five Social Insurances/Paid Annual Leave have higher shares”).
+ 
+ 
+## Requirement 2: Identify qualities/skills that significantly increase starting salaries for vocational school graduates (Max 15 points; each path score must be an integer)
+### Standard 2.1 (Max 5 points): Extract qualities and skills
+#### Path 2.1.A [5 points | Keyword extraction]
+- 2.1.A.1 [1 point | Completeness]: Extract information from `Work Experience Requirement` and `Foreign Language Requirement`, and consolidate synonyms.
+- 2.1.A.2 [1 point | Completeness]: Build a multidimensional dictionary of qualities/skills (considering multiple synonymous expressions for each skill) and extract from the `Job Description`.
+- 2.1.A.3 [3 points | Accuracy]: All qualities/skills analyzed must include all the following major categories, with at least 4 sub-items in each. If any major category fails, deduct 1 point per category until zero.
+- Certificates/Qualifications (electrician certificate/welder certificate/forklift license/driver’s license…)
+- Manufacturing/Electromechanical (PLC/CNC/mechanical drafting/electrical/mold/injection molding/SMT/equipment maintenance…)
+- Quality/Systems (QC/QA, ISO/5S/SPC/Six Sigma…)
+- Office/Software/Design (Excel/ERP/SAP/CAD/SolidWorks/UG/ProE…)
+- Language (CET-4/6, English reading/writing/speaking, Japanese…)
+- Sales/Customer Service
+- Soft Skills (communication/stress tolerance/teamwork/learning/responsibility…)
+- Years of Experience (fresh graduate/1–2 years/3–5 years/5+ years)
+ 
+### Standard 2.2 (Max 6 points): Calculating salary lift from qualities/skills
+#### Path 2.2.A [6 points | Mentioned vs not mentioned + robustness analysis]
+- 2.2.A.1 [2 points | Completeness]: For each factor, compute “mentioned vs not mentioned” average starting salary (median or other reasonable metric also acceptable) and percentage lift, and set a frequency threshold (e.g., ≥max(10, 2% of samples)).
+- 2.2.A.2 [2 points | Accuracy]: Each factor’s average starting salary (median or other reasonable metric) lift is calculated correctly. Reference answer:
+ 
+| Quality/Skill | Mentioned Samples | Avg Starting Salary (Mentioned) | Avg Starting Salary (Not Mentioned) | Lift (¥/month) | Lift (%) |
+|-----------------------|------------|----------------|------------------|------------|----------|
+| SolidWorks/UG/ProE | 142 | 6031.69 | 4801.56 | 1230.13 | 25.62 |
+| Injection Molding | 159 | 5838.74 | 4802.53 | 1036.21 | 21.58 |
+| Mold | 304 | 5550.66 | 4796.24 | 754.42 | 15.73 |
+| Stress Tolerance | 865 | 5386.13 | 4766.36 | 619.77 | 13 |
+| AutoCAD | 638 | 5293.42 | 4787.11 | 506.3 | 10.58 |
+| Driver’s License C1/C2 | 430 | 5196.28 | 4802.06 | 394.22 | 8.21 |
+| Communication Skills | 2377 | 5026.17 | 4756.04 | 270.13 | 5.68 |
+| CNC | 186 | 5034.41 | 4814.59 | 219.82 | 4.57 |
+| Learning Ability | 699 | 4980.55 | 4806.74 | 173.81 | 3.62 |
+| Maintenance/Equipment | 274 | 4974.82 | 4814.29 | 160.53 | 3.33 |
+| Electrical | 518 | 4965.44 | 4810.77 | 154.67 | 3.22 |
+| Fitter | 107 | 4969.16 | 4816.99 | 152.17 | 3.16 |
+| Teamwork | 2630 | 4931.14 | 4779.81 | 151.33 | 3.17 |
+| Welder Certificate | 22 | 4931.82 | 4818.33 | 113.49 | 2.36 |
+| ISO/5S/SPC | 276 | 4898.55 | 4816.36 | 82.19 | 1.71 |
+| English Reading/Writing/Speaking | 36 | 4858.33 | 4818.43 | 39.9 | 0.83 |
+| Mechanical Drafting | 132 | 4844.7 | 4818.23 | 26.46 | 0.55 |
+| Mandarin | 419 | 4822.43 | 4818.41 | 4.02 | 0.08 |
+| Electrician Certificate | 237 | 4724.9 | 4820.79 | -95.89 | -1.99 |
+| Responsibility/Attention to Detail | 3349 | 4610.05 | 4919.5 | -309.45 | -6.29 |
+| ERP/SAP | 348 | 4507.47 | 4829.49 | -322.02 | -6.67 |
+| QC/QA | 391 | 4383.12 | 4835.81 | -452.69 | -9.36 |
+| CET-4/6 | 23 | 4304.35 | 4819.73 | -515.38 | -10.69 |
+| Word | 369 | 4300 | 4837.9 | -537.9 | -11.12 |
+| Excel | 517 | 4260.74 | 4848.15 | -587.41 | -12.12 |
+| Forklift License | 38 | 4173.68 | 4820.97 | -647.28 | -13.43 |
+| Customer Service/Clerical | 668 | 4169.92 | 4863.71 | -693.79 | -14.26 |
+ 
+(Considering naming differences after merging skill synonyms, the answer need not perfectly match the reference. A 3% error is allowed for synonymous qualities/skills; as long as 75% of the selected factors have correct salary lift calculations, award the full 2 points; 50% correctness earns 1 point. If factors appear that are not in the reference answer, check the computation logic using the **code validation method**.)
+- 2.2.A.3 [2 points | Conclusion]: Output a top list sorted by “Lift (¥/month)” or “Lift (%)” descending, and based on the actual results explain “which qualities are more valuable and suitable for vocational school graduates to improve.” Experience and foreign language must be explained separately.
+ 
+#### Path 2.2.B [5 points | Mentioned vs overall mean/median + robustness analysis]
+- 2.2.B.1 [1 point | Completeness]: For each factor, compute the average starting salary for “mentioned” (median or other reasonable metric also acceptable) and the percentage lift relative to the overall average starting salary (median or other reasonable metric), and set a frequency threshold (e.g., ≥max(10, 2% of samples)).
+- 2.2.B.2 [2 points | Accuracy]: Each factor’s average starting salary (median or other reasonable metric) lift is calculated correctly; the reference answer for “mentioned” averages matches Standard 2.2.A.2, and scoring is the same. The overall average starting salary for vocational school positions is 4,818.47, with 1% tolerance.
+- 2.2.B.3 [2 points | Conclusion]: Output a top list sorted by “Lift (¥/month)” or “Lift (%)” descending, and based on the actual results explain “which qualities are more valuable and suitable for vocational school graduates to improve.” Experience and foreign language must be explained separately.
+ 
+#### Path 2.2.C [2 points | Key factor comparison method]
+- 2.2.C.1 [1 point | Completeness]: Cover at least experience, English, and ≥1 hard skill—each with salary comparison and lift—and provide clear improvement suggestions (e.g., “injection molding and similar hard skills > soft skills,” based on results).
+- 2.2.C.2 [1 point | Accuracy]: Mean differences and proportions are calculated correctly; table fields are clear; computation logic is checked using the **code validation method**.
+ 
+#### Path 2.2.D [4 points | Correlation | Chi-square test method]
+- 2.2.D.1 [1 point | Completeness]: For each factor, analyze its correlation with starting salary.
+- 2.2.D.2 [2 points | Accuracy]: Each factor’s correlation analysis is correct; computation logic is checked using the **code validation method**.
+- 2.2.D.3 [1 point | Conclusion]: Provide clear improvement suggestions (e.g., “injection molding and similar hard skills > soft skills,” based on results).
+ 
+#### Path 2.2.E [3 points | “Mentioned” salary ranking method]
+- 2.2.E.1 [1 point | Completeness]: For each factor, calculate mean starting salary and rank; select top N (count not required) to display.
+- 2.2.E.2 [1 point | Accuracy]: Each factor’s mean starting salary is calculated correctly, validated by checking the code. (Requires prior processing of the salary column to be correct; otherwise no points.)
+- 2.2.E.3 [1 point | Conclusion]: Provide clear improvement suggestions (e.g., “injection molding and similar hard skills > soft skills,” based on results).
+#### Path 2.2.F [3 points | Frequency counting method]
+- 2.2.F.1 [1 point | Completeness]: Filter out high-paying positions and count mention frequencies of qualities/skills among them.
+- 2.2.F.2 [1 point | Accuracy]: Correctly filter high-paying positions (top 25%); count mentions of each quality/skill; computation logic is checked using the **code validation method**.
+- 2.2.F.3 [1 point | Conclusion]: Provide clear improvement suggestions (e.g., “injection molding and similar hard skills > soft skills,” based on results).
+ 
+ 
+### Standard 2.3 (Max 4 points): Identify “significant lift” and final conclusions
+#### Path 2.3.A [4 points | Threshold + statistical robustness (recommended)]
+- 2.3.A.1 [1 point | Completeness]: Clearly define what counts as “significant” (e.g., mention sample ≥ threshold and lift ≥ X RMB or ≥ Y%, and p<0.10/0.05; or “frequency threshold + confidence interval excluding 0”).
+- 2.3.A.2 [1 point | Accuracy]: Significant lift identification is correct, mainly checked via the **code validation method** to confirm the logic truly works. Reference approach:
+ 
+Determination: Using valid sample N=10,268 of “vocational school positions (with starting salaries)”, compare “mentioned vs not mentioned” means for each factor; classify as “significant” only when all hold — ① mention sample count ≥20; ② average starting salary lift ≥500 RMB/month or ≥5%; ③ lower bound of the 95% bootstrap confidence interval for the difference between two independent sample means >0.
+ 
+Significant factors (sorted by “Lift (¥/month)” descending):
+- 5+ years of experience: lift ≈ 2,352 RMB/month (49.0%); mentioned=98, not mentioned=10,170; means=7,148 / 4,796 RMB/month; 95% CI=[1,770, 3,010].
+- SolidWorks/UG/ProE: lift ≈ 1,230 RMB/month (25.6%); mentioned=142, not mentioned=10,126; means=6,032 / 4,802 RMB/month; 95% CI=[908, 1,556].
+- Injection Molding: lift ≈ 1,036 RMB/month (21.6%); mentioned=159, not mentioned=10,109; means=5,839 / 4,803 RMB/month; 95% CI=[794, 1,309].
+- Sales experience: lift ≈ 885 RMB/month (19.2%); mentioned=2,538, not mentioned=7,730; means=5,485 / 4,600 RMB/month; 95% CI=[786, 993].
+- 3–5 years of experience: lift ≈ 807 RMB/month (16.8%); mentioned=35, not mentioned=10,233; means=5,623 / 4,816 RMB/month; 95% CI=[177, 1,490].
+- Mold: lift ≈ 754 RMB/month (15.7%); mentioned=304, not mentioned=9,964; means=5,551 / 4,796 RMB/month; 95% CI=[560, 955].
+- Stress Tolerance: lift ≈ 620 RMB/month (13.0%); mentioned=865, not mentioned=9,403; means=5,386 / 4,766 RMB/month; 95% CI=[469, 776].
+- AutoCAD: lift ≈ 506 RMB/month (10.6%); mentioned=638, not mentioned=9,630; means=5,293 / 4,787 RMB/month; 95% CI=[357, 655].
+- Driver’s license C1/C2: lift ≈ 394 RMB/month (8.2%); mentioned=430, not mentioned=9,838; means=5,196 / 4,802 RMB/month; 95% CI=[190, 610].
+- Communication skills: lift ≈ 270 RMB/month (5.7%); mentioned=2,377, not mentioned=7,891; means=5,026 / 4,756 RMB/month; 95% CI=[174, 367].
+ 
+- 2.3.A.3 [2 points | Conclusion]: Clearly present the qualities/skills that significantly affect starting salaries for vocational school graduates and provide actionable recommendations for employers/job seekers (which certificates to prioritize, which skills to learn first, whether to improve language, etc.), with conclusions consistent with the data. Reference conclusions:
+ 
+#### Priority and progression path
+##### Tier A: 3–6 months to land, high ROI (manufacturing/electromechanical track)
+###### 3D modeling and mechanical drafting system
+Target skills: SolidWorks/UG/ProE (+1,230 RMB/month), AutoCAD (+506 RMB/month) 
+Actions:
+1. Spend 1–2 months completing courses: “Mechanical Drafting Fundamentals” → “3D Modeling” → “Engineering Drawing Release”;
+2. Build two portfolios: (1) Plastic part (with draft angles, ribs, wall thickness) (2) Sheet metal part (with flat pattern and tolerance marks);
+3. Deliverables: full drawing package (3D models + 2D engineering drawings + BOM); attach links or images in the resume. 
+Resume keyword examples: SolidWorks/UG/ProE, AutoCAD, engineering drawings, GD&T, tolerance stack-up, BOM, assembly
+ 
+###### Injection molding/mold capabilities
+Target skills: Injection Molding (+1,036 RMB/month), Mold (+754 RMB/month) 
+Actions:
+1. Learn injection molding process parameters (temperature, pressure, holding, cooling), common defects (shrinkage, deformation, flash) and tuning logic;
+2. Understand mold structure (gate/runner/ejection/cooling/slide) and common steel types;
+3. Join 1–2 small line-following projects at an internship factory/training center (e.g., defect improvement, reducing mold changeover time). 
+Resume keyword examples: injection molding setup, mold structure, DFM, defect analysis, changeover optimization
+ 
+Expected return: Tier A skills show significant starting salary lift in the data and are “plug-and-play” for both entry and raises.
+ 
+##### Tier B: Highly transferable, easy to demonstrate (soft/general abilities)
+###### Stress tolerance and communication
+Target factors: stress tolerance (+620 RMB/month), communication (+270 RMB/month) (both significant) 
+Actions: Prepare three workplace STAR cases (tight deadlines, cross-department coordination, handling customer objections); show quantifiable results in interviews and resume. 
+Resume keyword examples: cross-department collaboration, milestone management, issue closure, retrospective, customer communication
+ 
+###### Driver’s license C1/C2 (+394 RMB/month)
+Applicable to: after-sales, field service, channel/ground promotion, internal logistics requiring travel 
+Actions: Prioritize obtaining the license; clearly state “holds C1/C2 license; available for travel” on the resume.
+ 
+##### Tier C: Role-directed choice (sales track)
+###### Sales experience (+885 RMB/month)
+For: extroverted, stress-tolerant, goal-driven vocational school graduates 
+Actions:
+1. Start with telesales/in-store sales/channel assistant roles;
+2. Build a customer management system: customer list → follow-up cadence → review conversion/loss reasons;
+3. Resume focus: quantify process and results (weekly call volume, store/tryout volume, order conversion, repeat/return order rate, average ticket).
+ 
+##### Tier D: Long-term accumulation (trading time for scope)
+###### Years of experience
+Data: 3–5 years of experience (+807 RMB/month), 5+ years (+2,352 RMB/month) show significant lifts 
+Actions:
+1. First job should favor well-structured production lines/companies to accumulate standard processes (5S/quality systems/equipment inspection and maintenance) and transferable experience;
+2. Each year, deposit one showcaseable improvement project (cost reduction, efficiency gain, yield/scrap improvement) to form a “yearly updated” growth curve.
+ 
+#### Two executable combination routes
+##### Manufacturing/electromechanical “skills combo”
+Combo: SolidWorks/UG/ProE + AutoCAD + Injection Molding/Mold + Stress Tolerance/Communication (soft skills) + (optional) Driver’s License 
+Target roles: injection molding technician, mold fitter assistant, mechanical drafter, process/equipment assistant 
+Job search messaging: emphasize “drawing output + process understanding + on-site minor improvements”; bring portfolio and mini-project retrospective to interviews.
+ 
+##### Sales/service “on-the-move combo”
+Combo: sales experience + communication/stress tolerance (soft skills) + driver’s license + (optional) AutoCAD/product knowledge 
+Target roles: channel/key account assistant, after-sales service, technical support (understanding drawings improves competitiveness) 
+Job search messaging: emphasize a “closed loop on process and results” (lead generation → in-store conversion → order closing → after-sales follow-up), showing a repeatable personal methodology.
+ 
+ 
+#### Path 2.3.B [2 points | Recommendations from frequency analysis]
+- 2.3.B.1 [1 point | Completeness]: Even without significance testing, set a frequency threshold (e.g., mention sample count ≥max(10, 2% of samples)) and provide a top list of salary lifts, while disclosing analysis bias/limitations (e.g., uneven industry distribution, potential bias from missing salary data).
+- 2.3.B.2 [1 point | Conclusion]: Without exaggeration, give actionable recommendations based on the data and explicitly note risks (e.g., some skill lifts depend on region/company size; experience accumulation requires sustained effort).
+ 
+#### Path 2.3.C [2 points | Derive significance directly from correlation analysis]
+- 2.3.C.1 [1 point | Completeness]: Determine significance for each factor strictly based on its correlation with salary.
+- 2.3.C.2 [1 point | Conclusion]: List factors that significantly lift salary and provide actionable recommendations and risk warnings without exaggeration.
+ 
+#### Path 2.3.D [3 points | Conclusions from salary distribution]
+- 2.3.D.1 [1 point | Completeness]: Sort average salaries corresponding to each quality and present them in the analysis results.
+- 2.3.D.2 [1 point | Conclusion]: Based on the calculations, provide conclusions about which key qualities raise starting salaries.
+ 
+ 
+## Supplementary Notes
+### How to use the reference answer
+If indicators have the same meaning, or core indicators that must be included in the analysis, their results need to be close to the reference answer; if indicators differ in meaning, the reference does not apply, and you must validate the computation logic for those indicators/values using the **code validation method**.
+ 
+### Code validation method
+Used when it is hard to enumerate all reference answers; the default is “if the code is correct, the answer is correct.” Validation has two steps:
+1. Read code comments and core logic to confirm the code matches the analytical approach;
+2. Check the code line by line to verify each line truly implements what the comments describe (e.g., data filtering, outlier handling, statistical calculation, etc.).

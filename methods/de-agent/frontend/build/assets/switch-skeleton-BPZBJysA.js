@@ -1,0 +1,1 @@
+import{j as e}from"./chunk-ZYFC6VSF-CV8XXl5-.js";function t(){return e.jsxs("div",{className:"flex items-center gap-2",children:[e.jsx("div",{className:"w-[48px] h-[24px] skeleton-round"}),e.jsx("div",{className:"w-[100px] h-[20px] skeleton"})]})}export{t as S};

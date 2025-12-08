@@ -1,0 +1,12 @@
+The Marketing Department is questioning the ROI efficiency of our investments in different states and has requested a detailed analysis of regional market performance. Please perform calculations based on Salesforce data according to the following definitions:
+- Customer Acquisition Cost (CAC) per state = (Total number of sales representatives in the state × 150,000 annual salary) / Number of new customers in the state
+- Average Customer Value per state = A comparative analysis of the mean and median of `annual_revenue`
+- Market Penetration Rate per state = Our number of customers / (State population / 10,000)
+- Sales Efficiency per state = Average won deal amount / Average sales cycle days × Win probability
+- Industry Concentration per state = Sum of the customer share from the top 3 industries
+
+Additionally, you are required to:
+1.  Design a State Competition Intensity Assessment Model (based on average win probability, average deal size, and sales cycle length).
+2.  Construct a State Investment Return Prediction Algorithm (incorporating state GDP, population density, and primary industry types).
+
+Finally, output a ranked list of states by their Investment Efficiency Score and provide a 3-year regional expansion priority recommendation.

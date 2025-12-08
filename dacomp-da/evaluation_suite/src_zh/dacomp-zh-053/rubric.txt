@@ -1,0 +1,123 @@
+# [总分 | 32分] asana__project_analytics “健康度与价值产出倒挂”现象分析评分标准
+---
+## 需求1：按健康等级（A/B/C/D/F）计算三项核心指标（本需求最高可得 8分）
+### 标准1.1（最高 2 分，折算系数 2/6）
+#### 路径1.1.A（完备性）（2分｜预测总工期口径）
+##### 小标准1.1.A.1（1分｜完备性）限定 `is_valid_record=1`、`planned_duration_days>0`，并声明预测工期口径：  
+`predicted_total_days = CASE WHEN completion_percentage>=99 THEN elapsed_days ELSE elapsed_days + COALESCE(estimated_days_to_completion, remaining_days, 0) END`。
+##### 小标准1.1.A.2（1分｜精确性）以伪代码复现统计逻辑，含 >20% 超期判定：
+```
+INPUT: asana__project_analytics 筛选后样本
+STEP1: 计算 predicted_total_days
+STEP2: overrun_flag_pred = 1{predicted_total_days > 1.2*planned_duration_days}
+STEP3: 按 health_grade 聚合 → AVG(roi_efficiency_ratio)、AVG(completion_percentage)、AVG(overrun_flag_pred)
+```
+##### 小标准1.1.A.3（0分｜结论性）说明预测口径可覆盖进行中项目，避免仅用 `elapsed_days` 造成工期低估。
+
+#### 路径1.1.B（完备性）（2分｜简化实际工期口径）
+##### 小标准1.1.B.1（1分｜完备性）声明同样限定 `is_valid_record=1`、`planned_duration_days>0`，直接比较 `elapsed_days` 与计划工期。
+##### 小标准1.1.B.2（1分｜精确性）提供判定伪代码：`overrun_flag_elapsed = 1{elapsed_days > 1.2*planned_duration_days}`，并确保与 1.2.A 指标统计一致。
+##### 小标准1.1.B.3（0分｜结论性）指出该口径适用于已完结项目，但对在制项目会低估潜在超期。
+
+### 标准1.2（最高 6 分，折算系数 6/6）
+#### 路径1.2.A（精确性）（6分｜按健康等级输出三项指标）
+##### 小标准1.2.A.1（1分｜完备性）按 `health_grade` 输出平均 ROI、平均完成率、`overrun_flag_elapsed` >20% 占比。
+##### 小标准1.2.A.2（4分｜精确性）结果需落入以下锚点±容差（容差为 ±0.005，完成率容差 ±0.5pp，超期占比容差 ±0.02）：
+- A：ROI 0.927678，完成率 96.002%，超期占比 0.333
+- B：ROI 0.756054，完成率 72.440%，超期占比 0.261
+- C：ROI 0.391976，完成率 50.052%，超期占比 0.456
+- D：ROI 0.184437，完成率 40.519%，超期占比 0.583
+- F：ROI 0.062138，完成率 28.841%，超期占比 0.960
+##### 小标准1.2.A.3（1分｜结论性）得出“健康等级与 ROI、完成率正相关、与超期率负相关”的基线趋势。
+
+---
+## 需求2：识别并量化“倒挂”样本（本需求最高可得 10分）
+### 标准2.1（最高 4 分，折算系数 4/6）
+#### 路径2.1.A（精确性）（4分｜等级内分位法）
+##### 小标准2.1.A.1（1分｜完备性）按健康等级计算 ROI 分位：  
+A：Q1=0.6627，Q3=0.9447；B：Q1=0.519325，Q3=0.869675；C：Q1=0.262275，Q3=0.46535；D：Q1=0.115000，Q3=0.215300；F：Q1=0.027925，Q3=0.089350。  
+定义 `HHLV = (overall_health_score≥80) ∧ (ROI<Q1_grade)`；`LHHV = (overall_health_score<60) ∧ (ROI>Q3_grade)`。
+##### 小标准2.1.A.2（2分｜精确性）样本规模与占比分别满足（容差 ±1 个、占比容差 ±1.5pp）：  
+HHLV=11，占高健康样本 16.4%；LHHV=66，占低健康样本 22.8%。
+##### 小标准2.1.A.3（1分｜结论性）指出“低健康组内高价值占比更高，倒挂并非孤例”，并强调等级内分位的稳健性。
+
+#### 路径2.1.B（完备性）（3分｜全局 ROI 分位阈值法）
+##### 小标准2.1.B.1（1分｜完备性）列出全局 ROI 分位：Q1=0.06115、Q2=0.13290、Q3=0.33020。
+##### 小标准2.1.B.2（1分｜精确性）说明按 Q1/Q3 阈值在高健康、低健康子样本均得到 0 个倒挂项目，并据此提出替代阈值（如高健康使用 Q1_grade、低健康使用 Q3_grade）或调至 ROI≤0.52、≥0.21 以获取最小非零样本（1 个与 9 个）。
+##### 小标准2.1.B.3（1分｜结论性）指出全局阈值忽视等级间分布差异、样本稀少，需回到等级内基准。
+
+#### 路径2.1.C（精确性）（3分｜ROI~健康线性残差法）
+##### 小标准2.1.C.1（1分｜完备性）拟合 `ROI = 0.01827×overall_health_score – 0.79568`（系数容差 ±0.0015，截距容差 ±0.02），残差定义为观察值减拟合值。
+##### 小标准2.1.C.2（1分｜精确性）在健康等级 A/B 中选取残差底部 30%（91 个样本→28 个，比例 30.8%），在 D/F 中选取残差顶部 30%（341 个样本→103 个，比例 30.2%）。
+##### 小标准2.1.C.3（1分｜结论性）说明残差法可捕捉相对预期偏离，为进阶校准提供依据。
+
+### 标准2.2（最高 3 分，折算系数 3/6）
+#### 路径2.2.A（精确性）（3分｜高健康内对比：HHLV vs 非 HHLV）
+##### 小标准2.2.A.1（1分｜完备性）对比 ROI、completion_rate_per_day、time_management_score、efficiency_score、complexity_factor、unique_assignees、`overrun_flag_elapsed`。
+##### 小标准2.2.A.2（1分｜精确性）数值需落在锚点±容差（ROI、CRPD 容差 ±0.01；其他 ±0.1；超期 ±0.05）：  
+HHLV：ROI 0.577、CRPD 1.09、超期 0.64、复杂度 1.79、人员 6.73、时间管理 72.5、效率 88.3；  
+非HHLV：ROI 0.949、CRPD 1.94、超期 0.21、复杂度 1.49、人员 4.54、时间管理 78.4、效率 86.5。
+##### 小标准2.2.A.3（1分｜结论性）总结“高复杂度+多交接+推进慢+超期严重→ROI 被稀释”。
+
+### 标准2.3（最高 3 分，折算系数 3/6）
+#### 路径2.3.A（精确性）（3分｜低健康内对比：LHHV vs 非 LHHV）
+##### 小标准2.3.A.1（1分｜完备性）对比 ROI、completion_rate_per_day、time_management_score、efficiency_score、unique_assignees、`overrun_flag_elapsed`、risk_percentage。
+##### 小标准2.3.A.2（1分｜精确性）指标需落在锚点±容差（ROI、CRPD 容差 ±0.01；效率、时间管理 ±0.3；人员 ±0.1；超期 ±0.05；风险 ±0.5）：  
+LHHV：ROI 0.138、CRPD 0.235、效率 70.8、时间管理 54.0、人员 4.47、超期 0.879、风险 74.8；  
+非LHHV：ROI 0.061、CRPD 0.129、效率 67.2、时间管理 53.7、人员 5.19、超期 0.888、风险 76.8。
+##### 小标准2.3.A.3（1分｜结论性）指出“精干团队+推进更快+效率更高 → ROI 相对优秀，但健康受风险/完成度拖累”。
+
+---
+## 需求3：影响因素量化与驱动识别（本需求最高可得 8分）
+### 标准3.1（最高 4 分，折算系数 4/6）
+#### 路径3.1.A（精确性）（3分｜皮尔逊相关）
+##### 小标准3.1.A.1（1分｜完备性）列出 ROI 与 completion_rate_per_day、time_management_score、efficiency_score、completion_percentage、`overrun_flag_elapsed`、collaboration_score、complexity_factor、overall_health_score 的相关系数。
+##### 小标准3.1.A.2（1分｜精确性）皮尔逊系数需落入锚点±0.02：  
+0.758、0.591、0.550、0.586、-0.548、-0.080、-0.032、0.765。
+##### 小标准3.1.A.3（1分｜结论性）强调推进速度与时间纪律是 ROI 主驱，复杂度与协作影响弱。
+
+#### 路径3.1.B（完备性）（1分｜Spearman/偏相关）
+##### 小标准3.1.B.1（1分｜完备性）说明采用 Spearman 排序相关与控制 `overrun_flag_elapsed` 的偏相关：  
+Spearman：completion_rate_per_day 0.910、time_management 0.686、efficiency 0.610、completion_percentage 0.720、overrun -0.558、collaboration -0.019、complexity 0.028、overall_health 0.920（容差 ±0.05）；  
+偏相关：completion_rate_per_day 0.699、overall_health 0.664、completion_percentage 0.619、efficiency 0.615、time_management 0.280、collaboration -0.120、complexity -0.136（容差 ±0.05）。
+##### 小标准3.1.B.3（0分｜结论性）指出该方法能削弱超期共线性、稳健排名。
+
+### 标准3.2（最高 4 分，折算系数 4/6）
+#### 路径3.2.A（精确性）（3分｜三维组合分析）
+##### 小标准3.2.A.1（1分｜完备性）分析 `schedule_forecast × team_size_category × project_size_category`，保留样本数≥5 的组合，给出 HHLV/LHHV 占比。
+##### 小标准3.2.A.2（1分｜精确性）百分比需落入锚点±10pp：  
+HHLV：behind × medium_team × medium → 62.5%（5/8）；on_schedule × medium_team × large → 33.3%（2/6）；on_schedule × medium_team × medium → 16.7%（2/12）。  
+LHHV：behind × small_team × medium → 27.1%（19/70）；behind × small_team × small → 26.7%（12/45）；behind × medium_team × medium → 21.8%（17/78）；ahead × large_team × large → 20.0%（1/5）。
+##### 小标准3.2.A.3（1分｜结论性）总结倒挂模式：HHLV 多见于中型团队承担中型/大型任务且进度落后；LHHV 多见于小/中团队处理中小项目并维持较快节奏。
+
+#### 路径3.2.B（精确性）（1分｜双因素热力法）
+##### 小标准3.2.B.1（0.5分｜完备性）提供 `management_priority × schedule_forecast` 交叉表，分别计算高健康子样本 HHLV 占比与低健康子样本 LHHV 占比。
+##### 小标准3.2.B.2（0.5分｜精确性）关键格子占比落入容差 ±8pp：  
+低优先级 × behind → HHLV 35.0%（7/20）；低优先级 × on_schedule → HHLV 15.4%（4/26）；高优先级 × behind → LHHV 20.2%（49/242）；高优先级 × ahead → LHHV 42.1%（8/19）。
+##### 小标准3.2.B.3（0分｜结论性）指出该二维视角可快速锁定治理重点（低优先级滞后、重点项目提前但价值不足）。
+
+---
+## 需求4：倒挂成因机制诊断（本需求最高可得 3分）
+### 标准4.1（最高 3 分，折算系数 3/6）
+#### 路径4.1.A（结论性）（3分｜机制解释与证据链）
+##### 小标准4.1.A.1（1分｜完备性）联动需求2、需求3成果，梳理 HHLV 与 LHHV 的关键机制。
+##### 小标准4.1.A.2（1分｜精确性）论据需与数据一致：  
+HHLV = 高复杂度(1.79)+多交接(6.7人)+时间管理弱(72.5)+推进慢(CRPD 1.09)+超期 64% → ROI 0.58（远低于 0.95 基准）；  
+LHHV = CRPD 0.235、效率 70.8、时间管理 54.0 → ROI 0.138（高于同层 0.061），但因风险 74.8%、完成度低而被判低健康；指出健康评分偏重过程指标、忽视时间价值。
+##### 小标准4.1.A.3（1分｜结论性）强调“健康≠价值”，需要重构评估体系以避免资源错配。
+
+---
+## 需求5：评估体系优化建议（本需求最高可得 3分）
+### 标准5.1（最高 3 分，折算系数 3/6）
+#### 路径5.1.A（精确性）（2分｜价值健康分 VHS + 预警治理）
+##### 小标准5.1.A.1（1分｜完备性）提出 VHS 结构：`VHS = 0.4*Z(completion_rate_per_day) + 0.3*MinMax(time_management_score) + 0.2*ROI_rank (按组内分位) + 0.1*(1 - overrun_flag_elapsed)`；设定 `HHLV 预警：overall_health_score≥80 ∧ ROI_rank≤P25 ∧ overrun_flag_elapsed=1`，`LHHV 机会：overall_health_score<60 ∧ completion_rate_per_day≥组内P75`。
+##### 小标准5.1.A.2（0.5分｜精确性）权重依据：ROI 与 overall_health Pearson=0.765、CRPD=0.758、time_management=0.591、overrun=-0.548；说明归一化口径（Z 标准化、0-1 MinMax、分位排名）。
+##### 小标准5.1.A.3（0.5分｜结论性）阐述 VHS 可降低 HHLV 占比由 16.4% 降至 <10%（通过及时识别高复杂度滞后项目），并凸显高价值机会以提升资源配置精准度。
+
+#### 路径5.1.B（精确性）（1分｜治理流程强化）
+##### 小标准5.1.B.1（0.5分｜完备性）制定动作矩阵：  
+HHLV：`overall_health_score≥80 ∧ overrun_flag_elapsed=1 ∧ ROI<Q1_grade` → 触发范围冻结+专项排产（目标 2 周内将 overrun 降至 <30%）；  
+LHHV：`overall_health_score<60 ∧ completion_rate_per_day≥P75` → 触发资源倾斜与风险复核，设定 4 周内完成率提升 ≥10pp。
+##### 小标准5.1.B.2（0.5分｜精确性）说明流程闭环：预警 → 验证（时间管理/复杂度复盘）→ 行动（资源调度/风险快响应）→ VHS 再评估，支撑评估体系闭环。
+
+---

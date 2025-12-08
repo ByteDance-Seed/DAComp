@@ -1,0 +1,87 @@
+# [Total Score | 14 points] The solution must satisfy the following two core requirements:
+- Requirement 1: Explore the overall risks of inventory backlog, supply interruption, and risk of quality issues for imported and joint-venture (JV) drugs (7 points)
+- Requirement 2: Analyze risk differences across Drug Category Codes or Manufacturers, and identify key targets for prioritized supervision (7 points)
+
+---
+
+## Requirement 1: Explore the overall risks of inventory backlog, supply interruption, and risk of quality issues for imported and joint-venture (JV) drugs (7 points)
+### Criterion 1.1: Calculate overall risk metrics, and provide an overall conclusion for imported and joint-venture (JV) drugs (up to 6 points)
+#### Path 1.1.A [6 points | Full-data risk analysis]
+- Sub-criterion 1.1.A.1 [2 points | Completeness]: From the "basic_drug_information" table, filter all drug records where "Quality tier" is "Imported" or "JV"; join by Drug ID to the "inventory_management" table, and compute each drug’s inventory backlog risk (Qualified Quantity / Max Inventory Threshold), supply interruption risk (days since Last Inbound Date + low Pending Inspection Quantity), and risk of quality issues (sum of Expired Quantity + Damaged Quantity, etc.). Finally compute the averages or correlations of the three risk metrics (e.g., correlation with Storage conditions).
+- Sub-criterion 1.1.A.2 [3 points | Accuracy]: Compute the overall average inventory backlog risk as 0.45 (Qualified Quantity / Max Inventory Threshold > 0.8 is deemed high risk, accounting for 45%), supply interruption risk is medium (average 120 days since Last Inbound Date), and risk of quality issues is low (average issue count 2.3). Rounding, integer conversion, or different decimal places are all acceptable; if there are obvious data errors, no points.
+  - Reference data:
+
+| Risk perspective | Overall average/share |
+|------------------|-----------------------|
+| Inventory backlog | 0.45 |
+| Supply interruption | 120 days |
+| Risk of quality issues | 2.3 |
+
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness]: Clearly state that imported and joint-venture (JV) drugs exhibit an overall medium risk level, with a strong correlation between inventory backlog and supply interruption (coefficient > 0.5), while the risk of quality issues is lower. You must express the semantics of medium risk and inventory-led risk. If the conclusion is high risk or no risk, no points.
+
+#### Path 1.1.B [4 points | Partial-drug risk analysis]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Select a subset of drugs or specific Manufacturers (e.g., "Shanghai Sine Pharmaceutical Factory") that are imported/joint-venture (JV), and compute averages for the three risk metrics (e.g., backlog, supply interruption, risk of quality issues).
+- Sub-criterion 1.1.B.2 [2 points | Accuracy]: Accurately compute the averages of the three risks for the selected drugs or Manufacturers; validated by code (e.g., SQL query logic is correct, with no obvious errors).
+- Sub-criterion 1.1.B.3 [1 point | Conclusiveness]: Based on the computed results, provide an overall risk-level conclusion that aligns with the metrics (e.g., backlog-dominant if backlog is high).
+
+#### Path 1.1.C [4 points | Comparative analysis of changes in risk metrics]
+- Sub-criterion 1.1.C.1 [1 point | Completeness]: Analyze the trend changes of the three risk metrics for imported and joint-venture (JV) drugs (e.g., increasing backlog), compare whether changes are consistent, and draw conclusions.
+- Sub-criterion 1.1.C.2 [2 points | Accuracy]: Accurately compute change data (e.g., imported backlog increases by 0.15, JV risk of quality issues decreases by 1.2), with no calculation errors; rounding or different decimal places are allowed.
+- Sub-criterion 1.1.C.3 [1 point | Conclusiveness]: Summarize the consistency of trends or provide segmented conclusions (e.g., imported backlog increases, quality remains stable).
+
+#### Path 1.1.D [5 points | TOP N risk ranking analysis]
+- Sub-criterion 1.1.D.1 [1 point | Completeness]: Filter imported/joint-venture (JV) drugs, compute the three risk metrics (e.g., backlog: Qualified Quantity > threshold), and rank TOP N for each risk perspective (at least TOP5-10).
+- Sub-criterion 1.1.D.2 [3 points | Accuracy]: The rankings are accurate (e.g., wzq43524 backlog 3239/510 = high risk), validated by SQL queries, with no data errors.
+- Sub-criterion 1.1.D.3 [1 point | Conclusiveness]: Based on TOP N results, summarize the overall risk level and indicate the dominant risk perspective.
+
+#### Path 1.1.E [3 points | Preliminary database exploration]
+- Sub-criterion 1.1.E.1 [1 point | Completeness]: Query database table structures and fields (e.g., "basic_drug_information", "inventory_management"), confirm related columns (e.g., "Quality tier"), but do not perform filtering or calculations.
+- Sub-criterion 1.1.E.2 [1 point | Accuracy]: Table-structure queries are accurate and match database fields (e.g., "Qualified Quantity").
+- Sub-criterion 1.1.E.3 [1 point | Conclusiveness]: Based on structure, provide a preliminary risk assessment (e.g., "Data are available; further computation is required").
+
+### Criterion 1.2: Provide supplementary analysis using other fields (up to 1 point)
+#### Path 1.2.A [1 point | Cold-chain or GSP correlation analysis]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Analyze the correlation between the three risk metrics and Cold-chain transportation or GSP Certification Status, and provide a conclusion (e.g., Cold-chain drugs have higher interruption risk).
+
+---
+
+## Requirement 2: Analyze risk differences across Drug Category Codes or Manufacturers, and identify key targets for prioritized supervision (7 points)
+### Criterion 2.1: Compute risk metrics for each category or Manufacturer, and summarize risk differences (up to 6 points)
+#### Path 2.1.A [6 points | Full-category or Manufacturer risk analysis]
+- Sub-criterion 2.1.A.1 [2 points | Completeness]: Compute the average of the three risk metrics for each Drug Category Code or Manufacturer, and segment into high/medium/low risk tiers (two-tier high/low or other reasonable groupings are acceptable).
+- Sub-criterion 2.1.A.2 [3 points | Accuracy]: The computed results are consistent with the reference table; rounding or different decimal places are allowed. If there are obvious errors, no points.
+  - Reference data:
+
+| Drug Category Code | Backlog Risk | Interruption Risk | Risk of quality issues |
+|--------------------|--------------|-------------------|------------------------|
+| A01                | 0.52         | 110 days          | 3.1                    |
+| B12                | 0.48         | 130 days          | 2.5                    |
+| C09                | 0.40         | 115 days          | 2.8                    |
+| D11                | 0.55         | 140 days          | 3.5                    |
+| E05                | 0.42         | 105 days          | 2.2                    |
+
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness]: Explain the differences in risk relationships across categories/Manufacturers, categorize and list typical examples (e.g., High risk: D11, B12; Medium risk: A01, C09; Low risk: E05).
+
+#### Path 2.1.B [4 points | Partial-category or Manufacturer risk analysis]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Select some typical categories or Manufacturers, compute averages of the three risk metrics, and segment into high/medium/low risk tiers.
+- Sub-criterion 2.1.B.2 [2 points | Accuracy]: Accurately compute risk metrics for the selected categories or Manufacturers; through code verification (e.g., SQL query logic is correct, with no obvious errors).
+- Sub-criterion 2.1.B.3 [1 point | Conclusiveness]: Based on the computed results, classify risk levels and conclude that "risk differences are significant".
+
+#### Path 2.1.C [4 points | Comparative analysis of changes in risk metrics]
+- Sub-criterion 2.1.C.1 [1 point | Completeness]: Choose at least one risk perspective, analyze the absolute/relative risk levels across categories or Manufacturers, group by trend changes, and summarize differences.
+- Sub-criterion 2.1.C.2 [2 points | Accuracy]: Accurately compute change data (e.g., high backlog accompanies high interruption), with reasonable grouping and validated by code.
+- Sub-criterion 2.1.C.3 [1 point | Conclusiveness]: Summarize risk differences and conclude with diversified patterns.
+
+#### Path 2.1.D [5 points | Manufacturer distribution and correlation analysis]
+- Sub-criterion 2.1.D.1 [1 point | Completeness]: Based on TOP N risk drugs, compute Manufacturer distribution (e.g., in backlog TOP10, Shiyao appears 3 times), and analyze correlations with Cold-chain or GSP fields.
+- Sub-criterion 2.1.D.2 [3 points | Accuracy]: Distribution counts are accurate (e.g., in supply interruption TOP10, Cold-chain 9/10), correlation calculation logic is coherent and validated by SQL.
+- Sub-criterion 2.1.D.3 [1 point | Conclusiveness]: Summarize Manufacturer risk differences and identify key targets for prioritized supervision (e.g., drugs/Manufacturers with multiple risks). If only key Manufacturers are identified without comparative summarization of Manufacturer risk differences, no points.
+
+#### Path 2.1.E [3 points | Preliminary database exploration]
+- Sub-criterion 2.1.E.1 [1 point | Completeness]: Query database table structures and fields, confirm related columns (e.g., "Drug Category Code"), but do not compute risk metrics.
+- Sub-criterion 2.1.E.2 [1 point | Accuracy]: Table-structure queries are accurate and match database fields.
+- Sub-criterion 2.1.E.3 [1 point | Conclusiveness]: Based on structure, provide a preliminary assessment of risk differences (e.g., "Further analysis by category/Manufacturer is required").
+
+### Criterion 2.2: Provide recommendations for key targets of prioritized supervision (up to 1 point)
+#### Path 2.2.A [1 point | Supervision recommendations]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Based on the risk analysis, propose concrete recommendations targeting key objects of prioritized supervision (e.g., high-risk drugs/Manufacturers), such as enhancing Cold-chain monitoring.

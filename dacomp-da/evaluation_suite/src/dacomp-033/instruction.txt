@@ -1,0 +1,1 @@
+For customers with completed high-amount transaction behavior (cumulative over 5000), help me gain insights into these customers’ characteristics from aspects such as customer tags, the membership system, credit ratings, etc.

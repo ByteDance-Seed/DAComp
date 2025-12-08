@@ -1,0 +1,92 @@
+# [Total Score | 36 points] Klaviyo Activity Health Diagnosis Scoring Rubric
+---
+## Requirement 1: Data Mapping, Time Window, and Touchpoint Frequency Control (Max 9 points for this requirement)
+### Standard 1.1: Data Table Mapping and Field Definition Alignment
+#### Path 1.1.A [5 points | Joint mapping of flows+person_campaign_flow]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Must explicitly state that `klaviyo__flows`→aggregate activity layer, and `klaviyo__person_campaign_flow`→person touchpoint layer. Field mapping must cover at least `updated_at`→occurred_on, `trigger_type`→touch_type, `variation_id` / `flow_variation_key`→template ID, `count_received/opened/clicked_email`→KPIs, `touch_span_days` / `email_open_rate_touch` / `email_click_to_open_rate_touch` / `has_converted`→activity and retention metrics; and must state the single `source_relation=klaviyo` scope.
+- Sub-standard 1.1.A.2 [3 points | Accuracy]: Mapping must align with the actual anchor points within the 6-month window: `trigger_type` distribution is API Event=6, List=12, Metric=12, Price Drop=6, Segment=10; overall mean `open_rate=0.4214±0.005`, `cto_rate=0.2404±0.005` (sample size=46); person-level table has 4 rows, `mean_open_touch=0.6517±0.01`, `mean_c2o_touch=0.431±0.01`; if additional fields (like `count_active_on_site`, `net_revenue_touch`) are introduced, their definitions must be explained and be consistent with the above mapping.
+- Sub-standard 1.1.A.3 [1 point | Conclusion]: Explain the feasibility and limitations of this mapping, e.g., only 4 person records, revenue aggregation definition, and that subsequent funnel/retention analysis must be done at the aggregate layer. Specify the verification method (SQL or script must be reproducible).
+#### Path 1.1.B [4 points | Using flows table as a proxy with explicit limitations]
+- Sub-standard 1.1.B.1 [1 point | Completeness]: If only using `klaviyo__flows`, must declare the value ranges for `trigger_type`→touch_type, `variation_id`→template ID, `updated_at`→occurred_on, that `source_relation` is only `klaviyo`, and that all `count_*` fields represent email volumes.
+- Sub-standard 1.1.B.2 [2 points | Accuracy]: Must reproduce the same core anchor points as Path 1.1.A and add new validations: `DISTINCT variation_id = 24`, max usage count for a template = 2, max `use_share≈0.0435±0.001`, min `use_share≈0.0217`.
+- Sub-standard 1.1.B.3 [1 point | Conclusion]: Explain the impact of the missing person layer on retention/activity assessment and propose alternative strategies (e.g., time-series monitoring of template/touchpoint combinations or retrospective sampling of the person table).
+### Standard 1.2: Time Window Setting and Frequency Control Audit
+#### Path 1.2.A [4 points | Rolling 180-day window + frequency control validation]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Using `MAX(updated_at)=2023-12-13 17:30:00` to look back 180 days, clearly define the window `[2023-06-16 17:30:00, 2023-12-13 17:30:00]`, and explain the filtering logic.
+- Sub-standard 1.2.A.2 [2 points | Accuracy]: Verify anchor points: sample size=46, `MIN(updated_at)` within the window is `2023-06-16 22:15:00`, `min_gap_h=61.25±1h`, `avg_gap_h=95.89±1h`, number of events with interval `<24h` = 0, max touchpoints in a 7-day sliding window = 3; all frequency control conclusions must reference these results.
+- Sub-standard 1.2.A.3 [1 point | Conclusion]: Summarize the significance of this window and frequency check for subsequent analysis (e.g., verifying compliance with business constraints like "≥48h interval, ≤3 times per 7 days").
+#### Path 1.2.B [3 points | Natural month window + comparative explanation]
+- Sub-standard 1.2.B.1 [1 point | Completeness]: Define the natural month window from 2023-07-01 to 2023-12-31 (covering the 6 full months prior), and list the sample counts for each month: July=8, Aug=8, Sep=7, Oct=8, Nov=7, Dec=4, total=42.
+- Sub-standard 1.2.B.2 [1 point | Accuracy]: Recalculate `min_gap_h=61.25±1h`, `avg_gap_h=95.79±1h` within the natural month window, and explain the difference from the rolling window (difference of ≤1 record is allowed).
+- Sub-standard 1.2.B.3 [1 point | Conclusion]: Discuss the impact of the two window types on seasonality/trend analysis (e.g., natural months are convenient for financial reporting cycles, rolling windows for real-time monitoring), and state the primary definition to be used for subsequent analysis.
+
+---
+## Requirement 2: Touchpoint Identification, KPIs, and Variation Stratification (Max 12 points for this requirement)
+### Standard 2.1: Touchpoint Identification and Timeline Reconstruction
+#### Path 2.1.A [4 points | Direct mapping of trigger_type to touchpoints]
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Clearly map `trigger_type`→touchpoint category (API Event/List/Metric/Price Drop/Segment), and reconstruct the timeline by sorting by `updated_at`.
+- Sub-standard 2.1.A.2 [2 points | Accuracy]: Output the sample count for each touchpoint in the last 6 months: API Event=6, List=12, Metric=12, Price Drop=6, Segment=10; and state their proportions (e.g., Segment≈21.7%).
+- Sub-standard 2.1.A.3 [1 point | Conclusion]: Interpret how the touchpoint distribution guides subsequent analysis (e.g., Segment has a high proportion, its subsequent performance decline needs attention).
+#### Path 2.1.B [3 points | Touchpoint clusters based on flow_name keywords]
+- Sub-standard 2.1.B.1 [1 point | Completeness]: Provide a keyword mapping strategy: `Cart/Browse/Winback`→Promotional, `Product Discovery`→New Product, others (Welcome/VIP/Seasonal/Post-Purchase) categorized as "Storytelling", and explain the maintenance method.
+- Sub-standard 2.1.B.2 [1 point | Accuracy]: Reproduce the category distribution for the 46 samples: Storytelling=24 (52.2%), Promotional=16 (34.8%), New Product=6 (13.0%); if fuzzy matching is used, the attribution principle must be explained.
+- Sub-standard 2.1.B.3 [1 point | Conclusion]: Compare the pros and cons of the keyword method versus the trigger_type method (finer granularity but requires manual maintenance), and explain its use case in subsequent anomaly investigation.
+### Standard 2.2: KPI Calculation and Variation Stratification
+#### Path 2.2.A [5 points | Variation aggregation + baseline anchors]
+- Sub-standard 2.2.A.1 [1 point | Completeness]: Explain the calculation formulas `open_rate = count_opened_email ÷ count_received_email` and `cto_rate = count_clicked_email ÷ count_opened_email`, and aggregate by `variation_id` and `trigger_type`.
+- Sub-standard 2.2.A.2 [3 points | Accuracy]: Validate anchor points: full window mean `open_rate=0.4214±0.005`, `cto_rate=0.2404±0.005`; the mean/std dev for each `trigger_type` must match measurements (API Event `mean_open=0.4879±0.005`, `sd_open=0.027±0.005`, `mean_cto=0.2400±0.005`, etc.); template usage stats: `use_cnt_MAX=2`, `use_share_MAX=0.0435±0.001`, examples of low-performing templates `VAR-001 open≈0.325`, `VAR-004 cto≈0.1801`.
+- Sub-standard 2.2.A.3 [1 point | Conclusion]: Point out characteristic combinations of high/low performing templates and touchpoints (e.g., New Product trigger + VAR-024 achieves `open≈0.517`), and explain the significance of Variation stratification for template governance.
+#### Path 2.2.B [3 points | Z-score / Robust Ranking]
+- Sub-standard 2.2.B.1 [1 point | Completeness]: Calculate Z-scores within each `trigger_type` based on the mean and standard deviation from the 180-day window, must state the formula `(x−μ)/σ`.
+- Sub-standard 2.2.B.2 [1 point | Accuracy]: List at least two sets of anchor points: negative example `Welcome Series - Variant A (VAR-001)` `z_open≈-1.45±0.05`, `z_cto≈-0.87±0.05`; positive examples `Browse Abandonment - Variant C (VAR-009)` `z_open≈1.84±0.05`, `z_cto≈1.65±0.05` and `VIP Loyalty Track - Variant C (VAR-018)` `z_open≈1.72±0.05`.
+- Sub-standard 2.2.B.3 [1 point | Conclusion]: Explain how to build a "secondary alert/benchmark library" based on Z-scores, e.g., include in an anomaly review list when `z_open<-1.5` is triggered.
+### Standard 2.3: Impact of Touchpoints on Subsequent Activity Open/Click Rates
+#### Path 2.3.A [4 points | Sequential Difference Method (LEAD)]
+- Sub-standard 2.3.A.1 [1 point | Completeness]: Explain using `LEAD` to get the next activity's KPI after sorting by `updated_at`, and attributing the effect of the current `trigger_type` to the next activity.
+- Sub-standard 2.3.A.2 [2 points | Accuracy]: Based on 45 comparable pairs, output anchor points: `avg_next_open(API Event)=0.445(+0.0236)`, `Price Drop=0.433(+0.0116)`, `List=0.4381(+0.0166)`, `Metric=0.416(-0.0054)`, `Segment=0.388(-0.0334)`; and the corresponding `avg_next_cto` changes (Segment `+0.0152`, Metric `-0.0104`, etc.).
+- Sub-standard 2.3.A.3 [1 point | Conclusion]: Interpret which touchpoints have a significant positive or negative impact on the next activity's KPIs, and propose initial hypotheses (e.g., the performance decline after Segment touchpoints requires template optimization).
+#### Path 2.3.B [3 points | Regression/Causal Modeling Approach]
+- Sub-standard 2.3.B.1 [1 point | Completeness]: Propose a regression plan (e.g., linear regression `next_open ~ trigger_type + gap_hours + topic` or Logit for `next_cto`), explaining the variable definitions.
+- Sub-standard 2.3.B.2 [1 point | Accuracy]: Provide the model form and explain how to handle small sample sizes (e.g., L2 regularization, replacing with group means), ensuring coefficient interpretability (`lift = β_trigger_type_i`).
+- Sub-standard 2.3.B.3 [1 point | Conclusion]: Explain the business meaning of the model's output (e.g., if the API Event series is still significantly positive after controlling for `gap_hours`, it supports expanding triggered flows).
+#### Path 2.3.C [2 points | Small Sample Size Remediation Strategy]
+- Sub-standard 2.3.C.1 [1 point | Completeness]: Propose a remediation plan for insufficient sequence samples (e.g., taking a moving average of the last 3 activities for the same touchpoint, merging variations of the same template).
+- Sub-standard 2.3.C.2 [1 point | Accuracy]: Explain that the remediation calculation is consistent with the original definition and ensures the direction of the lift judgment is stable (must provide a formula or pseudo-code).
+
+---
+## Requirement 3: Path Comparison and Activity Span/Retention Assessment (Max 10 points for this requirement)
+### Standard 3.1: Span and Retention of Flow→Campaign vs. Campaign→Flow
+#### Path 3.1.A [5 points | Person-level touch span]
+- Sub-standard 3.1.A.1 [1 point | Completeness]: Based on the person table, use `last_touch_campaign_id` / `last_touch_flow_id` / `has_converted` to distinguish two paths, and explain that `touch_span_days` is the span metric.
+- Sub-standard 3.1.A.2 [3 points | Accuracy]: Verify anchor points: for `has_converted=1` (n=3), `avg_days=38±1`, `avg_weeks=5.43±0.1`, `avg_months=1.25±0.05`, `mean_open_touch=0.719±0.01`, `mean_c2o_touch=0.501±0.01`, `avg net_revenue_touch≈326.67`; for `has_converted=0` (n=1), `avg_days=27`, `avg_weeks=3.86`, `avg_months=0.89`, `mean_open_touch=0.45`, `mean_c2o_touch=0.222`.
+- Sub-standard 3.1.A.3 [1 point | Conclusion]: Compare the differences in span and touch quality between the two paths, proposing a hypothesis (e.g., converted users maintain a longer touch cycle and contribute more revenue).
+#### Path 3.1.B [4 points | Approximating span with flow time series]
+- Sub-standard 3.1.B.1 [1 point | Completeness]: When only `flows` data is available, explain how to estimate span using `LEAD/LAG(updated_at)`, and divide into `<96h` vs `≥96h` based on the 48h frequency control constraint.
+- Sub-standard 3.1.B.2 [2 points | Accuracy]: Validate `min_gap_h=61.25±1h`, `avg_gap_h=95.89±1h`, and output sample counts `gap<96h` sample=4, `avg_gap_lt96≈77.25`, `gap≥96h` sample=41, `avg_gap_ge96≈97.71`.
+- Sub-standard 3.1.B.3 [1 point | Conclusion]: Explain the limitations of the time difference method (cannot identify user-level behavior), and indicate when it is necessary to revert to the person layer for verification.
+#### Path 3.1.C [3 points | Soft path: Span binning]
+- Sub-standard 3.1.C.1 [1 point | Completeness]: Propose `touch_span_days≥30` to define a "long span", explaining the rationale for the threshold (to cover the unique 72-day sample).
+- Sub-standard 3.1.C.2 [1 point | Accuracy]: Output binned metrics: short span (n=3) `avg_days=23`, `avg_open_touch=0.657`, `avg_c2o_touch=0.456`; long span (n=1) `avg_days=72`, `avg_open_touch=0.636`, `avg_c2o_touch=0.357`.
+- Sub-standard 3.1.C.3 [1 point | Conclusion]: Explain the significance of binning for identifying long-term retained users (e.g., focusing on the long-term maintenance strategy for VAR-007).
+### Standard 3.2: Retention Diagnosis under Frequency Control and Variation Stratification
+#### Path 3.2.A [3 points | Frequency control compliance review]
+- Sub-standard 3.2.A.1 [1 point | Completeness]: Explain that the review process must check both the 48h interval and the 7 days ≤ 3 times rules simultaneously.
+- Sub-standard 3.2.A.2 [1 point | Accuracy]: Reference anchor points `max_7d_cnt=3`, `min_gap_h=61.25`, `avg_gap_h=95.89`, and point out that the only close-proximity combinations are from `VAR-024→VAR-001` (interval≈61.25h) and `VAR-012→VAR-013` (≈93.25h), none of which are below 48h.
+- Sub-standard 3.2.A.3 [1 point | Conclusion]: Provide a conclusion like "Currently compliant, recommend setting a 60h warning threshold" or identify potential risk templates.
+#### Path 3.2.B [2 points | Variation × Path interaction]
+- Sub-standard 3.2.B.1 [1 point | Completeness]: Show the practice of associating person metrics by `variation_id` (e.g., calculating `touch_span_days`, `email_open_rate_touch`).
+- Sub-standard 3.2.B.2 [1 point | Accuracy]: List at least two templates: `VAR-001 touch_span_days=20, open_touch=0.833`, `VAR-010 touch_span_days=27, open_touch=0.45 (has_converted=0)`, explaining their retention differences.
+
+---
+## Requirement 4: Frequency Monitoring and Orchestration Optimization Recommendations (Max 5 points for this requirement)
+### Standard 4.1: Diagnostic Summary and Optimization Recommendations
+#### Path 4.1.A [5 points | Evidence-based recommendation loop]
+- Sub-standard 4.1.A.1 [1 point | Completeness]: Output a structured diagnosis (touchpoint distribution, KPI baselines, sequential lift, span/retention, frequency control results), covering all core findings.
+- Sub-standard 4.1.A.2 [3 points | Accuracy]: Recommendations must cite and be consistent with the quantitative results from previous sections: e.g., "API Event next open rate +0.0236", "Segment next open rate -0.0334 and click-to-open rate only +0.0152", "VAR-001 open/click-to-open rates are below baseline", "`has_converted=1` group has span=38 days, net revenue≈326.7", etc.; also point out that the max template reuse rate is only 4.35%, so optimization should be performance-driven, not frequency-limited.
+- Sub-standard 4.1.A.3 [1 point | Conclusion]: Propose at least two types of actionable items, including expected metrics or ROI ranges, for example:
+  1. "For Segment touchpoints, introduce high-performing templates (like VAR-018) and prioritize sending on weekend afternoons, with a goal to restore the next open rate to ≥0.42 and increase click-to-open rate by 2–5%."
+  2. "Expand API Event flows while maintaining a ≥60h interval, A/B test with new product template VAR-024, benchmarking against a +0.0236 open rate lift, with a goal to further increase click-to-open rate by 2–4%."
+#### Path 4.1.B [3 points | Improvement plan + experiment design]
+- Sub-standard 4.1.B.1 [1 point | Completeness]: Propose at least one A/B or multi-armed bandit test plan, clearly defining the experiment metrics (open rate/click-to-open rate/retention) and observation period.
+- Sub-standard 4.1.B.2 [1 point | Accuracy]: The experiment hypothesis must reference data (e.g., new product touchpoint mean open rate is 0.4879, expected to increase to 0.512 (+5%) by adjusting send time to weekday 10:00 AM, driving a +2–5% increase in click-to-open rate), and specify sample size or traffic split strategy (e.g., 50/50 split, requiring ≥6 campaigns).
+- Sub-standard 4.1.B.3 [1 point | Conclusion]: Explain the success criteria for the experiment and the rollout path (e.g., update template library and incorporate cadence into standard procedures after achieving the goal).

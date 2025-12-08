@@ -1,0 +1,124 @@
+# [Total Score | 22 points] The solution must satisfy three requirements:
+- Requirement 1: Analyze the growth trend of Sales Amount for each Major Category from January to April.
+- Requirement 2: Analyze changes in customer purchasing preferences.
+- Requirement 3: Provide recommendations for product category and inventory adjustments for May–August.
+
+---
+## Requirement 1: Analysis of the Sales Amount growth trend for each Major Category from January to April (This requirement can earn up to 10 points)
+### Criterion 1.1 [Up to 4 points]: Calculate the Sales Amount for each Major Category
+#### Path 1.1.A [4 points]: Comprehensive data processing and analysis 
+-  Sub-criterion 1.1.A.1 [1 point | Completeness]: Group all data by Sales Month and Major Category Name, then compute the total Sales Amount for each Major Category.
+-  Sub-criterion 1.1.A.2 [1 point | Completeness]: Compute the total Sales Amount for every Major Category. If only some major categories are selected and calculated after sampling, this item receives no points.
+- Sub-criterion 1.1.A.3 [2 points | Accuracy]: Sales Amount calculations are correct; verification reference values are shown in the table below. All data must match the table for full accuracy credit. Note: applying round half up, alternative rounding rules used in Chinese practice (e.g., “five down six up,” “four down six up”), integer rounding, or retaining different numbers of decimal places is also considered correct. No points deducted if April Bakery data is missing.
+Summary of Sales Amount by Major Category for January–April (unit: yuan):
+| Major Category Name | January | February | March | April |
+| --- | --- | --- | --- | --- |
+| Leisure Foods | 18653.38 | 25434.27 | 14775.93 | 15803.62 |
+| Drink Mixes | 3235.60 | 6193.30 | 2305.40 | 2356.70 |
+| Home Goods | 1491.10 | 1972.40 | 1725.60 | 1416.00 |
+| Home Appliances | 430.90 | 183.90 | 209.40 | 29.70 |
+| Cultural & Sports Goods | 702.50 | 597.70 | 368.60 | 322.50 |
+| Daily Fresh Products | 20283.91 | 24318.95 | 16817.39 | 21013.45 |
+| Aquatic Products | 395.88 | 669.49 | 539.19 | 1286.44 |
+| Cleaning & Personal Care | 11694.40 | 7912.50 | 8581.20 | 9919.90 |
+| Bakery | 59.49 | 50.81 | 0.60 | 0.00 |
+| Prepared Foods | 1744.57 | 1132.44 | 1369.08 | 1697.85 |
+| Grain and Oil | 19493.17 | 17541.24 | 12216.81 | 12245.51 |
+| Meat and Poultry | 9085.28 | 5754.38 | 4878.62 | 5504.03 |
+| Vegetables and Fruits | 22700.14 | 15215.72 | 22218.25 | 21497.80 |
+| Alcohol & Beverages | 6002.80 | 32367.60 | 7916.50 | 9204.80 |
+| Knitted Goods | 1735.60 | 1720.30 | 966.20 | 1429.60 |
+
+### Criterion 1.2 [Up to 6 points]: Trend summary
+#### Path 1.2.A [6 points]: Summarize the growth trend for each Major Category in the final analysis 
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Compute monthly Sales Amount and month-over-month indicators for all major categories, and provide a specific summary of the growth trend.
+- Sub-criterion 1.2.A.2 [2 points | Accuracy]: Accurately compute the month-over-month growth amount or month-over-month growth rate for each category in different months. Either the growth amount or rate can be used. The data must be correct and consistent with the table below; applying round half up, alternative rounding rules used in Chinese practice (e.g., “five down six up,” “four down six up”), integer rounding, or retaining different numbers of decimal places is also considered correct. No points deducted if April Bakery data is missing.
+| Major Category Name | February month-over-month growth amount | March month-over-month growth amount | April month-over-month growth amount | February month-over-month growth rate | March month-over-month growth rate | April month-over-month growth rate |
+|----------|-------|-------|------|------|--------|------|
+| Leisure Foods | 6780.89 | -10658.34 | 1027.69 | 36.35% | -41.91% | 6.96% |
+| Drink Mixes | 2957.7 | -3887.9 | 51.3 | 91.41% | -62.78% | 2.23% |
+| Home Goods | 481.3 | -246.8 | -309.6 | 32.28% | -12.51% | -17.94% |
+| Home Appliances | -247 | 25.5 | -179.7 | -57.32% | 13.87% | -85.82% |
+| Cultural & Sports Goods | -104.8 | -229.1 | -46.1 | -14.92% | -38.33% | -12.51% |
+| Daily Fresh Products | 4035.04 | -7501.56 | 4196.06 | 19.89% | -30.85% | 24.95% |
+| Aquatic Products | 273.61 | -130.3 | 747.25 | 69.11% | -19.46% | 138.59% |
+| Cleaning & Personal Care | -3781.9 | 668.7 | 1338.7 | -32.34% | 8.45% | 15.60% |
+| Bakery | -8.68 | -50.21 | NAN | -14.59% | -98.82% | NAN |
+| Prepared Foods | -612.13 | 236.64 | 328.77 | -35.09% | 20.90% | 24.01% |
+| Grain and Oil | -1951.93 | -5324.43 | 28.7 | -10.01% | -30.35% | 0.23% |
+| Meat and Poultry | -3330.9 | -875.76 | 625.41 | -36.66% | -15.22% | 12.82% |
+| Vegetables and Fruits | -7484.42 | 7002.53 | -720.45 | -32.97% | 46.02% | -3.24% |
+| Alcohol & Beverages | 26364.8 | -24451.1 | 1288.3 | 439.21% | -75.54% | 16.27% |
+| Knitted Goods | -15.3 | -754.1 | 463.4 | -0.88% | -43.84% | 47.96% |
+
+- Sub-criterion 1.2.A.3 [2 points | Conclusiveness]: Summarize the growth trend of Sales Amount for each category in one of the following two ways
+ Method 1: Based on month-over-month data for each month, summarize the Sales Amount growth trend for each category. Reference trend descriptions for each major category are shown below; the wording need not be identical, but the trend description must be correct and convey the same meaning.
+Reference trends:
+| Major Category Name | Sales Amount growth trend |
+| -------- | -------------- |
+| Leisure Foods | Up in February, down in March, slight rebound in April |
+| Drink Mixes | Sharp rise in February, sharp drop in March, roughly flat in April |
+| Home Goods | Up in February, continued decline in March and April |
+| Home Appliances | Down in February, slight rise in March, sharp drop in April |
+| Cultural & Sports Goods | Continued decline in February, March, and April |
+| Daily Fresh Products | Up in February, down in March, up in April |
+| Aquatic Products | Up in February, down in March, sharp rise in April |
+| Cleaning & Personal Care | Down in February, slight rise in March and April |
+| Bakery | Continued decline in February, March, and April |
+| Prepared Foods | Down in February, continued rise in March and April |
+| Grain and Oil | Continued decline in February and March, roughly flat in April |
+| Meat and Poultry | Continued decline in February, March, and April |
+| Vegetables and Fruits | Down in February, up in March, slight decline in April |
+| Alcohol & Beverages | Sharp rise in February, sharp drop in March, slight rise in April |
+| Knitted Goods | Continued decline in February, March, and April |
+
+ Method 2: You may use a different classification approach to define and group all Major Categories, then summarize the changing trends for different groups. Below is one reference classification. You may adopt other classification methods.
+* Sales Amount continuously increasing: None
+* Sales Amount continuously decreasing: Cultural & Sports Goods, Bakery, Grain and Oil
+* Sales Amount fluctuating: Leisure Foods, Drink Mixes, Home Goods, Home Appliances, Daily Fresh Products, Aquatic Products, Cleaning & Personal Care, Prepared Foods, Meat and Poultry, Vegetables and Fruits, Alcohol & Beverages, Knitted Goods
+
+- Sub-criterion 1.2.A.4 [1 point ｜ Conclusiveness]: The summary covers the changing trends of all 15 categories. Each category is summarized separately; if not all 15 categories are covered, points will be deducted.
+---
+## Requirement 2: Analysis of changes in customer purchasing preferences (This requirement can earn up to 8 points)
+### Criterion 2.1 [Up to 4 points]: Calculate the Sales Amount share for each Major Category
+#### Path 2.1.A [4 points]: Comprehensive share analysis 
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Group the data by Sales Month and Major Category Name, and compute the Sales Amount share of each Major Category.
+- Sub-criterion 2.1.A.2 [2 points | Accuracy]: The Sales Amount share is calculated correctly; verification baseline values are as follows. Note: applying round half up, alternative rounding rules used in Chinese practice (e.g., “five down six up,” “four down six up”), integer rounding, or retaining different numbers of decimal places is also considered correct. No points deducted if April Bakery data is missing.
+| Major Category Name | January share | February share | March share | April share |
+| -------- | -------- | -------- | -------- | -------- |
+| Leisure Foods | 15.85% | 18.03% | 15.57% | 15.24% |
+| Drink Mixes | 2.75% | 4.39% | 2.43% | 2.27% |
+| Home Goods | 1.27% | 1.40% | 1.82% | 1.37% |
+| Home Appliances | 0.37% | 0.13% | 0.22% | 0.03% |
+| Cultural & Sports Goods | 0.60% | 0.42% | 0.39% | 0.31% |
+| Daily Fresh Products | 17.23% | 17.24% | 17.72% | 20.26% |
+| Aquatic Products | 0.34% | 0.47% | 0.57% | 1.24% |
+| Cleaning & Personal Care | 9.94% | 5.61% | 9.04% | 9.56% |
+| Bakery | 0.05% | 0.04% | 0.00% | 0.00% |
+| Prepared Foods | 1.48% | 0.80% | 1.44% | 1.64% |
+| Grain and Oil | 16.56% | 12.43% | 12.87% | 11.81% |
+| Meat and Poultry | 7.72% | 4.08% | 5.14% | 5.31% |
+| Vegetables and Fruits | 19.29% | 10.79% | 23.42% | 20.73% |
+| Alcohol & Beverages | 5.10% | 22.95% | 8.34% | 8.87% |
+| Knitted Goods | 1.47% | 1.22% | 1.02% | 1.38% |
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness]: Based on the Sales Amount share data, provide a simple ranking and summary.
+
+### Criterion 2.2 [Up to 4 points]: Analyze changes in customer purchasing preferences
+#### Path 2.2.A [4 points]: Detailed preference analysis 
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Based on the Sales Amount share data, analyze changes in customer purchasing preferences, and provide **detailed elaboration** and a summary of preference shifts across different stages, such as shifts from “stock-up” to “immediate freshness,” product type preferences, and price sensitivity.
+- Sub-criterion 2.2.A.2 [1 point | Completeness]: Analyze changes in customer purchasing preferences from multiple perspectives.
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness]: The preference analysis is reasonable, with detailed explanations of the reasons for changes tied to actual data; reasons must be strongly associated with the observed changes, with no logical gaps and no hallucinated data. Reference dimensions:
+* Perspective 1: Analyze metrics changes for a single category from January–April. For example, based on Sales Volume share across months, customer preferences are clearly influenced by seasons and holidays. Alcohol & Beverages show a significant increase in February during the Spring Festival period.
+* Perspective 2: Cross-compare consumption shares across different categories. For example, in the overall share, Leisure Foods, Daily Fresh Products, and Vegetables and Fruits are daily consumer goods whose overall shares consistently remain at higher levels; Home Goods and Home Appliances have lower consumption frequency, so their overall shares are consistently low.
+- Sub-criterion 2.2.A.4 [1 point | Conclusiveness]: If the analysis conclusions include multiple perspectives and provide conclusions, this item can earn points.
+
+---
+## Requirement 3: Recommendations for product category and inventory adjustments for May–August, and inventory management strategy (This requirement can earn up to 4 points)
+### Criterion 3.1 [Up to 2 points]: Identify Major Categories to focus on for adjustments
+#### Path 3.1.A [2 points]: Comprehensive adjustment analysis 
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Provide specific directions for product category/structure adjustments for all 15 Major Categories.
+- Sub-criterion 3.1.A.2 [1 point | Conclusiveness]: Provide specific directions for product category/structure adjustments, such as adding new categories, reducing/eliminating old categories, keeping unchanged, or giving detailed category adjustment content for selected major categories (e.g., “add beer, chilled beverages” or “reduce nuts, roasted goods”). Recommendations must be reasonable and feasible, and strongly related to summer consumption demand and the trends identified in the prior analysis.
+### Criterion 3.2 [Up to 2 points]: Formulate an inventory management strategy
+#### Path 3.2.A [2 points]: Comprehensive inventory strategy 
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Formulate a comprehensive inventory management strategy that covers multiple different management states.
+- Sub-criterion 3.2.A.2 [1 point | Conclusiveness]: Provide reasonable and actionable inventory management strategies beyond inventory quantity control and inventory structure adjustment (e.g., raise inventory levels, maintain healthy inventory, reduce and clear inventory, strengthen cold chain management, implement dynamic monitoring, and other aspects directly related to inventory management), and explain in detail the adjustment methods and expected effects to ensure strong linkage between strategy and outcomes.

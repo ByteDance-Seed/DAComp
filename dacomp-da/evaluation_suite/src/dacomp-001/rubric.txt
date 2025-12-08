@@ -1,0 +1,198 @@
+# [Total Score | 44 points] The solution must meet two core requirements:
+- Requirement 1: Consistent data definitions, traceable metrics, and risk quantification layering (S→PD→LGD→Regulatory Parameters)
+- Requirement 2: Single-customer pricing and limit calculation → Portfolio allocation and churn-constrained optimization
+
+
+## Requirement 1: Consistent data definitions, traceable metrics, and risk quantification layering (S→PD→LGD→Regulatory Parameters) (Maximum 22 points)
+### Standard 1.1: End-to-end definitions and re-computability (Maximum 4 points)
+#### Path 1.1.A (Field mapping + aggregation definitions + templates + audit trail)
+- Sub-criterion 1.1.A.1 [1 point | Completeness] Field mapping and transformation notes  
+  Requirements: Provide source table/source field → standard field mappings, noting units, types, and cleansing/derivation rules (e.g., missing handling, outlier treatment, currency/tax rate conversions).  
+  Acceptable evidence: Field dictionary tables, annotated SQL/code blocks, data flow diagrams.  
+  Scoring conditions: Mappings cover core input domains (revenue, stability, dependency, existing Credit Rating/alternatives); transformation logic is clear and traceable back to source fields.
+- Sub-criterion 1.1.A.2 [1 point | Accuracy] Core aggregation definitions and sample re-computation  
+  Requirements: Clarify the calculation definitions for “enterprise-level” aggregation (e.g., time window, de-duplication rules, inclusive/exclusive of tax definitions), and demonstrate at least one “sample chain” from raw rows → statistics recalculation.  
+  Acceptable evidence: Calculation formulas + example SQL/reconciliations from detail → aggregation → result tables/screenshots.  
+  Scoring conditions: Formulas align with implementation; the sample chain is closed-loop (inputs, calculations, outputs consistent); key definitions (time, whether to exclude red-letter reversals/voided or canceled records, etc.) are explained.
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness] Recomputable templates and intermediate quantities  
+  Requirements: Provide repeatable templates (SQL/scripts/Excel workflows) whose outputs include key intermediate quantities (e.g., monthly flows, CV, Top1/HHI).  
+  Scoring conditions: Running the same inputs multiple times yields consistent results; templates run independently (dependencies and parameters are well-documented); key intermediate quantities are visible in outputs.
+- Sub-criterion 1.1.A.4 [1 point | Completeness] Versioning and audit trail  
+  Requirements: Definition statements, version numbers (or Git tags/script versions), change logs, and run logs (time window/input file names/record counts).  
+  Scoring conditions: Version and definition changes are traceable; logs can pinpoint a specific run (including inputs, time, output row counts/summaries).
+
+### Standard 1.2: Composite risk score S (Maximum 5 points)
+#### Path 1.2.A (Weighted aggregation and validation)
+- Sub-criterion 1.2.A.1 [1 point | Completeness] Dimensions, weights, and directionality  
+  Requirements: List the S indicators, weights (sum = 100%), and directionality (risk/protective factors; protective factors use reverse scoring or deductions).  
+  Scoring conditions: Each indicator’s contribution direction aligns with business meaning; total weights are correct; treatment of protective factors is clear.
+- Sub-criterion 1.2.A.2 [1 point | Accuracy] Monotonicity validation  
+  Requirements: Using boundary examples/unit tests, show that when a risk factor worsens (or a protective factor declines), S rises rather than falls; and vice versa.  
+  Scoring conditions: Provide at least one example each for two factor types (risk/protective) proving S’s response direction is correct; when conflicts arise, provide fixes (e.g., truncation/Winsorization/log transformations).
+- Sub-criterion 1.2.A.3 [1 point | Conclusiveness] S intervals and human consistency  
+  Requirements: Define good/medium/weak S intervals or quantile thresholds; sample and compare consistency against human judgment or existing Credit Ratings.  
+  Scoring conditions: Interval segmentation has justification (distributions, business thresholds); provide sampling methods and conclusions (e.g., consistency ratio or explanations of typical mismatches).
+- Sub-criterion 1.2.A.4 [1 point | Accuracy] Stability/drift tests  
+  Requirements: Compare S distributions over rolling periods (or KS/PSI/equivalent statistics); when anomalies appear, provide causes and corrections (e.g., re-calibration, definition harmonization).  
+  Scoring conditions: Provide testing process and results; give reasonable explanations and treatment strategies for threshold exceedances.
+- Sub-criterion 1.2.A.5 [1 point | Completeness] Reproducibility and versioning  
+  Requirements: S computation can be re-run; provide version numbers, dependencies, parameters, etc.; if models are involved, set random seeds.  
+  Scoring conditions: Repeated runs are consistent; versions, dependencies, and parameters are clear for audit.
+
+### Standard 1.3: S→PD mapping and LGD layering (Maximum 5 points)
+#### Path 1.3.A (Logistic function + LGD coverage)
+- Sub-criterion 1.3.A.1 [1 point | Completeness] PD mapping and calibration plan  
+  Requirements: Provide a monotonic S→PD function (logistic or equivalent), initial parameter sources, and a calibration plan (samples, window, evaluation metrics).  
+  Scoring conditions: Function form and parameter meanings are clear; calibration steps are executable (data sources, evaluation methods).
+- Sub-criterion 1.3.A.2 [1 point | Accuracy] Multi-point anchor check  
+  Requirements: At least three S values with PD calculations align with expected direction (higher S → higher PD), with calculation steps attached.  
+  Scoring conditions: Numbers align with the curve; anchor deviations are within acceptable ranges; reasons for deviations and subsequent fine-tuning are explained.
+- Sub-criterion 1.3.A.3 [1 point | Conclusiveness] S–PD curve and intervals  
+  Requirements: Provide the curve or a discrete table; annotate applicable ranges, monotonicity, and extrapolation/truncation strategies.  
+  Scoring conditions: Monotonicity is explicit; intervals match business scenarios; extrapolation strategies are reasonable.
+- Sub-criterion 1.3.A.4 [1 point | Completeness] LGD tiers and default strategies  
+  Requirements: Define LGD tiers (secured by real estate/movable collateral/unsecured/unknown, etc.), note value ranges and mapping rules; provide defaults for unknown/anomalies.  
+  Scoring conditions: Coverage spans the vast majority of customers; default strategies do not mask risk (e.g., are conservative).
+- Sub-criterion 1.3.A.5 [1 point | Accuracy] Sampling consistency verification  
+  Requirements: Sample several customers to verify collateral/pledge information consistency with LGD tiers (fields/images/system records).  
+  Scoring conditions: Provide verification process and conclusions; inconsistencies have explanations and corrective actions.
+
+### Standard 1.4: Risk bucketing and regulatory parameters (Maximum 4 points)
+#### Path 1.4.A (Bucketing and mapping)
+- Sub-criterion 1.4.A.1 [1 point | Completeness] Bucket boundaries  
+  Requirements: Define boundaries (or equivalent thresholds) for A/B/C/D buckets based on PD, with formulas/SQL snippets attached.  
+  Scoring conditions: Boundaries are clear and executable; sample checks confirm correct bucket assignment.
+- Sub-criterion 1.4.A.2 [1 point | Accuracy] Regulatory parameter mapping  
+  Requirements: Map buckets to K/m/U (or internal equivalent parameters), with parameter tables and version notes.  
+  Scoring conditions: Parameters are monotonically consistent across buckets; sources and versions are traceable.
+- Sub-criterion 1.4.A.3 [1 point | Conclusiveness] Concentration and cap examples  
+  Requirements: Provide rules for concentration/single-customer caps (may include Top1, revenue share, etc.) and one complete sample calculation chain.  
+  Scoring conditions: Sample calculations are consistent end-to-end; ordering across multiple constraints is clear.
+- Sub-criterion 1.4.A.4 [1 point | Accuracy] Boundary point tests and monotonicity  
+  Requirements: Select several PD boundary points to verify relationships such as K↑, m↓, U↓; explain exception handling.  
+  Scoring conditions: Point-test records are complete; monotonicity holds or fixes are provided.
+
+### Standard 1.5: RAROC and Churn (Maximum 4 points)
+#### Path 1.5.A (Functions + checks)
+- Sub-criterion 1.5.A.1 [1 point | Completeness] Churn function and parameter explanations  
+  Requirements: Provide an interpretable Churn function (or equivalent response model), define exogenous variables such as r_alt and Cut, and their measurement scope.  
+  Scoring conditions: Function structure, variable sources, and definitions are consistent and reusable.
+- Sub-criterion 1.5.A.2 [1 point | Accuracy] Churn anchor validation  
+  Requirements: At least two worked examples of Δr/Cut changes → Churn responses, with calculation steps or code.  
+  Scoring conditions: Direction of change is correct and magnitudes reasonable; does not conflict with historical/industry knowledge.
+- Sub-criterion 1.5.A.3 [1 point | Conclusiveness] Single-customer RAROC definition  
+  Requirements: Provide RAROC% = (r - CoF - OpEx - PD×LGD) / K (or equivalent decomposition) and field sources and alignment.  
+  Scoring conditions: Definitions align with 1.4; field values are traceable.
+- Sub-criterion 1.5.A.4 [1 point | Accuracy] RAROC sample re-computation  
+  Requirements: Provide the RAROC calculation steps and result for a given set of parameters, with clear reconciliation.  
+  Scoring conditions: Formulas are correct; intermediate quantities and final values are consistent.
+
+## Requirement 2: Single-customer pricing and limit calculation → Portfolio allocation and churn-constrained optimization (Maximum 22 points)
+### Standard 2.1: Single-customer risk pricing and churn curves (Maximum 5 points)
+#### Path 2.1.A (Pricing formula + curves)
+- Sub-criterion 2.1.A.1 [1 point | Completeness] Pricing formula consistency  
+  Requirements: r = CoF + OpEx + PD×LGD + K×ROE_min + Margin (or equivalent mapping), with clear parameter definitions and sources.  
+  Scoring conditions: Each term’s meaning is clear and complete; aligned with regulatory/internal parameters.
+- Sub-criterion 2.1.A.2 [1 point | Accuracy] Bucket anchor checks  
+  Requirements: For each bucket, provide several customers, reverse-engineer r from input parameters, and keep the deviation from submitted spreads within reasonable bp.  
+  Scoring conditions: Include intermediate quantities and bp differences; error explanations are reasonable.
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness] Annual interest rate–churn curves and interpolation  
+  Requirements: For A/B/C tiers, provide ≥ several (r, Churn) points, state sources (historical/model/competitors), and fitting/interpolation (linear/spline).  
+  Scoring conditions: Curves are reasonably monotonic; interpolation methods and uses (quote landing) are clear.
+- Sub-criterion 2.1.A.4 [1 point | Accuracy] “Steep-rise threshold” identification and avoidance  
+  Requirements: Identify abrupt Churn rise thresholds per tier and provide pricing/allocation avoidance rules (e.g., cap within 50 bp before the threshold).  
+  Scoring conditions: Threshold evidence is sufficient; strategies are consistent end-to-end and executable.
+- Sub-criterion 2.1.A.5 [1 point | Conclusiveness] Linked example table  
+  Requirements: A linked table for two or more customers showing “r fine-tune → Churn → EAD → RAROC,” with conclusions (e.g., scenarios where “increase limit first/reduce price first” applies).  
+  Scoring conditions: Chain is closed-loop; conclusions are readable and usable.
+
+### Standard 2.2: Single-customer limit formula and verification (Maximum 5 points)
+#### Path 2.2.A (Limit chain + verification)
+- Sub-criterion 2.2.A.1 [1 point | Completeness] Limit chain  
+  Requirements: Define L_base, L_init, f, L and their definitions aligned with 1.4 (including revenue constraints, concentration coefficients, etc.).  
+  Scoring conditions: Chain variable definitions are clear; connected to risk parameters.
+- Sub-criterion 2.2.A.2 [1 point | Accuracy] Invariants and execution order  
+  Requirements: Clarify invariants such as PD↑/Top1↑ → L↓; when Churn > threshold, the sequence of “increase limit/reduce price,” with a RAROC floor constraint.  
+  Scoring conditions: Order and boundaries are clear; when conflicts exist, provide “priority/rollback” logic.
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness] Sample anchor re-computation  
+  Requirements: Given a set of conditions, output intermediate quantities and the final limit L, with transparent steps.  
+  Scoring conditions: Formula chain is consistent; results can be re-computed by a third party.
+- Sub-criterion 2.2.A.4 [1 point | Accuracy] Boundary/extreme tests  
+  Requirements: Test scenarios of high PD, extremely small scale, extremely high concentration, etc., verifying L decreases and does not exceed caps.  
+  Scoring conditions: Trends are correct; constraints are effective.
+- Sub-criterion 2.2.A.5 [1 point | Completeness] Templates and logs  
+  Requirements: Templates output key intermediate quantities such as L_base, m, c, f, L; attach one spot-check reconciliation record.  
+  Scoring conditions: Traceable; spot-checks are consistent.
+
+### Standard 2.3: Portfolio quotas and alignment of outstanding loans (Maximum 4 points)
+#### Path 2.3.A (Quota iteration)
+- Sub-criterion 2.3.A.1 [1 point | Completeness] Bucket parameters and sources  
+  Requirements: Initial parameters for A/B/C/D buckets—L¯, utilization U, average Churn¯—with sources noted (historical/model/assumptions).  
+  Scoring conditions: Parameters are complete; sources are credible.
+- Sub-criterion 2.3.A.2 [1 point | Accuracy] EAD estimation  
+  Requirements: Compute EAD_b = L¯ × (1 - Churn¯) × U and provide example summaries.  
+  Scoring conditions: Definitions are consistent; calculation steps are verifiable.
+- Sub-criterion 2.3.A.3 [1 point | Conclusiveness] Iterative scaling pseudocode  
+  Requirements: Provide the limit equalization algorithm (scaling factor updates, convergence criteria, stopping conditions), supporting single-customer caps and reallocation.  
+  Scoring conditions: Logic is self-consistent; anomalies (e.g., everyone hits caps) are handled.
+- Sub-criterion 2.3.A.4 [1 point | Accuracy] Convergence logs  
+  Requirements: Output iterations, factor evolution, ΣEAD sequence, and stopping conditions; provide final error.  
+  Scoring conditions: Auditable; errors are within reasonable thresholds.
+
+### Standard 2.4: Churn intervention and RAROC floor (Maximum 4 points)
+#### Path 2.4.A (Action order + examples + credit enhancement)
+- Sub-criterion 2.4.A.1 [1 point | Completeness] Action order and constraints  
+  Requirements: Define the action sequence when Churn is high (e.g., increase limit → reduce price → RAROC floor check) and constraint conditions (limit caps, price redlines).  
+  Scoring conditions: Order, conditions, exceptions are clear; aligned with pricing/limit definitions.
+- Sub-criterion 2.4.A.2 [1 point | Accuracy] Numerical example  
+  Requirements: Specify a customer in a given tier and provide the calculation chain for r, L, EAD, RAROC before and after intervention.  
+  Scoring conditions: Formulas are correct; improvements are reasonable in direction.
+- Sub-criterion 2.4.A.3 [1 point | Conclusiveness] Credit enhancement/exit path and closed loop  
+  Requirements: If RAROC < floor, first enhance credit (adjust LGD/collateral/pledges); if still insufficient, reduce limits/exit; retain approval form fields (conditions → actions → responsibilities → deadlines → status).  
+  Scoring conditions: Closed loop is complete; fields are comprehensive.
+- Sub-criterion 2.4.A.4 [1 point | Accuracy] Post-enhancement example  
+  Requirements: Recompute RAROC when LGD decreases, etc., and compare with pre-intervention.  
+  Scoring conditions: Recalculation is correct; improvement magnitude aligns with logic.
+
+### Standard 2.5: Portfolio robustness and compliance redlines (Maximum 4 points) — three paths, choose one (take the highest single score)
+#### Path 2.5.A (Scenario simulation + checks)
+- Sub-criterion 2.5.A.1 [1 point | Completeness] Scenario setup  
+  Requirements: Parameter assumptions and run methods for optimistic/base/pessimistic/sensitivity scenarios (Monte Carlo or equivalent).  
+  Scoring conditions: Parameters are self-consistent; cover key drivers (PD/LGD/Churn/interest rates, etc.).
+- Sub-criterion 2.5.A.2 [1 point | Accuracy] Robustness assessment  
+  Requirements: Separately compute quota/revenue volatility and CV; if thresholds are exceeded, provide adjustments (weights, caps) and recheck.  
+  Scoring conditions: Calculations are verifiable; before/after comparisons are clear.
+- Sub-criterion 2.5.A.3 [1 point | Conclusiveness] EL redline check  
+  Requirements: Re-computation table for Σ(PD×LGD×EAD)/annual interest and a pass/fail conclusion.  
+  Scoring conditions: Definitions are consistent; conclusions are clear.
+- Sub-criterion 2.5.A.4 [1 point | Accuracy] Price compliance spot-check  
+  Requirements: Spot-check several customers where r ≤ policy/regulatory cap or peer average + threshold; provide remediation and recheck for non-compliance.  
+  Scoring conditions: Checking methods are clear; remediation is effective.
+
+#### Path 2.5.B (Stress testing + sensitivity)
+- Sub-criterion 2.5.B.1 [1 point | Completeness] Stress scenarios  
+  Requirements: At least three types of macro shocks (e.g., interest rates, macro growth, industry defaults) and their impact scope.  
+  Scoring conditions: Scenario coverage is broad; parameters are executable.
+- Sub-criterion 2.5.B.2 [1 point | Accuracy] Sensitivity coefficients  
+  Requirements: Apply ± changes to key parameters and provide sensitivity coefficients and directions for EAD/RAROC.  
+  Scoring conditions: Directions are reasonable; values are verifiable.
+- Sub-criterion 2.5.B.3 [1 point | Conclusiveness] Result interpretation and management advice  
+  Requirements: Identify dominant risk factors, propose adjustments to exposures/capital/limits, and explain expected impacts.  
+  Scoring conditions: Explanations are adequate; recommendations are actionable.
+- Sub-criterion 2.5.B.4 [1 point | Accuracy] Audit traceability  
+  Requirements: Save inputs, versions, run times, and result summaries; repeat three times with small deviations.  
+  Scoring conditions: Traceability is complete; repetitions are consistent.
+
+#### Path 2.5.C (Compliance redlines + internal limit management)
+- Sub-criterion 2.5.C.1 [1 point | Completeness] Internal redline definitions  
+  Requirements: At least three internal constraints (single customer/group, industry concentration, high-risk share, etc.) with a formal statement.  
+  Scoring conditions: Redlines are clear; aligned with risk appetite.
+- Sub-criterion 2.5.C.2 [1 point | Accuracy] Redline verification calculations  
+  Requirements: Provide scripts/SQL or formulas to verify all customer portfolios against redlines.  
+  Scoring conditions: Calculations are transparent; results are verifiable.
+- Sub-criterion 2.5.C.3 [1 point | Conclusiveness] Deviations and remediation  
+  Requirements: List deviations, remediation actions (limit reductions/credit enhancement/price increases), deadlines, and responsibilities.  
+  Scoring conditions: Measures are clear; closed-loop paths are explicit.
+- Sub-criterion 2.5.C.4 [1 point | Accuracy] Closed-loop execution records  
+  Requirements: Spot-check several closed-loop records (issue → threshold → action → responsibility → deadline → status → evidence).  
+  Scoring conditions: Fields are complete; evidence is sufficient.

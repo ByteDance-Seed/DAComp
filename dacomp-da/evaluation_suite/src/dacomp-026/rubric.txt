@@ -1,0 +1,118 @@
+# [Total Score | 44 points] Solutions must satisfy two core requirements:
+- Requirement 1: Identify global disaster events classified at Severity Level 5 (4 points)
+- Requirement 2: Systematically evaluate the emergency response resource allocation effectiveness from the perspective of human, financial, material, and transportation resources (40 points)
+---
+## Requirement 1: Level 5 event identification (maximum 4 points)
+### Standard 1.1 [maximum 4 points]: Severity=5 event validation and verification
+#### Path 1.1.A [4 points]: Existence and distribution verification for Severity=5 events
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly state the data sources and field definitions (e.g., file `disaster_translated.xlsx` / table `disaster_events`, severity field `Disaster Severity Level`), and specify the filter `Severity=5`.
+- Sub-criterion 1.1.A.2 [3 points | Accuracy]: Provide a reproducible verification with zero error; incorrect answers receives zero: the number of Severity=5 records must equal 202.
+---
+## Requirement 2: Systematic evaluation of resource allocation efficiency (maximum 40 points)
+### Standard 2.1 [maximum 4 points]: Human resource dimension efficiency
+#### Path 2.1.A [4 points]: Composite efficiency score and input-output analysis (drawn from `human_resources` + `operations1`)
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Parse the staffing JSON field (total, medical, security, logistics, volunteers), combine it with operational status data, build input metrics (total staff, professional ratio) and output metrics (response duration, resource state transition effectiveness), and normalize via formula: `score_human = w1·norm(response efficiency) + w2·norm(staffing rationality) - λ·norm(labor cost)`.
+- Sub-criterion 2.1.A.2 [2 points | Accuracy]: Anchor validations within ±5%: average total staff = 140±7 people; medical staff share 30-40%±2%; average response duration = 192±10 days; resource state distribution (Sufficient 34±2%, Limited 33±2%, Critical 33±2%).
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: Output supporting content
+  - Case output: Present the Top 3 optimal configurations with {Disaster ID, staffing mix, efficiency score, success factors}, for example `DIST_ABC123`: total staff 145 (medical 35%/security 30%/logistics 25%/volunteers 10%), efficiency score 0.89, success factors include balanced medical ratio, clear role division, and disciplined volunteer share.
+  - Management insights: List 3–5 quantified success factors such as minimum professional share ≥70%, medical ratio dynamically adjusted (30-45%), volunteer share controlled at 5-15%.
+  - Decision guidance: Provide specific configuration strategies and action plans for Level 4–5 events (e.g., build rapid staffing decision model, recommend optimal ratios by disaster type), including execution details like deployment timeframes, training plans, and resource budgets.
+  **Scoring note:** To earn the 1-point completion, all three requirements must be met simultaneously: ① output 3 complete cases, ② list at least 3 quantified success factors, ③ supply a decision strategy with concrete implementation steps; missing any item yields 0 points.
+### Standard 2.2 [maximum 4 points]: Staffing typology and best-practice identification
+#### Path 2.2.A [4 points]: Cluster the staffing structures and identify best practices
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Perform K-means clustering on staffing allocations to surface archetypes (e.g., medical-led, security-led, logistics-led).
+- Sub-criterion 2.2.A.2 [2 points | Accuracy]: Provide pseudo code: execute K-means (k=3-5), compute cluster centroids, verify silhouette score > 0.3, run cross-validation for stability, and output configuration profiles {cluster_id, centroid_features, sample_size, dominant characteristics}.
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]:
+  - Golden configuration: Identify the optimal cluster and describe its traits (e.g., Cluster 1 medical-led with 40% medical, 25% security, 30% logistics, highest efficiency score).
+  - Pattern differentiation: Compare at least four disaster types and quantify optimal shares (e.g., earthquakes require medical ≥35%, floods require logistics ≥40%, fires require security ≥30%, tsunamis require sea/air coordination ≥25%), offering ranges and success cases.
+  - Decision mechanism: Develop a decision flow such as a three-tier tree (disaster type → scale → geography) with recommended configurations per node.
+  **Scoring note:** earning the point requires fulfilling all three requirements simultaneously: ① identify golden cluster and analyze features, ② compare ≥4 disaster types with share ranges, ③ deliver a decision flow or matrix; missing any yields 0.
+### Standard 2.3 [maximum 4 points]: Financial dimension efficiency
+#### Path 2.3.A [4 points]: Cost-benefit and funding efficiency evaluation (drawn from `financials1`)
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Construct a composite financial efficiency indicator including fund utilization rate (50.2±28.5%), per capita cost (507.8±286.4 USD), and cost structure breakdown (operations, transport, warehousing, personnel), and compute ROI = response effectiveness score / total cost.
+- Sub-criterion 2.3.A.2 [2 points | Accuracy]: Anchors within ±8%: average budget allocation 5.10±0.40 million USD; fund utilization mean 50.2±4%; cost shares (personnel 35-45%±3, transport 20-30%±2, warehousing 15-25%±2, operations 10-20%±2).
+- Sub-criterion 2.3.A.3 [1 point | Conclusion]:
+  - High-ROI cases: Present Top 3 with details such as `DIST_GHI789`: budget 5.10M USD, ROI=2.34, cost structure personnel 40%/transport 25%/warehousing 20%/operations 15%, fund utilization 78%, success factors including disciplined personnel costs, fast transport, and avoiding idle funds.
+  - Cost insights: Quantify optimal ranges and thresholds (e.g., personnel 35-45%, transport 20-30%, fund utilization >70% boosts success, fund gaps >15% reduce outcomes).
+  - Budget optimization: Provide strategies such as dynamic allocation models, utilization rate alerts (<60% triggers optimization), and emergency funding reallocation mechanisms.
+  **Scoring note:** To earn the point, all three elements must appear: ① output 3 complete high-ROI cases, ② quantify ≥4 cost structure elements + thresholds, ③ deliver a full budget optimization plan with alerting; missing any yields 0.
+#### Path 2.3.B [3 points]: Basic statistics and preliminary assessment for finances
+- Sub-criterion 2.3.B.1 [1 point | Completeness]: Report basic statistics (e.g., median/mean budgets, utilization rates, component costs, fund status distribution).
+- Sub-criterion 2.3.B.2 [1 point | Accuracy]: Ensure the statistics are correctly computed.
+- Sub-criterion 2.3.B.3 [1 point | Conclusion]: Based on the statistics, provide a high-level evaluation of financial resource efficiency.
+### Standard 2.4 [maximum 4 points]: Financial risk assessment and resource gap impact
+#### Path 2.4.A [4 points]: Risk scoring and impact analysis
+- Sub-criterion 2.4.A.1 [1 point | Completeness]: Relate fund status (Critical/Adequate) and resource gaps to response effectiveness, building a risk score model.
+- Sub-criterion 2.4.A.2 [2 points | Accuracy]: Pseudo code: group by fund status, compute success rate mean±std, run t-tests (p<0.05), quantify impact coefficient β = Δsuccess_rate / Δgap_share, and output matrix {fund_status, success_rate, gap_impact_coefficient}.
+- Sub-criterion 2.4.A.3 [1 point | Conclusion]:
+  - Risk case: Highlight a critical-state but successful case (e.g., maintained 80% success) and analyze its success factors and mitigations.
+  - Risk countermeasures: List 3–5 concrete safeguards (e.g., protect core capabilities by cutting non-core spend 20%, phased funding releases, deferred vendor payments, tapping contingency reserves) with conditions and expected effects.
+  - Warning/funding mechanism: Design alert thresholds (utilization <40%, gap >10%), three-tier warning levels (yellow/orange/red), funding channels (government, donations, loans), trigger conditions, process flow, and emergency actions (e.g., red warning halts non-core spending within 24h and taps reserves).
+  **Scoring note:** Must deliver all three elements: ① comprehensive risk case analysis, ② ≥3 countermeasures + effects, ③ complete warning/funding mechanism with flowchart; otherwise zero.
+### Standard 2.5 [maximum 4 points]: Material resource effectiveness
+#### Path 2.5.A [4 points]: Supply allocation and supply chain efficiency analysis (`supplies1` + `distribution_hubs`)
+- Sub-criterion 2.5.A.1 [1 point | Completeness]: Parse supply JSON (power, medical, shelter, etc.), combine with hub utilization and turnover metrics, and compute `score_material = w1·norm(turnover) + w2·norm(rationality) - λ·norm(warehousing cost)`.
+- Sub-criterion 2.5.A.2 [2 points | Accuracy]: Anchors within ±6%: hub utilization mean 47±8%, inventory accuracy 92±6%, allocation standards (medical 25-40%±3, power 20-35%±3, shelter 20-30%±2, others 10-15%±2).
+- Sub-criterion 2.5.A.3 [1 point | Conclusion]:
+  - Top configurations: Highlight Top 3 cases (e.g., `DIST_JKL012`: turnover 2.8, score 0.92, supply mix power 30%/medical 35%/shelter 25%/others 10%, advantages include diversified mix, precise inventory, high cold-chain usage).
+  - Strategy insights: Define optimal factors (e.g., adapt medical share 25-40% by affected population, align power equipment with infrastructure damage, aim for turnover >2.5).
+  - Dynamic dispatch: Provide foresight such as demand prediction models, trigger conditions, flow diagrams, evaluation system, and a ``nearby-first + centralized dispatch`` hybrid approach.
+- **Scoring note:** All three components required for full credit: ① 3 optimal cases, ② defined strategy factors + quantifications, ③ comprehensive dynamic dispatch mechanism with flowchart; otherwise zero.
+#### Path 2.5.B [3 points]: Basic statistics and preliminary material assessment
+- Sub-criterion 2.5.B.1 [1 point | Completeness]: Interpret supply JSON and compute basic statistics (e.g., average reserves, allocation shares).
+- Sub-criterion 2.5.B.2 [1 point | Accuracy]: Ensure computed statistics are correct.
+- Sub-criterion 2.5.B.3 [1 point | Conclusion]: Offer a summary evaluation of material resource efficiency.
+### Standard 2.6 [maximum 4 points]: Warehousing and distribution network optimization
+#### Path 2.6.A [4 points]: Distribution network optimization analysis
+- Sub-criterion 2.6.A.1 [1 point | Completeness]: Analyze hub layout, compute utilization optimization, cold storage efficiency, and inventory accuracy.
+- Sub-criterion 2.6.A.2 [2 points | Accuracy]: Pseudo code: calculate delivery_time, utilization_rate, inventory_turnover; identify top 20% hubs; regress to quantify factor contributions (R²>0.6); compute improvement potential Δefficiency = (optimal-current)/current×100%, and output matrix {hub_id, current_efficiency, optimal_efficiency, improvement_potential}.
+- Sub-criterion 2.6.A.3 [1 point | Conclusion]:
+  - Efficient network traits: identify attributes such as network density, coverage, and connectivity.
+  - Layout optimization methods: propose methods with quantified efficiency gains.
+  - Expansion strategy: Provide upgrade plan (priorities, budget, timeline) and capacity extension guidelines.
+  **Scoring note:** All three outputs required for full credit; otherwise zero.
+### Standard 2.7 [maximum 4 points]: Transportation dimension effectiveness
+#### Path 2.7.A [4 points]: Multimodal transport coordination analysis (`transportation1`)
+- Sub-criterion 2.7.A.1 [1 point | Completeness]: Assess coordination among trucks, helicopters, and vessels, and compute metrics such as transport throughput (2587.5±1393.4 tons), delivery success (84.9±8.6%), average delivery hours (36.9±20.1h), and failure rates.
+- Sub-criterion 2.7.A.2 [2 points | Accuracy]: Anchors within ±10%: average fleet 102.5±10 vehicles, delivery success 84.9±8%, average time 36.9±4h, fuel efficiency 14±3L/km, optimized routes ≥60%.
+- Sub-criterion 2.7.A.3 [1 point | Conclusion]:
+  - Top transport cases: Top 3 efficiency examples (e.g., `DIST_MNO345`: 94% success, 28h average, mix 70% trucks/20% helicopters/10% vessels, coordination coefficient 0.85, strengths include terrain adaptability, fallback plans, scheduling optimization).
+  - Mode insights: Provide optimal mix per disaster type (e.g., earthquakes/floods mainly ground 60-80%, tsunamis require sea-air 35%+30%, wildfires need air ≥40%) with coordination thresholds.
+  - Decision framework: Build rapid decision system matching geography to transport modes, resource pools, and process flows.
+- **Scoring note:** Full credit requires all three: ① 3 best transport cases, ② disaster-type mode recommendations, ③ decision system; otherwise zero.
+#### Path 2.7.B [3 points]: Basic transport statistics summary
+- Sub-criterion 2.7.B.1 [1 point | Completeness]: Present basic transport stats (e.g., average fleets, delivery hours, success, failure, status distributions).
+- Sub-criterion 2.7.B.2 [1 point | Accuracy]: Ensure computations are correct.
+- Sub-criterion 2.7.B.3 [1 point | Conclusion]: Provide an overall transport efficiency assessment.
+### Standard 2.8 [maximum 4 points]: Transportation reliability and timeliness
+#### Path 2.8.A [4 points]: Reliability and response timeliness analysis
+- Sub-criterion 2.8.A.1 [1 point | Completeness]: Assess reliability factors such as maintenance status, breakdown rate, and end-delivery performance.
+- Sub-criterion 2.8.A.2 [2 points | Accuracy]: Pseudo code: build reliability index `RI = w1·(1-failure_rate) + w2·maintenance_score + w3·(1-delay_rate)`; conduct factor analysis (loading >0.4), compute weights, and output matrix {transport_id, reliability_index, key_factors, factor_weights, improvement_priorities}.
+- Sub-criterion 2.8.A.3 [1 point | Conclusion]:
+  - Reliability traits: Identify features of high-reliability configs (good maintenance, low failure/delay).
+  - Stabilization measures: List measures quantifying their contributions.
+  - Redundant emergency plan: Design redundancy standards, triggers, and response protocols.
+  **Scoring note:** All three required for credit.
+### Standard 2.9 [maximum 4 points]: Comprehensive effectiveness index and diagnostics
+#### Path 2.9.A [4 points]: Multi-dimensional index and quartile benchmarking
+- Sub-criterion 2.9.A.1 [1 point | Completeness]: Build standardized effectiveness index over human/financial/material/transport dimensions per demand unit (per 10k affected population, per 1k injured) using equal-weighted aggregation within [0,1].
+- Sub-criterion 2.9.A.2 [2 points | Accuracy]: Anchors ±5%: Level 5 index median 0.503±0.025, quartiles p25=0.441±0.02 and p75=0.562±0.02; Type differences: floods 0.508±0.03 ~ earthquakes 0.507±0.03 ~ wildfires 0.506±0.03 ~ hurricanes 0.503±0.03, tsunamis lower at 0.468±0.04.
+- Sub-criterion 2.9.A.3 [1 point | Conclusion]:
+  - Distribution insight: Interpret 0.503 median as moderate performance and set 0.562 as success benchmark.
+  - Type analysis: Explain why tsunamis underperform (e.g., maritime transport difficulty, lack of coastal staging).
+  - Benchmarking: Establish red/yellow/green tiers (index <0.441 red, 0.441-0.562 yellow, >0.562 green) and describe how to replicate Top 10% best practices.
+#### Path 2.9.B [3 points]: Basic composite statistics and evaluation
+- Sub-criterion 2.9.B.1 [1 point | Completeness]: Present base statistics for disaster scale and efficiency by dimension.
+- Sub-criterion 2.9.B.2 [1 point | Accuracy]: Provide correct computations.
+- Sub-criterion 2.9.B.3 [1 point | Conclusion]: Summarize the overall resource effectiveness, identifying strengths, weaknesses, and improvement directions.
+### Standard 2.10 [maximum 4 points]: Crossdimensional bottleneck diagnostics and traffic-light system
+#### Path 2.10.A [4 points]: Bottleneck diagnostics with traffic-light scoring
+- Sub-criterion 2.10.A.1 [1 point | Completeness]: Establish a bottleneck identification mechanism that scores all four dimensions for each Level 5 event, counts bottlenecks (human 55, transport 50, financial 50, material 47), and analyzes root causes and improvement paths.
+- Sub-criterion 2.10.A.2 [2 points | Accuracy]: Pseudo code: compute normalized scores, detect min-dimension per event, aggregate bottleneck stats, compute improvement potential `(median - min)/min`, and output diagnostics matrix {event_id, bottleneck, current_score, improvement_potential, priority}.
+- Sub-criterion 2.10.A.3 [1 point | Conclusion]:
+  - Bottleneck patterns: Describe frequent bottlenecks (e.g., human due to medical shortfall, transport due to multi-modal gaps).
+  - Rapid diagnosis: Provide a standard 5-minute workflow (score → min → benchmark → action).
+  - Tiered improvement: Define red/yellow/green actions with thresholds and timelines (red requires 7-day adjustment, 30-day systemic fix, 90-day move to yellow).
+#### Path 2.10.B [2 points]: Basic bottleneck identification and recommendations
+- Sub-criterion 2.10.B.1 [1 point | Completeness/Accuracy]: Using prior stats, correctly identify at least two dimension weaknesses (e.g., low utilization, training gap).
+- Sub-criterion 2.10.B.2 [1 point | Conclusion]: Offer high-level improvement suggestions for those weaknesses.

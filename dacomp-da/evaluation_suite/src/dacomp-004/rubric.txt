@@ -1,0 +1,94 @@
+# [Total Score | 16 points] The solution must satisfy three core requirements:
+- Requirement 1: Identify the product with the highest Sales Amount for each month
+- Requirement 2: Analyze performance differences of the top-selling products across different months
+- Requirement 3: Explore the relationship between the repurchase rate and Sales Amount for the top-selling products
+---
+## Requirement 1: Identify the product with the highest Sales Amount for each month (up to 5 points)
+### Criterion 1.1: Identification of the monthly top-selling product
+#### Path 1.1.A [5 points | precise identification]
+- Sub-criterion 1.1.A.1 [1 point | completeness]: Accurate identification. Must accurately identify the Product Codes of the monthly sales champions for the four specified months.
+- Sub-criterion 1.1.A.2 [3 points | accuracy]: All Sales Amount calculations for the top-selling product in each of the four months must be correct to earn points.
+ - **January 2015**: Product Code `DW-1001040125`, Sales Amount = `2836.46`
+ - **February 2015**: Product Code `DW-2316020016`, Sales Amount = `5600.00`
+ - **March 2015**: Product Code `DW-1203130446`, Sales Amount = `4893.62`
+ - **April 2015**: Product Code `DW-1518040045`, Sales Amount = `1400.30`
+- Sub-criterion 1.1.A.3 [1 point | conclusiveness]: Must clearly state in natural language that the corresponding Product Codes are DW-1001040125, DW-2316020016, DW-1203130446, DW-1518040045 (no points if incorrect or missing).
+---
+## Requirement 2: Analyze performance differences of the top-selling products across different months (up to 4 points)
+### Criterion 2.1: Methods for analyzing performance differences of the top-selling products (up to 4 points)
+#### Path 2.1.A [4 points | comprehensive quantitative approach]
+- Sub-criterion 2.1.A.1 [1 point | completeness]: Track the Sales Amount of the four top-selling products across all months and analyze their performance differences across months.
+- Sub-criterion 2.1.A.2 [2 points | accuracy]: Accurate calculation. Correctly compute the Sales Amount in other months for the January top-selling product (`DW-1001040125`), the February top-selling product (`DW-2316020016`), the March top-selling product (`DW-1203130446`), and the April top-selling product (`DW-1518040045`). All must be correct to receive points.
+  - **Sales Amount in February for the January top-selling product (`DW-1001040125`)** = `711.01`
+  - **Sales Amount in March for the January top-selling product (`DW-1001040125`)** = `1220.88`
+  - **Sales Amount in April for the January top-selling product (`DW-1001040125`)** = `1180.53`
+  - **Sales Amount in January for the February top-selling product (`DW-2316020016`)** = `0`
+  - **Sales Amount in March for the February top-selling product (`DW-2316020016`)** = `0`
+  - **Sales Amount in April for the February top-selling product (`DW-2316020016`)** = `0`
+  - **Sales Amount in January for the March top-selling product (`DW-1203130446`)** = `797.79`
+  - **Sales Amount in February for the March top-selling product (`DW-1203130446`)** = `1095.26`
+  - **Sales Amount in April for the March top-selling product (`DW-1203130446`)** = `598.16`
+  - **Sales Amount in January for the April top-selling product (`DW-1518040045`)** = `0`
+  - **Sales Amount in February for the April top-selling product (`DW-1518040045`)** = `0`
+  - **Sales Amount in March for the April top-selling product (`DW-1518040045`)** = `0`
+- Sub-criterion 2.1.A.3 [1 point | conclusiveness]: Reasonable judgment. Based on monthly Sales Amount data for all top-selling products, summarize performance differences of each in non-champion months.
+
+#### Path 2.1.B [3 points | typical exemplification approach]
+- Sub-criterion 2.1.B.1 [1 point | completeness]: Reasonable case selection. Select at least two top-selling products whose performance patterns are notably different (e.g., one product is only high-selling in its champion month, another remains consistently popular) as cases for analysis.
+- Sub-criterion 2.1.B.2 [2 points | accuracy]: Correct case analysis process. For each selected case product, execute the correct monthly Sales Amount tracking process. The validation pseudo-code is as follows:
+  ```Pseudo-code: Validate analysis process for a single case
+  For each product selected as a case (e.g., "DW-1001040125"):
+    1. Filter all records belonging to this product from the overall dataset.
+    2. Group the filtered records by 'Sales Month'.
+    3. Compute the monthly sum of 'Sales Amount'.
+    4. You must finally present the Sales Amount for at least two non-champion months for this product.
+  ```
+
+
+---
+## Requirement 3: Explore the relationship between the repurchase rate and Sales Amount for the top-selling products (up to 7 points)
+### Criterion 3.1: Definition and calculation of the repurchase rate (up to 3 points)
+#### Path 3.1.A [3 points | general definition and calculation]
+- Sub-criterion 3.1.A.1 [1 point | completeness]: Clear and reasonable definition. Clearly articulate the adopted formula and definition for the repurchase rate, including its measurement basis (e.g., among customers who purchased the product, the proportion of customers with purchase count > 1; or within a specified time window, the proportion of customers with a second or more purchase; other custom metrics), with self-consistent logic.
+- Sub-criterion 3.1.A.2 [2 points | accuracy]: Correct and consistent computation process. The computation procedure correctly reflects the chosen definition and measurement basis and covers all top-selling products. The calculations must be logically consistent with the adopted definition and measurement basis; validation pseudo-code is as follows.
+ 
+ ```Pseudo-code: Approach 1: Proportion of customers with total purchase count > 1
+  For each top-selling product:
+    1. Filter all records for customers who purchased this product.
+    2. Group records by 'Customer ID' and count each customer's number of purchases.
+    3. Compute the total number of distinct customers (denominator).
+    4. Compute the number of distinct customers with purchase count greater than 1 (numerator).
+    5. Numerator / Denominator yields the product's repurchase rate.
+
+  Reference repurchase rate data:
+  | Top-selling product | Total Sales Amount | Repurchase rate |
+  | :---------- | :------- | :----------- |
+  | DW-1001040125 | 5948.88  | 0.134615385  |
+  | DW-2316020016 | 5600     | 0            |
+  | DW-1203130446 | 7384.83  | 0.265486726  |
+  | DW-1518040045 | 1400.3   | 0.058823529  |
+  
+ ```Pseudo-code: Approach 2: Proportion of customers with two or more purchases within a specified time window
+    Set a time window T (e.g., 90 days)
+    For each top-selling product:
+      1. Filter all records for customers who purchased this product.
+      2. Group records by 'Customer ID'.
+      3. For each customer, check whether there are two or more purchase records and whether the time interval between the earliest and latest purchases falls within T.
+      4. Compute the total number of distinct customers (denominator).
+      5. Compute the number of distinct customers with two or more purchases within time window T (numerator).
+      6. Numerator / Denominator yields the product's repurchase rate.
+    ```
+ 
+ ```Pseudo-code: Approach 3: Other custom approaches
+   The final repurchase rate data must be consistent with the results computed under the chosen approach.
+  ```
+
+### Criterion 3.2: Analysis and conclusions on the association between Total Sales Amount and repurchase rate (up to 4 points)
+#### Path 3.2.A [4 points | Pearson correlation analysis]
+- Sub-criterion 3.2.A.1 [1 point | completeness]:  Complete analysis scope. Data used to compute the correlation must cover all top-selling products.
+- Sub-criterion 3.2.A.2 [2 points | accuracy]: Accurate computation of core metric. Correctly compute the Pearson correlation coefficient between Total Sales Amount and repurchase rate across all top-selling products. The Pearson correlation coefficient for repurchase rate Approach 1 is 0.577 (rounded to three decimal places); for other approaches, results must be logically consistent.
+- Sub-criterion 3.2.A.3 [1 point | conclusiveness]: Rigorous logic in judgment. Clearly conclude that there is a moderate positive correlation between Total Sales Amount and repurchase rate for the top-selling products, and briefly explain its business meaning.
+#### Path 3.2.B [3 points | comparative inductive analysis]
+- Sub-criterion 3.2.B.1 [1 point | completeness]: Analyze the association between repurchase rate and Sales Amount using sales and repurchase data or propose another classification approach (e.g., construct four quadrants with thresholds at average Total Sales Amount and average repurchase rate).
+- Sub-criterion 3.2.B.2 [1 point | completeness]: The classification or analysis must cover all top-selling products.
+- Sub-criterion 3.2.B.3 [1 point | conclusiveness]: Reasonable judgment. Based on the classification results, summarize the “sales–repurchase” pattern of the top-selling products (e.g., most top-selling products belong to the “high sales–high repurchase” star products).

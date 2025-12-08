@@ -1,0 +1,64 @@
+# [Total score | 29 points] The solution must meet two core requirements:
+- Requirement 1: Analyze the characteristics of the student group who have had suicidal thoughts across the economic, academic stress, and diet/sleep dimensions
+- Requirement 2: Develop feature-based relapse prevention strategies
+---
+## Requirement 1: Analyze the characteristics of the student group who have had suicidal thoughts across the economic, academic stress, and diet/sleep dimensions (this requirement can earn up to 20 points)
+### Criterion 1.1: Data understanding and screening of the student group with suicidal thoughts (maximum 3 points)
+#### Path 1.1.A [3 points | Field identification]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Filter the data for the student group, and from the student group data further filter the data for students with and without suicidal thoughts.
+- Sub-criterion 1.1.A.2 [2 points | Accuracy]: Within the student group, the number of samples with suicidal thoughts is 11778 rows, and the number of student samples without suicidal thoughts is 6984 rows. If the obtained counts are exactly consistent with the above, award 2 points; otherwise 0 points.
+### Criterion 1.2: Economic dimension feature analysis (maximum 4 points)
+#### Path 1.2.A [4 points | Complete quantitative analysis]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: The analysis is complete. Required to analyze key indicators such as the average Financial stress of students who have had suicidal thoughts and the proportion with high Financial stress.
+- Sub-criterion 1.2.A.2 [2 points | Accuracy]: Metric calculations are accurate. Refer to the following pseudo-code for accuracy validation:
+  ```Pseudo-code: Filter the data for students who have had suicidal thoughts.
+        - Compute average Financial stress: sum the Financial stress values and divide by the number of students.
+        - Compute proportion with high Financial stress: count students whose Financial stress falls in the high-stress interval ([4,5]), then divide by the total number of students who have had suicidal thoughts.
+        - For the student group with suicidal thoughts, the average Financial stress should be about 3.36, and the high Financial stress proportion should be about 51.5% (difference less than 1%).
+  ```
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: Provide a comparative conclusion. Compare the key Financial stress indicators between students who have had suicidal thoughts and students without suicidal thoughts.
+### Criterion 1.3: Academic stress dimension feature analysis (maximum 7 points)
+#### Path 1.3.A [7 points | Complete quantitative analysis]
+- Sub-criterion 1.3.A.1 [2 points | Completeness]: The analysis is complete. Required to analyze key indicators for the student group who have had suicidal thoughts, such as average Academic stress, proportion with high Academic stress, mean Satisfaction with studies, and mean study hours; full coverage is not required—2 points can be awarded as long as the analysis is reasonable.
+- Sub-criterion 1.3.A.2 [2 points | Accuracy]: Metric calculations are accurate. Refer to the following pseudo-code for accuracy validation:
+  ```Pseudo-code:
+        - Compute average Academic stress: sum Academic stress values and divide by the number of students.
+        - Compute proportion with high Academic stress: count students whose Academic stress falls in the high-stress interval (e.g., Academic stress ∈ [4,5]), then divide by the total number of students who have had suicidal thoughts.
+        - Compute mean Satisfaction with studies: sum Satisfaction with studies values and divide by the number of students.
+        - Compute mean study hours: sum study hours values and divide by the number of students.
+        - The average Academic stress should be about 3.44, the high Academic stress proportion should be about 50.0% (difference less than 1%), the mean Satisfaction with studies should be about 2.85, and the mean study hours should be about 7.49 hours.
+  ```
+- Sub-criterion 1.3.A.3 [1 point | Completeness]: Further analysis. Select student groups at different academic levels (e.g., undergraduate, graduate) or in different disciplines/majors, compare their differences in Academic stress, Satisfaction with studies, etc., and include the student group who have had suicidal thoughts.
+- Sub-criterion 1.3.A.4 [1 point | Accuracy]: Further precise analysis. During comparisons, ensure accurate data extraction, and present clear conclusions about differences across groups in Academic stress–related indicators, such as students in a specific discipline who have had suicidal thoughts exhibiting significantly higher Academic stress than other disciplines.
+- Sub-criterion 1.3.A.5 [1 point | Conclusion]: Provide a comparative conclusion. Compare the key Academic stress indicators between students who have had suicidal thoughts and students without suicidal thoughts.
+### Criterion 1.4: Diet and sleep dimension feature analysis (maximum 4 points)
+#### Path 1.4.A [4 points | Complete quantitative analysis]
+- Sub-criterion 1.4.A.1 [1 point | Completeness]: The analysis is complete. Required to analyze key indicators such as Dietary habits and the proportion of short sleep for the student group who have had suicidal thoughts.
+- Sub-criterion 1.4.A.2 [2 points | Accuracy]: Metric calculations are accurate. Refer to the following pseudo-code for accuracy validation:
+  ```Pseudo-code:
+        - Compute dietary category proportions: respectively count the numbers of students in different dietary categories (e.g., Healthy/Moderate/Unhealthy), then divide by the total number of students who have had suicidal thoughts.
+        - Compute proportion of short sleep: count students whose Sleep duration is less than 7 hours (e.g., "Less than 5", "5 - 6"), then divide by the total number of students who have had suicidal thoughts.
+        - The proportion of Unhealthy dietary habits should be about 40.9%, and the short sleep proportion should be about 53.5%.
+  ```
+- Sub-criterion 1.4.A.3 [1 point | Conclusion]: Provide a comparative conclusion. Compare the key indicators in the diet/sleep pressure dimension between students who have had suicidal thoughts and students without suicidal thoughts.
+### Criterion 1.5: Summary of information on students with suicidal thoughts (maximum 2 points)
+#### Path 1.5.A [1 point | Simple listing]
+- Sub-criterion 1.5.A.1 [1 point | Conclusion]: Provide a simple conclusion. List the key indicators across the three dimensions for students who have had suicidal thoughts.
+#### Path 1.5.B [2 points | Combined summary]
+- Sub-criterion 1.5.B.1 [2 points | Conclusion]: Provide a comprehensive conclusion. Combine the key indicators across the three dimensions for students who have had suicidal thoughts to provide a corresponding high–suicidal ideation risk profile.
+---
+## Requirement 2: Develop feature-based relapse prevention strategies (this requirement can earn up to 9 points)
+### Criterion 2.1: Strategy formulation (maximum 7 points)
+#### Path 2.1.A [5 points | Qualitative strategy analysis]
+- Sub-criterion 2.1.A.1 [2 points | Completeness]: List complete strategies. Across the three dimensions, provide multiple specific, feasible preventive measures for each.
+- Sub-criterion 2.1.A.2 [1 point | Completeness]: Provide integrated strategies. Offer deeper and more comprehensive strategy combinations for the high–suicidal ideation risk student group.
+- Sub-criterion 2.1.A.3 [2 points | Conclusion]: Strategies are targeted. Strategies closely align with the characteristics of students who have had suicidal thoughts and are strongly targeted; for example, providing low-intensity on-campus jobs for those with high Academic stress.
+#### Path 2.1.B [7 points | Quantitative strategy analysis]
+- Sub-criterion 2.1.B.1 [2 points | Completeness]: Strategy dimensions are complete. Based on the key data across the three dimensions, provide multiple specific, feasible measures ordered from highest to lowest by impact importance; if not ordered by importance, no points are awarded.
+- Sub-criterion 2.1.B.2 [2 points | Accuracy]: Key data are accurate. Ensure that the data cited for each dimension are accurate.
+- Sub-criterion 2.1.B.3 [2 points | Completeness]: Provide combined strategies. Offer deeper and more comprehensive strategy combinations for the high–suicidal ideation risk student group.
+- Sub-criterion 2.1.B.4 [1 point | Conclusion]: Strategies are concise and specific. Closely tie strategies to the data to provide reasonable, feasible responses.
+### Criterion 2.2: Limitations and safety statement (maximum 2 points)
+#### Path 2.2.A [2 points | Comprehensive and detailed strategy]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Provide limitations and shortcomings. Explain potential issues in the current analysis, such as correlation not equaling causation and partial data missing.
+- Sub-criterion 2.2.A.2 [2 points | Completeness]: Provide a safety statement. Because the issue involves sensitive information related to suicide and psychological treatment, when providing reasonable advice, state that the advice cannot replace professional diagnosis and treatment.

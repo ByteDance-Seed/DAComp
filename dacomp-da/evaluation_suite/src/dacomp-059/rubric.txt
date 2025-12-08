@@ -1,0 +1,120 @@
+# [Total Score | 36 pts] Ad Performance "High CTR Low Conversion" Diagnosis & Optimization Scoring Rubric (dacomp-059 Live Test Version)
+---
+## Requirement 1: Data Preparation & Problematic Ad Group Identification (Up to 8 pts)
+### Standard 1.1: CTR/CVR Percentile Threshold Calculation (Up to 6 pts)
+#### Path 1.1.A [6 pts | Ad Group × Date Full Dataset Scope]
+- Sub-standard 1.1.A.1 [1 pt | Completeness]: Must state that `SUM(impressions, clicks, conversions, spend, conversions_value)` are aggregated by `ad_group_id` + `DATE(substr(date_day,1,10))`, and only the 9,993 daily samples with `impressions>0 AND clicks>0` are kept.
+- Sub-standard 1.1.A.2 [4 pts | Accuracy]: Should calculate `CTR = clicks/impressions` and `CVR = conversions/clicks`, and use the PERCENTILE_DISC formula `idx = floor(p*(n-1))` to accurately locate the percentile values; Verify thresholds: `CTR P75 = 0.03819444 ±0.0005`, `CVR P25 = 0.03333333 ±0.0005`.
+- Sub-standard 1.1.A.3 [1 pt | Conclusion]: Must explain that this combination of percentiles is used to identify abnormal ad group-day segments that have "significantly high appeal but weak conversion," covering nearly all daily samples (9,993/10,000 ≈ 99.9%).
+
+#### Path 1.1.B [6 pts | Ad Group Summary Scope]
+- Sub-standard 1.1.B.1 [1 pt | Completeness]: Must state that full-period `SUM` metrics are aggregated by `ad_group_id`, keeping the 4,324 ad group samples with `impressions>0 AND clicks>0`.
+- Sub-standard 1.1.B.2 [4 pts | Accuracy]: Recalculate percentiles under this scope, verifying `CTR P75 = 0.03587444 ±0.0005`, `CVR P25 = 0.03846154 ±0.0005`; must emphasize "aggregate first, then rank" to avoid scope drift.
+- Sub-standard 1.1.B.3 [1 pt | Conclusion]: Must compare with Path 1.1.A, explaining that the ad group summary scope is more robust when daily dimensions or search terms are not aligned, and the slightly looser thresholds lead to a slightly more focused identification of problems.
+
+#### Path 1.1.C [6 pts | Rolling 90-Day Window]
+- Sub-standard 1.1.C.1 [1 pt | Completeness]: Must filter for dates ≥ `2024-10-02` (the `MAX(date_day)` in the entire database is 2024-12-30), aggregate by `ad_group_id+date`, and keep a total of 635 samples with `impressions>0 AND clicks>0`.
+- Sub-standard 1.1.C.2 [4 pts | Accuracy]: Recompute `CTR P75 = 0.03641092 ±0.0008`, `CVR P25 = 0.03333333 ±0.0005`; must show ranking/location implementation details.
+- Sub-standard 1.1.C.3 [1 pt | Conclusion]: Must state that the rolling scope identifies 36 problematic ad group-day segments (36/635≈5.67%), and the slightly tighter thresholds are used for comparing sensitivity between peak and off-peak seasons.
+
+### Standard 1.2: Problematic Ad Group List & Impact Scale (Up to 2 pts)
+#### Path 1.2.A [2 pts | Full-Scope Contribution Analysis]
+- Sub-standard 1.2.A.1 [1 pt | Completeness]: Must output 617 problem samples (6.17% ± 0.1pp), with fields including `ad_group_id, account_name, campaign_name, impressions, clicks, conversions, spend, conversions_value, CTR, CVR, CPA, ROAS`, consistent with the scope in 1.1.
+- Sub-standard 1.2.A.2 [1 pt | Accuracy]: Verify click and spend contributions: `clicks = 20,391` (10.35% ± 0.2pp of 196,942), `spend = 57,267.65` (10.53% ± 0.2pp of 544,071.41); average performance: `CTR ≈0.04365`, `CVR ≈0.01996`, `CPA ≈135.00`, `ROAS ≈0.85`, significantly worse than non-problem groups (`CTR ≈0.02733`, `CVR ≈0.05767`, `CPA ≈46.55`, `ROAS ≈2.38`).
+
+#### Path 1.2.B [2 pts | Robust Threshold Filtering]
+- Sub-standard 1.2.B.1 [1 pt | Completeness]: Before identification, apply an additional filter of `impressions≥100 AND clicks≥10`, resulting in 5,402 samples, and then recalculate thresholds.
+- Sub-standard 1.2.B.2 [1 pt | Accuracy]: Verify robust thresholds `CTR P75 = 0.04166667 ±0.001`, `CVR P25 = 0.0326087 ±0.001`; identifies 328 problem samples (6.07% ± 0.2pp), contributing `clicks = 14,612` (8.32% ± 0.2pp) and `spend = 39,647.70` (8.16% ± 0.2pp), yielding a conclusion consistent with the full-scope results.
+
+---
+## Requirement 2: Multi-dimensional Feature & Performance Comparison (Up to 10 pts)
+### Standard 2.1: Keyword Match Type Profile (Up to 4 pts)
+#### Path 2.1.A [4 pts | Match Type Share at ad_group Level]
+- Sub-standard 2.1.A.1 [1 pt | Completeness]: Must explain that the keyword report is aggregated by `ad_group_id` to calculate the click share and CVR for Exact/Phrase/Broad/BMM; must also note that this provides effective coverage for 502 out of 571 problem ad groups (87.9%).
+- Sub-standard 2.1.A.2 [2 pts | Accuracy]: Verify click shares for problem groups: `Broad 24.40%`, `BMM 26.47%`, `Exact 22.65%`, `Phrase 26.48%` (tolerance ±0.5pp); corresponding CVRs: `0.0512/0.0512/0.0528/0.0608` (tolerance ±0.001).
+- Sub-standard 2.1.A.3 [1 pt | Conclusion]: Must point out that in problem groups, BMM share is high, Exact is low, and Phrase is high, suggesting traffic generalization; and recommend continuing to use Phrase for volume while tightening BMM to improve quality.
+
+#### Path 2.1.B [4 pts | Search Intent Classification]
+- Sub-standard 2.1.B.1 [1 pt | Completeness]: Must provide semantic classification rules (e.g., `buy|price|discount|cheap|deal|quote|coupon|order|promo|cost → Transactional`; `review|compare|quality|support|warranty|tutorial|guide|how|what → Research`; `solution|service|consulting|analytics|digital|professional|business|enterprise → Generic`; others→Other), and provide example keywords for validation.
+- Sub-standard 2.1.B.2 [2 pts | Accuracy]: Calculate click share and CVR for problem vs. non-problem groups: Problem groups `Transactional 32.32% (CVR 0.0529)`, `Research 23.62% (0.0546)`, `Generic 24.39% (0.0565)`, `Other 19.67% (0.0525)`; Non-problem groups are `29.37%/25.15%/26.69%/18.79%` respectively, with CVRs around `0.0552/0.0556/0.0536/0.0550` (tolerance ±0.5pp, CVR±0.001).
+- Sub-standard 2.1.B.3 [1 pt | Conclusion]: Must clearly state that generic intent keywords (Generic/Research) contribute nearly 48% of clicks in problem groups but fail to lift CVR, and should be managed via upper-funnel segmentation or negative keywords.
+
+### Standard 2.2: Ad Strategy & Industry Profile (Up to 4 pts)
+#### Path 2.2.A [4 pts | Campaign First-Word Mapping]
+- Sub-standard 2.2.A.1 [1 pt | Completeness]: Map campaign types to Brand/Search/Shopping/Display/Performance based on `TRIM(SUBSTR(campaign_name,1,INSTR(campaign_name,' ')-1))`, and calculate clicks, conversions, ROAS, and CVR.
+- Sub-standard 2.2.A.2 [2 pts | Accuracy]: Problem groups ROAS ranking: `Shopping 1.40 < Performance 1.53 < Display 1.61 < Brand 1.66 < Search 1.75`; CVRs are concentrated in the 0.0367~0.0410 range; non-problem groups all have ROAS ≥ 2.30, with `Search 2.48` being the highest (tolerance ±0.05).
+- Sub-standard 2.2.A.3 [1 pt | Conclusion]: Must point out that Shopping/Display strategies have low ROAS and weak CVR, which is related to generalized bidding/feed issues, and list them as priority targets for optimization.
+
+#### Path 2.2.B [4 pts | Industry Mapping]
+- Sub-standard 2.2.B.1 [1 pt | Completeness]: Map to 8 major industries based on keywords in `account_name` (technology/travel/finance/automotive/food/retail/fashion/sport), with the rest classified as "Other".
+- Sub-standard 2.2.B.2 [2 pts | Accuracy]: Verify industry ROAS for problem groups: `Sports 1.29`, `Fashion 1.37`, `Food 1.56`, `Retail 1.57`, `Automotive 1.72`, `Technology 1.84`, `Travel 1.88`, `Finance 2.05`; for non-problem groups, `Travel 2.50` and `Technology 2.40` perform best (tolerance ±0.05).
+- Sub-standard 2.2.B.3 [1 pt | Conclusion]: Must summarize the structural weaknesses in Sports/Fashion/Shopping-related industries and use Finance/Travel as benchmarks to guide ad delivery and landing page improvements.
+
+### Standard 2.3: Time-based Characteristics (Up to 2 pts)
+#### Path 2.3.A [2 pts | Day-of-Week Analysis]
+- Sub-standard 2.3.A.1 [1 pt | Completeness]: Use `strftime('%w', date)` to distinguish days Sunday=0...Saturday=6, and output `CTR/CVR/CPA` for problem vs. non-problem groups in 7 columns.
+- Sub-standard 2.3.A.2 [1 pt | Accuracy]: Problem group CVR falls within the `0.01948~0.02241` range, with Tuesday (0.01956)/Sunday (0.01948) being the lowest and Friday (0.02241) slightly better; CPA is `110.54~149.70`, with Sunday/Thursday near the upper limit. Non-problem group CVR remains `0.05706~0.0610`, with CPA around `44.95~48.97` (tolerance ±0.001/±2).
+
+#### Path 2.3.B [2 pts | Hourly or Window Analysis]
+- Sub-standard 2.3.B.1 [1 pt | Completeness]: Must state that current `date_day` data is only at daily granularity (e.g., `2024-12-30 00:00:00.000 +0800`) and cannot be directly broken down by hour; must propose a plan to add Google Ads Hourly or Segment by Hour reports.
+- Sub-standard 2.3.B.2 [1 pt | Conclusion]: Provide an execution plan after acquiring the data (aggregate by hour → compare CVR/CPA for `00:00-06:00` vs `08:00-22:00`), and state the goal of verifying the "late-night traffic quality" hypothesis as a future extension.
+
+---
+## Requirement 3: Intent Match Index & Traffic Quality Score (Up to 8 pts)
+### Standard 3.1: Intent Match Index (IMI) Calculation (Up to 6 pts)
+#### Path 3.1.A [6 pts | Industry Benchmark Method]
+- Sub-standard 3.1.A.1 [1 pt | Completeness]: Define `IMI = (ad_group_conversions/ad_group_clicks) ÷ baseline_cvr(industry)`, where `baseline_cvr = Σ non-problem group conversions / Σ non-problem group clicks`, weighted by industry.
+- Sub-standard 3.1.A.2 [4 pts | Accuracy]: Execution steps: ① Create problem labels from 1.2; ② Map `industry` as in 2.2.B; ③ Calculate baseline CVR and join it back to ad groups. Verify results: the average `IMI` for 1,658 problem ad groups is `0.748 ±0.02`, while the average `IMI` for 8,232 non-problem ad groups is `0.974 ±0.02`, and 59.47% of problem ad groups have `IMI < 0.8` (tolerance ±1pp).
+- Sub-standard 3.1.A.3 [1 pt | Conclusion]: Based on this, must confirm that "most high-CTR ad groups suffer from intent mismatch" and set `IMI<0.8` as the core optimization threshold.
+
+#### Path 3.1.B [6 pts | Keyword-Weighted Method]
+- Sub-standard 3.1.B.1 [1 pt | Completeness]: Build an `expected_cvr(keyword_text, match_type)` in the keyword report; use keyword-level CVR for keywords with clicks ≥ 20, fall back to `match_type` average for those below, and finally fall back to global CVR (all based on non-problem ad groups).
+- Sub-standard 3.1.B.2 [4 pts | Accuracy]: Calculate `expected_conversions = Σ(clicks × expected_cvr)`, then `IMI_kw = actual_conversions / expected_conversions`, covering 502 problem ad groups. Verified averages: problem groups `IMI_kw ≈ 1.063`, non-problem groups `≈ 1.015` (tolerance ±0.02); must state that this scope lacks differentiation in this dataset, and Path 3.1.A should be used for the main judgment, retaining this result for coverage assessment.
+- Sub-standard 3.1.B.3 [1 pt | Conclusion]: Must state in the report that "the keyword benchmark is affected by sample homogeneity and fails to create significant differentiation," and recommend adding more granular intent labels or historical controls to improve discriminatory power.
+
+#### Path 3.1.C [6 pts | Match Type or Strategy Benchmark (Fallback)]
+- Sub-standard 3.1.C.1 [1 pt | Completeness]: If industry or keyword data is missing, must explain that a benchmark can be built in layers `match_type → tactic → global`, with priority from fine-grained to coarse.
+- Sub-standard 3.1.C.2 [4 pts | Accuracy]: Provide the formula `IMI = actual_CVR / baseline_layer_CVR`, ensure problem samples are excluded from the baseline (to prevent leakage), and provide a calculation example.
+- Sub-standard 3.1.C.3 [1 pt | Conclusion]: Point out that this fallback is only for covering data gaps and the limitation of insufficient granularity must be noted in the conclusion.
+
+### Standard 3.2: Traffic Quality Score (TQS) (Up to 2 pts)
+#### Path 3.2.A [2 pts | Normalized Weighted Method]
+- Sub-standard 3.2.A.1 [1 pt | Completeness]: Use `TQS = 0.6*min(IMI,2)/2 + 0.2*min(ROAS/3,1) + 0.2*match_precision`, where `match_precision = (Exact+Phrase clicks)/total_clicks`. If keyword data is missing, backfill with 0.5 and provide an explanation.
+- Sub-standard 3.2.A.2 [1 pt | Accuracy]: Verify average `TQS` for problem groups = `0.428 ±0.02`, and for non-problem groups = `0.523 ±0.02`; also note that 33.78% of problem ad groups have `TQS < 0.3` (vs. 15.66% for non-problem, tolerance ±1pp), to be used for prioritization.
+
+---
+## Requirement 4: Root Cause Summary & Systematic Optimization Plan (Up to 6 pts)
+### Standard 4.1: Root Cause Identification (Up to 3 pts)
+#### Path 4.1.A [3 pts | Data-Driven Evidence]
+- Sub-standard 4.1.A.1 [1 pt | Completeness]: Must reference at least three types of dimensions (e.g., match structure, strategy/industry, time period, IMI/TQS) to describe the problem symptoms.
+- Sub-standard 4.1.A.2 [1 pt | Accuracy]: Must cite actual measured data: e.g., `CTR ≈0.0436 vs 0.0273`, `CVR ≈0.020 vs 0.058`, `ROAS ≈0.85 vs 2.38`, `TQS 0.428 vs 0.523`, `Shopping ROAS 1.40`, `Sports ROAS 1.29`, `Tuesday CVR 0.0196`, `59.47% IMI<0.8`.
+- Sub-standard 4.1.A.3 [1 pt | Conclusion]: Must summarize primary causes (intent mismatch + generalized strategies + weak conversion experience + time-of-day imbalance), and point out secondary factors (e.g., structural issues in Sports/Fashion industries, high weekend CPA).
+
+#### Path 4.1.B [3 pts | Data Limitations Explained]
+- Sub-standard 4.1.B.1 [1 pt | Completeness]: Clearly state data gaps: missing hourly granularity, 69 out of 571 problem ad groups have no keyword data, and no device/geo/audience fields are available.
+- Sub-standard 4.1.B.2 [1 pt | Accuracy]: Explain that existing conclusions are consistent with the gaps, e.g., "Missing Hourly data → cannot verify the late-night traffic hypothesis; Keyword data gap → must rely on campaign strategy and TQS for some Shopping groups."
+- Sub-standard 4.1.B.3 [1 pt | Conclusion]: Propose a list of data to acquire (Google Ads Hourly, Device, Geo, Audience, Landing Page quality, Bidding Strategy fields), and describe how to validate with it (e.g., recalculate IMI/TQS, compare late-night CPA).
+
+### Standard 4.2: Systematic Optimization Plan (Up to 3 pts)
+#### Path 4.2.A [3 pts | Five-Dimensional Coordinated Plan]
+- Sub-standard 4.2.A.1 [1 pt | Completeness]: The plan must cover keywords (tighten BMM to <20%, expand Phrase), audience (exclude low-quality segments for Sports/Fashion, introduce RLSA/custom intent), landing page (align promotions/FAQ with Transactional keywords), bidding/budget (switch Shopping to tROAS≥2.0, increase bids by 20% for Brand/Performance on high-TQS groups), and time-of-day (limit bids on Tuesdays/Sundays, increase on Fridays).
+- Sub-standard 4.2.A.2 [1 pt | Accuracy]: Each measure must be justified by data, e.g., "BMM share is 26.47% → target <20%", "Sports ROAS is 1.29 → prioritize segmenting targeting", "Missing late-night data → pull new report and set A/B test goal of IMI≥0.8".
+- Sub-standard 4.2.A.3 [1 pt | Conclusion]: Set quantitative goals: within 6 weeks, achieve `IMI≥0.8`, `TQS≥0.5`, `CPA↓20%`, `ROAS≥2.0`; define a monitoring cadence (weekly IMI/TQS dashboard, monthly strategy review).
+
+#### Path 4.2.B [3 pts | Phased Execution Roadmap]
+- Sub-standard 4.2.B.1 [1 pt | Completeness]: At least 3 phases: ① Week 1 Stop-Loss (limit BMM, add negative broad terms, adjust budgets); ② Weeks 2-4 Restructuring (expand Phrase, A/B test landing pages, industry-specific optimizations); ③ Weeks 5-6 Smart Bidding & Remarketing Scale-up.
+- Sub-standard 4.2.B.2 [1 pt | Accuracy]: Actions in each phase must correspond to diagnostic data (e.g., Phase ① targets ad groups with `Shopping ROAS 1.40`, Phase ② optimizes landing pages for `Transactional 32%` keywords, Phase ③ scales up tROAS on groups with `TQS>0.6`).
+- Sub-standard 4.2.B.3 [1 pt | Conclusion]: Set phase-gate metrics (e.g., Phase ① CPC reduction ≥10%, Phase ② IMI≥0.75, Phase ③ +15% incremental conversions with ROAS≥2.1) and describe anomaly monitoring (roll back if TQS drops below 0.35).
+
+---
+## Requirement 5: Reproducibility & Data Boundary Explanation (Up to 4 pts)
+### Standard 5.1: Reproducibility Guide & Boundaries (Up to 4 pts)
+#### Path 5.1.A [4 pts | Field Dictionary + Reproduction Guide]
+- Sub-standard 5.1.A.1 [1 pt | Completeness]: List key fields: `CTR=clicks/impressions`, `CVR=conversions/clicks`, `CPA=spend/conversions`, `ROAS=conversions_value/spend`, formulas for `IMI` and `TQS`, `industry` and `tactic` mappings, and date handling `DATE(substr(date_day,1,10))`.
+- Sub-standard 5.1.A.2 [2 pts | Accuracy]: Provide the reproduction sequence and SQL skeleton: `Aggregate → Thresholds → Tagging → Multi-dim Pivot → IMI/TQS → Root Cause`; list key error tolerances (percentile ±0.0005, share ±0.2pp, ROAS/CPA ±0.05/±2).
+- Sub-standard 5.1.A.3 [1 pt | Conclusion]: Explain items that cannot be directly cleaned/processed (missing hourly data, no landing page score, etc.) and their impact, and describe how the analysis could be extended once the data is available.
+
+#### Path 5.1.B [4 pts | Engineering Implementation Plan]
+- Sub-standard 5.1.B.1 [1 pt | Completeness]: Describe the ETL dependencies for an automated script/Notebook/BI dataset (daily load of ad_group_report, keyword_report).
+- Sub-standard 5.1.B.2 [2 pts | Accuracy]: Explain the update logic for thresholds and metrics (recalculate percentiles daily, backfill industry benchmarks weekly), and provide key points for defining reusable SQL views/models.
+- Sub-standard 5.1.B.3 [1 pt | Conclusion]: Define post-launch quality monitoring (alert if percentile drifts >±5%, monitor IMI/TQS distributions) and an anomaly handling strategy (automatic logging + manual review).

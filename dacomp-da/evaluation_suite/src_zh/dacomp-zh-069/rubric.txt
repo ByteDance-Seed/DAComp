@@ -1,0 +1,107 @@
+==============================
+一、最终评分 Rubrics（dacomp-069｜总分38分）
+==============================
+
+1. 需求1：数据范围核验与收入分层口径设定（总分8分）
+   1.1 标准1.1：时间窗口与总体指标核验（最高3分｜deterministic）
+       1.1.1 路径1.1.A [3分 | 综合看板核验]
+           1.1.1.1 小标准1.1.A.1 [1分｜完备性] 需明确仅分析 package_name='com.dev.photoeditor'，并基于 google_play__comprehensive_performance_dashboard 中 2024-01-15 至 2024-12-15 共12期月度数据。
+           1.1.1.2 小标准1.1.A.2 [1分｜精确性] 校验锚点（容差±1 或小数±0.005）：2024-01-15 overall_performance_score=85、2024-12-15=72；全年均值=76.083；平均 quality_score=72.8；平均 crash_rate_per_1k_devices=1.958；平均 store_conversion_rate=0.1281；平均 day_30_retention_rate=0.1567；全年研究预算合计=2,000,000.01 美元。
+           1.1.1.3 小标准1.1.A.3 [1分｜结论性] 输出结论：在约$2M 预算支撑下，整体评分自85降至72，并伴随质量、稳定性、留存与转化的同步走弱；确认后续分析沿用同一时间窗口与口径。
+   1.2 标准1.2：收入阈值可行性与替代方案（最高3分｜开放）
+       1.2.1 路径1.2.A [3分 | ARPU主口径分层]
+           1.2.1.1 小标准1.2.A.1 [1分｜完备性] 说明以 google_play__geo_market_analysis 的 average_revenue_per_user（美元/用户）作为 “>7 vs ≤7” 的主分层依据。
+           1.2.1.2 小标准1.2.A.2 [1分｜精确性] 给出锚点（容差±0.5%）：样本市场=14；ARPU>7 的市场=13；ARPU≤7 且实际唯一国家为印尼（ID，5.08 美元）；ARPU<3 市场为空；min=5.08、max=68.57、均值=27.47。
+           1.2.1.3 小标准1.2.A.3 [1分｜结论性] 声明后续将以“ARPU≤7（仅ID）”近似低收入组，并提示样本量=1 需与其他分层交叉验证。
+       1.2.2 路径1.2.B [3分 | 收入层级分层法]
+           1.2.2.1 小标准1.2.B.1 [1分｜完备性] 说明 revenue_tier（Tier1/2/3）作为>7M vs <3M 的业务近似，高收入与低收入市场的代理划分。
+           1.2.2.2 小标准1.2.B.2 [1分｜精确性] 校验锚点（容差±1%）：Tier1=5 市场、最近30日收入≈$40.95M、平均周增长≈-0.07；Tier2=3 市场、≈$15.42M、平均周增长≈-0.063；Tier3=6 市场、≈$12.40M、平均周增长≈+0.067。
+           1.2.2.3 小标准1.2.B.3 [1分｜结论性] 说明Tier1/2代表成熟高收入组合、Tier3代表新兴低收入组合，当ARPU分层失衡时可作为稳健替代并保持结论一致。
+       1.2.3 路径1.2.C [3分 | 交易净额分层法]
+           1.2.3.1 小标准1.2.C.1 [1分｜完备性] 在 google_play__finance_report 中计算 net_per_txn = SUM(net_amount)/SUM(transactions)，尝试以 “>7 vs <3” 分层。
+           1.2.3.2 小标准1.2.C.2 [1分｜精确性] 锚点（容差±1%）：覆盖国家数=6；min(net_per_txn)=8.257；max=76.765；均值=31.399；确认 <3 桶为空并说明需回退至 ARPU/Tier 分层。
+           1.2.3.3 小标准1.2.C.3 [1分｜结论性] 解释“每笔净额”仅适用于交易主导国家、样本较少且忽略广告收入；说明指标与地理KPI的接入方式及与主分层的互补关系。
+   1.3 标准1.3：指标字典与字段映射（最高2分｜deterministic）
+       1.3.1 路径1.3.A [2分 | 多表字段说明]
+           1.3.1.1 小标准1.3.A.1 [1分｜完备性] 列举分析所需核心字段与表：geo_market_analysis（ARPU、留存、流失、转化、质量、崩溃、revenue_tier、region 等）、comprehensive_performance_dashboard（overall_performance_score、quality_score、crash_rate_per_1k_devices、store_conversion_rate、day_x_retention_rate、research_budget_usd、daily_net_revenue 等）、finance_report（net_amount、transactions、region）、time_series_trends（作为趋势补充）。
+           1.3.1.2 小标准1.3.A.2 [1分｜精确性] 明确字段口径：app_crash_rate_per_1k=每千设备崩溃数、store_conversion_rate=Store 安装/访客、average_revenue_per_user=地域ARPU、daily_net_revenue=日净收入、research_budget_usd=月度研究投入；强调不做数据清洗，只基于原始口径复现。
+
+2. 需求2：高收入 vs 低收入差异量化（总分12分）
+   2.1 标准2.1：组内关键KPI非加权对比（最高5分｜开放）
+       2.1.1 路径2.1.A [5分 | ARPU>7 vs ARPU≤7]
+           2.1.1.1 小标准2.1.A.1 [1分｜完备性] 对两组分别计算：ARPU、ATV、日均收入、日均安装、活跃设备、周增长、D1/D7/D30 留存、日流失、商店转化、质量分、崩溃率、整体市场评分及30日收入总额。
+           2.1.1.2 小标准2.1.A.2 [3分｜精确性] 锚点（容差≤±1%）：Top 组（13 国）avg_arpu=29.1938、avg_atv=37.2654、avg_daily_rev≈172,102.56、avg_installs≈4,345.38、avg_active_devices≈209,307.69、avg_weekly_growth=-0.02、avg_d1=0.7123、avg_d7=0.4662、avg_d30=0.2077、avg_churn=0.2877、avg_store_conv=0.0677、avg_quality=68.0154、avg_crash=2.6231、sum_rev_30d=$67.12M、avg_market_score=640.9；低组（1 国，ID）avg_arpu=5.08、avg_atv=6.85、avg_daily_rev=55,000、avg_installs=8,950、avg_active_devices=325,000、avg_weekly_growth=0.12、avg_d1=0.64、avg_d7=0.40、avg_d30=0.17、avg_churn=0.36、avg_store_conv=0.077、avg_quality=72.1、avg_crash=1.6、sum_rev_30d=$1.65M、avg_market_score=435.9。
+           2.1.1.3 小标准2.1.A.3 [1分｜结论性] 说明差异：高ARPU市场在变现与留存领先但增长为负、质量与崩溃拖累；低ARPU市场增长与转化好、质量更高却留存弱、流失高，难以弥补收入差距。
+       2.1.2 路径2.1.B [4分 | 收入层级 (Tier1 vs Tier3)]
+           2.1.2.1 小标准2.1.B.1 [1分｜完备性] 对 Tier1 与 Tier3 计算与 2.1.A 相同维度指标与30日收入总额。
+           2.1.2.2 小标准2.1.B.2 [2分｜精确性] 锚点（容差≤±1%）：Tier1 avg_arpu=42.692、avg_atv=58.10、avg_daily_rev=273,000、avg_weekly_growth=-0.07、avg_d30=0.25、avg_churn=0.224、avg_store_conv=0.0688、avg_quality=67.36、avg_crash=2.9、sum_rev_30d=$40.95M、avg_market_score=820.43；Tier3 avg_arpu=8.825、avg_atv=14.0167、avg_daily_rev=68,888.89、avg_weekly_growth=+0.067、avg_d30=0.158、avg_churn=0.367、avg_store_conv=0.0715、avg_quality=70.0、avg_crash=2.0、sum_rev_30d=$12.40M、avg_market_score=432.26。
+           2.1.2.3 小标准2.1.B.3 [1分｜结论性] 指出 Tier1 收入贡献最大却负增长、质量压力高；Tier3 收入规模小但增长积极且留存弱。
+       2.1.3 路径2.1.C [3分 | Quantile 分层]
+           2.1.3.1 小标准2.1.C.1 [1分｜完备性] 使用 quantile_cut(ARPU,[0,0.33,0.66,1]) 获取 Low/Mid/High 三组，并记录阈值 Q33=10.3994、Q66=38.5618。
+           2.1.3.2 小标准2.1.C.2 [1分｜精确性] 计算组内KPI（容差≤±2%）：High(5 国) avg_arpu=47.4540、avg_daily_rev=225,200、avg_installs=2,368、avg_weekly_growth=-0.056、avg_d30=0.236、avg_churn=0.244、avg_store_conv=0.0614、avg_quality=67.22、avg_crash=2.94、sum_rev_30d=$33.78M；Mid(4 国) avg_arpu=26.3475、avg_daily_rev≈203,666.67、avg_installs=4,542.5、avg_weekly_growth=-0.07、avg_d30=0.22、avg_churn=0.27、avg_store_conv=0.07175、avg_quality=66.925、avg_crash=2.85、sum_rev_30d=$24.44M；Low(5 国) avg_arpu=8.388、avg_daily_rev≈70,333.33、avg_installs=7,086、avg_weekly_growth=+0.084、avg_d30=0.162、avg_churn=0.36、avg_store_conv=0.0726、avg_quality=70.5、avg_crash=1.92、sum_rev_30d=$10.55M。
+           2.1.3.3 小标准2.1.C.3 [1分｜结论性] 总结分位结果与主分层一致：High 与 Top 组表现方向一致；Mid 夹在两者之间且质量/崩溃与 High 接近；Low 与印尼近似，增长高但留存弱。
+   2.2 标准2.2：加权指标与规模影响（最高3分｜开放）
+       2.2.1 路径2.2.A [3分 | 活跃设备/访客加权]
+           2.2.1.1 小标准2.2.A.1 [1分｜完备性] 以 avg_active_devices 加权 D1/D7/D30/日流失/质量，store_visitors_30d 加权商店转化，比较 ARPU>7 vs ≤7。
+           2.2.1.2 小标准2.2.A.2 [1分｜精确性] 锚点（容差≤±1%）：Top wavg_d1=0.7177、wavg_d7=0.4697、wavg_d30=0.2107、wavg_churn=0.2823、wavg_quality=68.4372、wavg_store_conv=0.07227；低组 wavg_d1=0.64、wavg_d7=0.40、wavg_d30=0.17、wavg_churn=0.36、wavg_quality=72.1、wavg_store_conv=0.077。
+           2.2.1.3 小标准2.2.A.3 [1分｜结论性] 指出规模加权后结论不变：高ARPU市场的留存优势更明显但质量与转化短板仍在；低组高质量但拉不动规模。
+       2.2.2 路径2.2.B [2分 | 收入加权验证]
+           2.2.2.1 小标准2.2.B.1 [1分｜完备性] 设计 revenue_last_30_days 加权的留存、流失、商店转化，并说明权重选择缘由（贴近资本投入回收）。
+           2.2.2.2 小标准2.2.B.2 [1分｜精确性] 验证锚点（容差≤±1%）：Top 组 revenue 加权 D1/D7/D30=0.7471/0.5085/0.23、加权流失=0.2529、加权转化=0.06837；低组同上与原值一致（0.64/0.40/0.17/0.36/0.077），并说明方向与活跃设备加权一致。
+   2.3 标准2.3：地域结构拆解（最高4分｜开放）
+       2.3.1 路径2.3.A [4分 | Region 聚合]
+           2.3.1.1 小标准2.3.A.1 [1分｜完备性] 针对 ARPU>7 市场按 region 聚合 ARPU、周增长、商店转化、D7、D30、流失、质量、崩溃、30日收入。
+           2.3.1.2 小标准2.3.A.2 [2分｜精确性] 锚点（容差≤±1%）：Europe avg_arpu=34.60、avg_weekly_growth=-0.05、avg_store_conv=0.0628、avg_crash=2.85、sum_rev_30d=$22.37M；North America avg_arpu=23.89、avg_weekly_growth=-0.023、avg_store_conv=0.0723、avg_crash=2.467、sum_rev_30d=$17.68M；Asia avg_arpu=22.895、avg_weekly_growth=-0.01、avg_store_conv=0.07、avg_d7=0.455、avg_d30=0.2025、avg_churn=0.2975、avg_quality=67.45、avg_crash=2.675、sum_rev_30d=$16.74M；Oceania avg_arpu=68.57、avg_weekly_growth=-0.03、avg_store_conv=0.06、avg_crash=2.5、sum_rev_30d=$7.68M；South America avg_arpu=9.3、avg_weekly_growth=+0.08、avg_store_conv=0.072、avg_crash=2.1、sum_rev_30d=$2.65M。
+           2.3.1.3 小标准2.3.A.3 [1分｜结论性] 归纳：欧洲/日韩系质量最差、负增长最重；北美负增长温和且质量稍好；南美体量小但增长正、适合作为质量修复后复制样板。
+       2.3.2 路径2.3.B [3分 | Top 国家榜单]
+           2.3.2.1 小标准2.3.B.1 [1分｜完备性] 按 revenue_last_30_days 降序列出前10个国家，展示周增长、商店转化、D30、流失、崩溃、质量、investment_recommendation。
+           2.3.2.2 小标准2.3.B.2 [1分｜精确性] 锚点（容差≤±1%）：US $9.85M/-0.08/0.090/0.28/0.18/2.8/68.5 (Maintain)；GB $8.45M/-0.07/0.062/0.22/0.27/3.1/66.1 (Quality Focus)；JP $7.82M/-0.12/0.07/0.25/0.22/3.2/65.2 (Reduce)；AU $7.68M/-0.03/0.06/0.26/0.20/2.5/69.2 (Increase)；DE $7.15M/-0.05/0.062/0.24/0.25/2.9/67.8 (Maintain)；CA $5.85M/-0.04/0.062/0.23/0.24/2.7/68.8 (Maintain)；FR $4.92M/-0.06/0.061/0.21/0.28/3.0/66.5 (Quality Focus)；KR $4.65M/-0.09/0.061/0.23/0.26/3.5/64.2 (Reduce)；IN $2.85M/+0.15/0.089/0.18/0.32/1.8/71.5 (Increase)；BR $2.65M/+0.08/0.072/0.16/0.35/2.1/69.8 (Maintain)。
+           2.3.2.3 小标准2.3.B.3 [1分｜结论性] 指出优先修复国家（GB/JP/KR/FR）与增长样板（IN/BR/AU），并将原有 investment_recommendation 与诊断相互印证。
+
+3. 需求3：绩效下滑驱动因素与资本效率验证（总分10分）
+   3.1 标准3.1：时间序列与质量恶化验证（最高3分｜deterministic）
+       3.1.1 路径3.1.A [3分 | 月度对比]
+           3.1.1.1 小标准3.1.A.1 [1分｜完备性] 展示 2024-01 与 2024-12 的 overall_performance_score、quality_score、crash_rate/千、store_conversion_rate、day_7/day_30、daily_churn_rate、version_fragmentation、total_issues_per_1k、daily_anrs、daily_crashes、research_budget_usd、daily_net_revenue、active_devices。
+           3.1.1.2 小标准3.1.A.2 [1分｜精确性] 锚点（容差±1 或±0.005）：2024-01-15 值为 85/81.2/1.0/0.14/0.48/0.22/0.32/12/1.4/740/1,850/$166,666.67/$285,000/1,850,000；2024-12-15 值为 72/65.2/3.2/0.12/0.24/0.10/0.65/23/4.48/1,785/4,460/$150,000/$146,000/1,395,000。
+           3.1.1.3 小标准3.1.A.3 [1分｜结论性] 指出质量与稳定性恶化导致留存、转化同步走低，是OPS下降的直接原因。
+   3.2 标准3.2：关键KPI相关性与驱动分析（最高4分｜开放）
+       3.2.1 路径3.2.A [4分 | 皮尔逊相关]
+           3.2.1.1 小标准3.2.A.1 [1分｜完备性] 说明使用 average_revenue_per_user 与 weekly_growth_rate、day_7/day_30、daily_churn_rate、store_conversion_rate、app_crash_rate_per_1k 的相关性，需给出可复现的公式或代码步骤（均值→协方差→标准差）。
+           3.2.1.2 小标准3.2.A.2 [2分｜精确性] 相关系数锚点（容差±0.02）：corr(arpu, weekly_growth)=-0.673；corr(arpu, d7)=+0.766；corr(arpu, d30)=+0.736；corr(arpu, churn)=-0.745；corr(arpu, store_conv)=-0.523；corr(arpu, crash)=+0.687。
+           3.2.1.3 小标准3.2.A.3 [1分｜结论性] 说明高ARPU市场留存与价值强但增长受压、崩溃与低转化构成结构性失衡；低ARPU市场反向。
+       3.2.2 路径3.2.B [3分 | 崩溃 vs 增长/转化]
+           3.2.2.1 小标准3.2.B.1 [1分｜完备性] 在 ARPU>7 子集上分析崩溃率与周增长、商店转化的相关或阈值分层，提供加权或散点验证。
+           3.2.2.2 小标准3.2.B.2 [1分｜精确性] 相关系数锚点（容差±0.02）：corr(crash, weekly_growth)=-0.913、corr(crash, store_conv)=-0.323；如采用阈值分层，需证明高崩溃组的周增长、转化均显著更低。
+           3.2.2.3 小标准3.2.B.3 [1分｜结论性] 总结稳定性恶化显著抑制新增与漏斗，是高ARPU市场负增长的关键解释。
+       3.2.3 路径3.2.C [3分 | 回归/因果推断方案]
+           3.2.3.1 小标准3.2.C.1 [1分｜完备性] 构建 weekly_growth ~ crash + store_conv + quality + churn（可加 region 哑变量），说明变量选择与防止多重共线性的处理（标准化、方差膨胀检验）。
+           3.2.3.2 小标准3.2.C.2 [1分｜精确性] 给出拟合流程（标准化→线性回归或Lasso→留一或K折交叉验证），并验证系数符号与相关性一致（crash、churn 为负，store_conv、quality 为正）。
+           3.2.3.3 小标准3.2.C.3 [1分｜结论性] 量化驱动强度（如 crash 降低1/千可带动 weekly_growth 提升约|β_crash|），并与相关分析互证。
+   3.3 标准3.3：资本效率与ROI度量（最高3分｜开放）
+       3.3.1 路径3.3.A [3分 | Revenue/预算比对]
+           3.3.1.1 小标准3.3.A.1 [1分｜完备性] 定义 ROI_tier = (sum_rev_30d * 12) / research_budget_allocated，说明预算按 30 日收入占比分摊（总收入 $68.77M）。
+           3.3.1.2 小标准3.3.A.2 [1分｜精确性] 计算示例：Tier1 share=40.95/68.77≈59.55%，预算≈$1.19M，ROI≈412.62；Tier2 share≈22.42%，预算≈$0.45M，ROI≈412.62；Tier3 share≈18.03%，预算≈$0.36M，ROI≈412.62；解释同ROI源于按收入分摊。
+           3.3.1.3 小标准3.3.A.3 [1分｜结论性] 指出若预算未按收入配置，ROI 将偏离并需向高ROI市场倾斜；建议设置ROI门槛（如<350需复盘）并结合质量修复计划验证资本效率。
+       3.3.2 路径3.3.B [2分 | 情景弹性分析]
+           3.3.2.1 小标准3.3.B.1 [1分｜完备性] 设计情景：①高ARPU市场崩溃率降30%（约从2.62降至1.83）、②商店转化提升200bps（0.0677→0.0877），说明对收入与OPS的影响估算模型。
+           3.3.2.2 小标准3.3.B.2 [1分｜精确性] 使用 ΔRevenue ≈ baseline_revenue * (Δconversion / baseline_conversion)、ΔOPS 与质量/崩溃相关性映射（例如OPS随质量每升1分提升≈0.5分）给出可复现的计算思路并说明假设。
+
+4. 需求4：差异化行动建议与KPI闭环（总分8分）
+   4.1 标准4.1：高ARPU成熟市场策略（最高4分｜开放）
+       4.1.1 路径4.1.A [4分 | 质量+漏斗修复]
+           4.1.1.1 小标准4.1.A.1 [1分｜完备性] 至少提出3项针对 Europe/JP/KR/GB/US 等高ARPU市场的动作（如崩溃热点修复、灰度发布与回滚阈值、商店素材A/B、付费墙转化、Win-back 自动化）。
+           4.1.1.2 小标准4.1.A.2 [2分｜精确性] 绑定目标并对齐锚点：崩溃率自当前 2.6–3.5/千 降至≤1.8（90天内≤2.0）、商店转化由0.0677 提升至≥0.075、周增长由-0.02 拉升至≥0、D30 留存由0.21 提高至≥0.24、质量评分由≈68 提升至≥72；需明确各指标对应国家与动作。
+           4.1.1.3 小标准4.1.A.3 [1分｜结论性] 给出执行节奏（如4周稳定性修复→8周转化实验→季度ROI复盘）及预期 OPS 在1-2季度恢复 ≥76。
+       4.1.2 路径4.1.B [3分 | 市场组合再分配]
+           4.1.2.1 小标准4.1.B.1 [1分｜完备性] 结合 investment_recommendation，明确增加投入（AU/IN/ID/MX 若延伸）、维持（US/DE/CA/BR）、降低（JP/KR/RU 若存在）等分层逻辑。
+           4.1.2.2 小标准4.1.B.2 [1分｜精确性] 设定预算重配比例（例如60%用于高ARPU质量修复、30%下注新兴增长、10%投平台能力），并对齐 KPI 门槛（crash≤2.0/千、store_conversion≥0.075、D30≥0.24、ROI≥420）。
+           4.1.2.3 小标准4.1.B.3 [1分｜结论性] 说明重配后期望：OPS 回升、收入恢复正增长、ROI 提升，并制定月度 ROI/KPI 复盘机制。
+   4.2 标准4.2：低ARPU新兴市场策略（最高4分｜开放）
+       4.2.1 路径4.2.A [4分 | 本地化与变现提升]
+           4.2.1.1 小标准4.2.A.1 [1分｜完备性] 提出至少3项针对印尼/印度/巴西/墨西哥等市场的策略（如本地化定价梯度、轻量订阅与微交易、支付通道扩展、功能引导、裂变激励）。
+           4.2.1.2 小标准4.2.A.2 [2分｜精确性] 设定量化目标并对齐现状：ID ARPU 自5.08→≥6.5、D30 留存 0.17→≥0.20、周增长维持≥+10%；IN ARPU 7.4→≥8.5、D30 ≥0.21、商店转化≥0.089；BR/ MX 保持周增长≥+5%、ARPU≥8、崩溃≤1.8；确保目标与基线差距合理且可追踪。
+           4.2.1.3 小标准4.2.A.3 [1分｜结论性] 说明与高ARPU修复形成“双轮驱动”：先在 IN/ID 试点→8周评估→成功后扩展至 BR/MX，并定义验收标准（ARPU与留存达标后放量）。
+       4.2.2 路径4.2.B [3分 | 试用期与KPI看板]
+           4.2.2.1 小标准4.2.B.1 [1分｜完备性] 设计季度试用期指标，包括 crash_rate、store_conversion、weekly_growth、ARPU、ROI，设置阈值与暂停规则。
+           4.2.2.2 小标准4.2.B.2 [1分｜精确性] KPI 看板方案：月度更新，阈值示例——crash_rate≤1.8、store_conversion≥0.077、weekly_growth≥+5%、ARPU 达到各市场目标、ROI≥350；连续2期未达标即暂停扩量或策略调整。
+           4.2.2.3 小标准4.2.B.3 [1分｜结论性] 说明该看板如何实现资本效率闭环：实现及时止损、保留高ROI动作并形成策略迭代节奏。

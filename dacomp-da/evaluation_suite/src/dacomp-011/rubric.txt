@@ -1,0 +1,70 @@
+# [Total score | 20 points] The solution must meet two requirements:
+- Requirement 1: Determine whether the survey data support the view that “the higher the parents' education level, the better the children's academic performance” (the relationship between parents' education level and children's academic performance must be quantified)
+- Requirement 2: Filter and analyze from the survey data the factors that have a greater impact on students' academic performance (the impact magnitude and direction must be specified)
+
+---
+## Requirement 1: Analyze the relationship between parents' education level and children's academic performance (up to 4 points for this requirement)
+### Criterion 1.1: Choice of method to quantify the relationship and data computation (up to 3 points)
+#### Path 1.1.A [3 points | One-way ANOVA]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Group reasonably by parents' education level (Bachelor group, High School group, Master group), and a None group may additionally appear. The Bachelor, High School, and Master groups must not be missing
+- Sub-criterion 1.1.A.2 [2 points | Accuracy]: Compute the one-way ANOVA effect size (eta-squared) ≈ 0.0033 (a 5% tolerance is allowed; answering 0.00 is also acceptable)
+#### Path 1.1.B [2 points | Group mean comparison]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Group reasonably by parents' education level (must be consistent with the grouping in Path 1.1.A) and compute the average academic performance for each group; no grouping errors.
+- Sub-criterion 1.1.B.2 [1 point | Accuracy]: Average academic performance calculations are accurate and consistent with the reference data:
+  ① Bachelor group ≈ 70.69 points;
+  ② High School group ≈ 69.26 points;
+  ③ Master group ≈ 67.9 points;
+  Deviations within 1% due to calculation precision can be waived.
+#### Path 1.1.C [3 points | Multiple regression analysis]
+- Sub-criterion 1.1.C.1 [1 point | Completeness]: Use multiple regression analysis to determine specific group differences; present the complete grouping for parents' education level (e.g., Master, Bachelor, High School—no omission/merging).
+- Sub-criterion 1.1.C.2 [2 points | Accuracy]: Compute the incremental explanatory power ΔR² of “parents' education level” ≈ 0
+#### Path 1.1.D [3 points | ANOVA]
+- Sub-criterion 1.1.D.1 [1 point | Completeness]: Use ANOVA to determine specific group differences; present the complete grouping for parents' education level (e.g., Master, Bachelor, High School—no omission/merging).
+- Sub-criterion 1.1.D.2 [2 points | Accuracy]: Statistical computations are accurate and consistent with the reference data:
+  ① F statistic ≈ 1.65;
+  ② p-value ≈ 0.19.
+### Criterion 1.2: Conclusion for validating the view (up to 1 point)
+#### Path 1.2.A [1 point | Conclusion]
+- Sub-criterion 1.2.A.1 [1 point | Conclusiveness]: Clearly state that the view “the higher the parents' education level, the better children's academic performance” is not supported
+
+---
+## Requirement 2: Explore the factors that have a greater impact on students' academic performance (up to 16 points for this requirement)
+### Criterion 2.1: Analyze the influencing factors of academic performance (up to 10 points)
+#### Path 2.1.A [10 points | Correlation analysis]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Analyze via correlation the impact of Daily study time on academic performance and provide a specific correlation coefficient (no score if not provided)
+- Sub-criterion 2.1.A.2 [1 point | Completeness]: Analyze via correlation the impact of Social media usage time on academic performance and provide a specific correlation coefficient (no score if not provided)
+- Sub-criterion 2.1.A.3 [1 point | Completeness]: Analyze via correlation the impact of Attendance rate on academic performance and provide a specific correlation coefficient (no score if not provided)
+- Sub-criterion 2.1.A.4 [1 point | Completeness]: Analyze via correlation the impact of Sleep duration on academic performance and provide a specific correlation coefficient (no score if not provided)
+- Sub-criterion 2.1.A.5 [1 point | Completeness]: Analyze via correlation the impact of Exercise frequency on academic performance and provide a specific correlation coefficient (no score if not provided)
+- Sub-criterion 2.1.A.6 [1 point | Completeness]: Analyze via correlation the impact of Mental health score on academic performance and provide a specific correlation coefficient (no score if not provided)
+- Sub-criterion 2.1.A.7 [1 point | Completeness]: Analyze other influencing factors’ impact on academic performance, such as Diet quality, Age, Gender, Internet quality, Extracurricular activity participation, etc.; answering one will earn the point
+- Sub-criterion 2.1.A.8 [3 points | Accuracy]: Accurately compute correlation coefficients; the following are reference data (you must correctly answer 3 or more of these to get the points; a 5% deviation is allowed)
+  | Factor                    | Correlation coefficient |
+  |--------------------------|------------------------:|
+  | Daily study time         | 0.8254                  |
+  | Social media usage time  | -0.2142                 |
+  | Attendance rate          | 0.1375                  |
+  | Sleep duration           | 0.1217                  |
+  | Exercise frequency       | 0.1457                  |
+  | Mental health            | 0.3259                  |
+#### Path 2.1.B [9 points | Mean comparison analysis]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Use mean comparisons to analyze the impact of Daily study time on academic performance
+- Sub-criterion 2.1.B.2 [1 point | Completeness]: Use mean comparisons to analyze the impact of Social media usage time on academic performance
+- Sub-criterion 2.1.B.3 [1 point | Completeness]: Use mean comparisons to analyze the impact of Attendance rate on academic performance
+- Sub-criterion 2.1.B.4 [1 point | Completeness]: Use mean comparisons to analyze the impact of Sleep duration on academic performance
+- Sub-criterion 2.1.B.5 [1 point | Completeness]: Use mean comparisons to analyze the impact of Exercise frequency on academic performance
+- Sub-criterion 2.1.B.6 [1 point | Completeness]: Use mean comparisons to analyze the impact of Mental health score on academic performance
+- Sub-criterion 2.1.B.7 [1 point | Completeness]: Analyze other influencing factors’ impact on academic performance, such as Diet quality, Age, Gender, Internet quality, Extracurricular activity participation, etc.; answering one will earn the point
+- Sub-criterion 2.1.B.8 [2 points | Accuracy]: Verify in turn the average academic performance corresponding to different factors (the solution must provide 3 influencing factors, and the data must be correct to earn the points)
+  ```Pseudo-code: verify the calculation process for a single case
+  For each influencing factor’s different parameter values and their corresponding average academic performance
+    1. Based on the factor values given in the solution, compute the corresponding average academic performance
+    2. You must ultimately present each influencing factor’s values and their corresponding average academic performance
+  ```
+### Criterion 2.2: Judging the magnitude of impact (up to 6 points)
+- Sub-criterion 2.2.A.1 [1 point | Conclusiveness]: State that Daily study time is strongly correlated with academic performance (positive correlation); wording with the same meaning is acceptable.
+- Sub-criterion 2.2.A.2 [1 point | Conclusiveness]: State that Mental health score is moderately correlated with academic performance (positive); wording with the same meaning is acceptable.
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness]: State that Social media usage time is weakly correlated with academic performance (negative); wording with the same meaning is acceptable.
+- Sub-criterion 2.2.A.4 [1 point | Conclusiveness]: State that Attendance rate is weakly correlated with academic performance (positive); wording with the same meaning is acceptable.
+- Sub-criterion 2.2.A.5 [1 point | Conclusiveness]: State that Sleep duration is weakly correlated with academic performance (positive) or that the correlation is not strong; wording with the same meaning is acceptable.
+- Sub-criterion 2.2.A.6 [1 point | Conclusiveness]: State that Exercise frequency is weakly correlated with academic performance (positive); wording with the same meaning is acceptable.

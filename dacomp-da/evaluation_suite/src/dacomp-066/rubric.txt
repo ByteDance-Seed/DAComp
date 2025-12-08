@@ -1,0 +1,159 @@
+# [Total Score | 40 points] Engineering Department "Application Screening→First Interview" Conversion Rate Diagnosis and Attribution Rubric (Based on greenhouse tables)
+
+---
+
+## Requirement 1: Data Loading, Filtering, and Overall Baseline Confirmation (Max 8 points)
+
+### Criterion 1.1: Table Join and Analysis Window Setup
+
+#### Path 1.1.A [4 points | deterministic: `job_id` join + filter for last two quarters]
+
+- Sub-criterion 1.1.A.1 [1 point | Completeness] Explain and implement the join between `greenhouse__recruitment_performance` and `greenhouse__job_enhanced` on `job_id`; limit the time window to Q3 and Q4 of 2024; filter for the Engineering department (and Marketing for comparison).
+- Sub-criterion 1.1.A.2 [2 points | Accuracy] Verify the filtering logic (sample sizes must align: Engineering Q3 78 rows, Q4 76 rows; Marketing Q3 19 rows, Q4 18 rows; ±1 error allowed), confirming no cross-quarter/cross-department data leakage.
+- Sub-criterion 1.1.A.3 [1 point | Conclusiveness] Clearly state that all subsequent metrics are based on this time window and departmental scope.
+
+### Criterion 1.2: Department-Level "Screening→First Interview" Conversion Rate Baseline
+
+#### Path 1.2.A [4 points | Weighted Approach]
+
+- Sub-criterion 1.2.A.1 [1 point | Completeness] State the use of Σ(interview_rate×total_applications) / Σ(total_applications) to calculate the weighted quarterly conversion rate for the department.
+- Sub-criterion 1.2.A.2 [2 points | Accuracy] Values must be within a tolerance of ±0.05pp: Engineering Q3=29.55508%, Q4=25.08541% (decline of -4.46967pp); Marketing Q3=53.04159%, Q4=53.55620%.
+- Sub-criterion 1.2.A.3 [1 point | Conclusiveness] Point out that the Engineering department's conversion rate has significantly declined in the last 6 months and is lower than the Marketing department's, establishing the problem baseline.
+
+#### Path 1.2.B [4 points | Unweighted Average]
+
+- Sub-criterion 1.2.B.1 [1 point | Completeness] Explain the use of AVG(interview_rate) to estimate the department's quarterly average rate.
+- Sub-criterion 1.2.B.2 [2 points | Accuracy] Verify that Engineering Q3≈29.27705%, Q4≈24.77526%; Marketing Q3≈52.53263%, Q4≈53.49056% (tolerance ±0.05pp).
+- Sub-criterion 1.2.B.3 [1 point | Conclusiveness] Clarify that the trend from the unweighted approach is consistent with the weighted approach, and note the impact of sample size differences.
+
+---
+
+## Requirement 2: Pinpoint Engineering Job Families with the Steepest Conversion Rate Decline and Decompose the Sources (Max 8 points)
+
+### Criterion 2.1: Job Family Mapping and Quarterly Comparison
+
+#### Path 2.1.A [4 points | Keyword Mapping + Weighted]
+
+- Sub-criterion 2.1.A.1 [1 point | Completeness] Provide a CASE statement or mapping table for job families: Frontend / Backend / Full Stack / Data Engineer / DevOps / ML Engineer / Mobile / QA / Other.
+- Sub-criterion 2.1.A.2 [2 points | Accuracy] Q3→Q4 weighted conversion rates and decline (tolerance ±0.05pp): ML -7.78468pp (34.62781→26.84313); DevOps -6.86686pp (32.91884→26.05197); Data Engineer -6.54396pp (32.92487→26.38090); Frontend -4.15548pp; Full Stack -4.13058pp; Mobile -4.08988pp; Backend -1.33780pp; QA -0.97693pp.
+- Sub-criterion 2.1.A.3 [1 point | Conclusiveness] Identify ML/Data/DevOps as the cluster with the largest decline, directly causing the overall drop for Engineering.
+
+#### Path 2.1.B [4 points | Unweighted Average]
+
+- Sub-criterion 2.1.B.1 [1 point | Completeness] Calculate AVG(interview_rate) by job family and quarter.
+- Sub-criterion 2.1.B.2 [2 points | Accuracy] Output the average rate decline (tolerance ±0.05pp): ML 34.68455→26.81545 (-7.86910pp), Data 33.46727→26.17364 (-7.29363pp), DevOps 32.59000→26.19111 (-6.39889pp), etc. The ranking must be consistent with the weighted method.
+- Sub-criterion 2.1.B.3 [1 point | Conclusiveness] State that even without weighting, the ranking and focus roles are consistent, reinforcing the priority.
+
+### Criterion 2.2: Structural Decomposition (Rate Effect vs. Mix Effect)
+
+#### Path 2.2.A [4 points | Standard Two-Period Decomposition]
+
+- Sub-criterion 2.2.A.1 [1 point | Completeness] Provide the formulas: rate_effect = share_Q3 × (rate_Q4 - rate_Q3); mix_effect = (share_Q4 - share_Q3) × rate_Q3.
+- Sub-criterion 2.2.A.2 [2 points | Accuracy] For key roles (tolerance ±0.1pp): Data rate_effect≈-1.23473pp, mix_effect≈+0.69742pp; ML -0.98521/+0.14756; DevOps -0.68003/+0.06254; Frontend -0.57639/+0.16805; QA -0.12394/-0.46690, etc.
+- Sub-criterion 2.2.A.3 [1 point | Conclusiveness] Conclude that the overall decline is primarily driven by the rate effect, with the mix effect being secondary (and even counteracting for some roles).
+
+#### Path 2.2.B [4 points | Approximate Contribution Ranking]
+
+- Sub-criterion 2.2.B.1 [1 point | Completeness] Calculate the "approximate contribution" of each role to the overall decline using Q4 share × (Q4_rate - Q3_rate).
+- Sub-criterion 2.2.B.2 [2 points | Accuracy] Contribution values (tolerance ±0.1pp): Data ≈ -1.373pp, ML ≈ -1.018pp, DevOps ≈ -0.693pp, Frontend ≈ -0.604pp, Full Stack ≈ -0.395pp, etc. The sum should align with the department's decline of -4.47pp (error ≤0.3pp).
+- Sub-criterion 2.2.B.3 [1 point | Conclusiveness] Point out that Data/ML/DevOps contribute the most to the total decline and are the focus for priority improvements.
+
+---
+
+## Requirement 3: Identify Systematically Underperforming Hiring Managers and Drill Down into Combinations (Max 8 points)
+
+### Criterion 3.1: Manager Quarterly Performance vs. Department Baseline
+
+#### Path 3.1.A [4 points | Weighted Comparison]
+
+- Sub-criterion 3.1.A.1 [1 point | Completeness] Calculate the weighted conversion rate by manager and quarter, and compute the difference from the Engineering department's weighted average for that quarter.
+- Sub-criterion 3.1.A.2 [2 points | Accuracy] (tolerance ±0.1pp) David Thompson: Q3 -6.50759pp, Q4 -5.65448pp; Mike Rodriguez: Q3 -5.66540pp, Q4 -4.67718pp; Lisa Wang: Q3 +7.94470pp, Q4 +5.49126pp; Sarah Chen: +4.93813pp/+3.09136pp.
+- Sub-criterion 3.1.A.3 [1 point | Conclusiveness] Identify David and Mike as systematically underperforming managers, and Lisa/Sarah as positive benchmarks.
+
+### Criterion 3.2: Manager Residuals at the Job Role Dimension
+
+#### Path 3.2.A [4 points | Role × Quarter Baseline Method]
+
+- Sub-criterion 3.2.A.1 [1 point | Completeness] Calculate a baseline rate for each role×quarter combination, then calculate the manager's residual, weighted by application volume.
+- Sub-criterion 3.2.A.2 [2 points | Accuracy] Overall weighted residuals (tolerance ±0.1pp): David -5.18168pp, Mike -3.64675pp, Alex -2.11613pp, Jennifer +0.43286pp, Sarah +3.62220pp, Lisa +5.74938pp.
+- Sub-criterion 3.2.A.3 [1 point | Conclusiveness] Explain that this method controls for job role structure and still shows significant differentiation, confirming that performance differences are persistent.
+
+#### Path 3.2.B [4 points | Process Alignment Validation]
+
+- Sub-criterion 3.2.B.1 [1 point | Completeness] Outline the idea of comparing manager conversion rates within the same resource bin or for the same type of job (e.g., pseudo-code: group by quartiles of `interviews_per_application=total_interviews/total_applications` or by `role_group`, then compare `manager_rate` to the group average).
+- Sub-criterion 3.2.B.2 [2 points | Accuracy] Must state: within the same job family (2024Q4 baseline), David(ML)≈21.68% vs. ML baseline 26.84% (diff -5.16pp), Mike(ML)≈21.95% vs. baseline 26.84% (-4.89pp), Mike(Data)≈22.62% vs. baseline 26.38% (-3.76pp); Lisa(ML)≈34.74% vs. baseline (diff +7.90pp), Sarah(Data)≈29.96% vs. baseline (diff +3.58pp) (tolerance ±0.2pp).
+- Sub-criterion 3.2.B.3 [1 point | Conclusiveness] Conclude that manager differences are not caused by resource binning or job structure disparities, but rather by differences in process or standard execution.
+
+### Criterion 3.3: Ranking of Declines for Manager × Role Combinations
+
+#### Path 3.3.A [4 points | Combination Decline Ranking]
+
+- Sub-criterion 3.3.A.1 [1 point | Completeness] List ≥8 Manager×Role combinations, calculate the Q3→Q4 weighted decline, and note the sample size (`total_applications`).
+- Sub-criterion 3.3.A.2 [2 points | Accuracy] (tolerance ±0.2pp) Examples: Lisa×Data -10.92668pp (sample 466); Mike×ML -8.28pp (127); Alex×Data -7.79952pp (371); Jennifer×Data -7.79387pp (754); Mike×Mobile -7.02106pp (343); Lisa×ML -6.64pp (182); Lisa×Full Stack -6.25964pp (602); Sarah×ML -6.18505pp (324); Lisa×Frontend -6.08507pp (274).
+- Sub-criterion 3.3.A.3 [1 point | Conclusiveness] Point out that these combinations are concentrated in key roles like Data/ML/Frontend and are priority targets for intervention.
+
+---
+
+## Requirement 4: Quantify the Impact of Interview Resources, Process Metrics, and Manager Characteristics on Conversion Rate (Max 10 points)
+
+### Criterion 4.1: Relationship between Resource Intensity and Conversion Rate
+
+#### Path 4.1.A [4 points | Pearson Correlation + Gradient]
+
+- Sub-criterion 4.1.A.1 [1 point | Completeness] Calculate the Pearson correlation for Engineering jobs (Q3+Q4) between `interview_rate` and: `interviews_per_candidate`, `scorecards_per_application`, `scorecards_per_interview`, `interview_completion_rate`, `avg_interview_score`, `days_since_created`.
+- Sub-criterion 4.1.A.2 [2 points | Accuracy] (tolerance ±0.02) Correlation coefficients: corr(interviews_per_candidate, interview_rate)=0.9897; corr(scorecards_per_application, interview_rate)=0.9055; corr(scorecards_per_interview, interview_rate)=0.0177; corr(interview_completion_rate, interview_rate)=0.0508; corr(avg_interview_score, interview_rate)=-0.0498; corr(days_since_created, interview_rate)=0.4143.
+- Sub-criterion 4.1.A.3 [1 point | Conclusiveness] Explain: interview outreach intensity is the primary lever, scorecard density has a secondary impact, and process/scoring metrics have limited or complex effects.
+
+#### Path 4.1.B [4 points | Binned Curve]
+
+- Sub-criterion 4.1.B.1 [1 point | Completeness] For Q3/Q4 data, create quartile bins for `interviews_per_application=total_interviews/total_applications` and calculate the weighted conversion rate for each bin.
+- Sub-criterion 4.1.B.2 [2 points | Accuracy] (tolerance ±0.3pp) Q3: Q1≈21.56%, Q2≈26.23%, Q3≈31.71%, Q4≈37.83%; Q4: Q1≈18.39%, Q2≈23.51%, Q3≈26.53%, Q4≈30.77%.
+- Sub-criterion 4.1.B.3 [1 point | Conclusiveness] Point out the monotonic relationship that "higher resource intensity leads to higher conversion rates" and use the drop in intensity from Q3→Q4 to explain the overall decline.
+
+### Criterion 4.2: Change in Time/Resources
+
+#### Path 4.2.A [3 points | Quarterly Average Comparison]
+
+- Sub-criterion 4.2.A.1 [1 point | Completeness] Calculate the weighted `interviews_per_application` for the Engineering department for Q3 vs Q4 (using the same approach as in 4.1.B).
+- Sub-criterion 4.2.A.2 [1 point | Accuracy] Q3=0.29556, Q4=0.25086 (tolerance ±0.005), difference is approx. -0.04470.
+- Sub-criterion 4.2.A.3 [1 point | Conclusiveness] Point out that this decrease almost entirely explains the overall conversion rate decline (×100 ≈ -4.47pp), closing the causal loop.
+
+#### Path 4.2.B [3 points | Role-Level Resource Change]
+
+- Sub-criterion 4.2.B.1 [1 point | Completeness] Provide the change in interview intensity for each job role between Q3 and Q4 (same approach as 4.1.B).
+- Sub-criterion 4.2.B.2 [1 point | Accuracy] Change for key roles (tolerance ±0.005): ML -0.0779; DevOps -0.0687; Data -0.0654; Frontend -0.0415; Full Stack -0.0413; Mobile -0.0409; Backend -0.0134; QA -0.0098.
+- Sub-criterion 4.2.B.3 [1 point | Conclusiveness] Emphasize that the roles with the largest decline in conversion rate correspond to those with the largest drop in resources, making them a priority for improvement.
+
+### Criterion 4.3: Regression or Robust Quantitative Model
+
+#### Path 4.3.A [5 points | Linear Regression (without Manager FE)]
+
+- Sub-criterion 4.3.A.1 [1 point | Completeness] Specify the model: `interview_rate ~ interviews_per_candidate + scorecards_per_interview + manager_tenure_months + interview_completion_rate + avg_interview_score + log_apps + C(role_group) + C(quarter)`. Where `manager_tenure_months = days_since_created/30`.
+- Sub-criterion 4.3.A.2 [3 points | Accuracy] (tolerance ±10%) Key coefficients: `interviews_per_candidate` ≈ +85.35 (p≈2.0e-106); `scorecards_per_interview` ≈ -1.48 (p≈0.071); `log_apps` ≈ +0.740 (p≈0.0090); other variables not significant; R²≈0.984.
+- Sub-criterion 4.3.A.3 [1 point | Conclusiveness] Point out that outreach intensity is the main lever, interview complexity may inhibit efficiency, and scale effects are positive but limited in magnitude.
+
+#### Path 4.3.B [5 points | With Manager Fixed Effects]
+
+- Sub-criterion 4.3.B.1 [1 point | Completeness] Augment the model to include `C(hiring_managers)` fixed effects.
+- Sub-criterion 4.3.B.2 [3 points | Accuracy] (tolerance ±10%) Coefficients: `interviews_per_candidate` ≈ +62.40 (p≈3.0e-31); `scorecards_per_interview` ≈ -1.19 (p≈0.117); `manager_tenure_months` ≈ +0.301 (p≈0.0019); `log_apps` ≈ +0.444 (p≈0.089); R²≈0.988. Manager FE (relative to a baseline manager): David -1.188 (p≈2.4e-04), Mike -0.682 (p≈0.008), Jennifer +0.663 (p≈0.008), Sarah +1.775 (p≈3.0e-06), Lisa +2.426 (p≈1.7e-06).
+- Sub-criterion 4.3.B.3 [1 point | Conclusiveness] Explain: After controlling for manager effects, resource intensity remains the core driver; manager-specific fixed effects are significant, suggesting persistent differences in process or standards.
+
+---
+
+## Requirement 5: Comprehensive Insights and Action Recommendations (Max 6 points)
+
+### Criterion 5.1: Summary of the Causal Loop
+
+#### Path 5.1.A [3 points | Structured Conclusion]
+
+- Sub-criterion 5.1.A.1 [1 point | Completeness] Cover four areas: overall comparison, role-level decline, manager differences, and resource changes.
+- Sub-criterion 5.1.A.2 [1 point | Accuracy] Cite core data: Engineering weighted decline -4.47pp; ML/DevOps/Data declines (-7.78/-6.87/-6.54pp); manager residuals (David -5.18pp, Mike -3.65pp, Lisa +5.75pp, etc.); resource decline 0.0447; findings from binning/regression.
+- Sub-criterion 5.1.A.3 [1 point | Conclusiveness] Connect the dots between "rate effect + manager differences + resource reduction" to form a complete causal chain.
+
+### Criterion 5.2: Action Plan and Targets
+
+#### Path 5.2.A [3 points | Role + Manager + Resource Strategy]
+
+- Sub-criterion 5.2.A.1 [1 point | Completeness] Propose at least three actions: ① Increase interview outreach for ML/Data/DevOps (e.g., restore `interviews_per_application` to ≥0.29); ② Calibrate processes for/allocate resources to underperforming managers (David/Mike), using Lisa/Sarah as benchmarks; ③ Optimize interview scheduling and scorecard density, ensuring resources for key roles do not fall below Q3 levels.
+- Sub-criterion 5.2.A.2 [1 point | Accuracy] Link to quantitative evidence: suggest that an "increase in `avg_interviews_per_application` of +0.045 ≈ +4.5pp"; "the rate gap for the ML role needs to be narrowed by ≥5pp"; "manager disparities should be controlled within ±3pp", etc.
+- Sub-criterion 5.2.A.3 [1 point | Conclusiveness] Provide monitorable targets: increase Engineering conversion rate back to ≥28–30%; converge key manager performance gaps to ≤3pp; maintain resource intensity at ≥0.29; and define a review cadence (monthly) and monitoring reports.

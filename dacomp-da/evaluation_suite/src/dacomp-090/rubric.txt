@@ -1,0 +1,135 @@
+# [Total Score | 40 points] QuickBooks High-Risk Customer Payment Deterioration Analysis Scoring Rubric
+---
+## Requirement 1: Identify high-risk customers and calculate a composite risk score (Max 8 points for this requirement)
+### Standard 1.1: High-risk customer filtering (Max 4 points)
+#### Path 1.1.A [4 points | Fixed threshold filtering]
+- Sub-standard 1.1.A.1 [1 point | Completeness] States that the analysis relies solely on `quickbooks__customer_analytics`, uses the conditions `payment_rate_percentage < 75 AND outstanding_balance > 15000` (AND logic, field units as per the original table), and deduplicates by `customer_id`.
+- Sub-standard 1.1.A.2 [2 points | Accuracy] Outputs metrics consistent with execution results (error ≤0.5% or absolute difference ≤0.5): high-risk customer count=399, average payment rate=38.04%, total outstanding balance=42,858,036.89, average credit score=467.49, average business stability=45.70.
+- Sub-standard 1.1.A.3 [1 point | Conclusiveness] Clearly points out the group's risk profile of "low payment rate + large outstanding receivables" and mentions the resulting pressure on cash flow.
+
+#### Path 1.1.B [4 points | Dual-threshold flexible filtering]
+- Sub-standard 1.1.B.1 [1 point | Completeness] Explains the use of a stricter threshold for at least one of `payment_rate_percentage` or `outstanding_balance` (e.g., <70 or >20000) and provides a business reason (e.g., to focus on customers with more severe deterioration or larger exposure).
+- Sub-standard 1.1.B.2 [2 points | Accuracy] Provides the scale and key metrics of the filtered group (customer count, average payment rate, total outstanding balance, etc.), maintains consistency with the execution logic of Path 1.1.A, and explains the difference from the baseline filtering.
+- Sub-standard 1.1.B.3 [1 point | Conclusiveness] Compares the sample changes under different thresholds and explains the impact of the filtering criteria on resource allocation (extreme risk vs. coverage).
+
+### Standard 1.2: Composite risk score (Max 4 points)
+#### Path 1.2.A [4 points | Per-customer calculation using the provided formula]
+- Sub-standard 1.2.A.1 [1 point | Completeness] Uses the formula `Risk Score = (100-payment_rate_percentage)*0.4 + ((850-credit_score)/850*100)*0.4 + (100-business_stability_score)*0.2`; in SQL, uses `COALESCE` to replace null values with business-appropriate defaults like 0/850/100 to ensure executability.
+- Sub-standard 1.2.A.2 [2 points | Accuracy] Outputs at least 3 statistical measures of the score distribution (mean/min/max or quantiles), with an error ≤0.5% against anchor points: mean=53.65, min=29.44, max=76.74.
+- Sub-standard 1.2.A.3 [1 point | Conclusiveness] Identifies the extremely high-risk band with scores ≥70 (22 customers, approx. 5.5% of the high-risk group) and explains the need for priority intervention based on their payment rate, credit score, or balance characteristics.
+
+#### Path 1.2.B [4 points | Score variation and comparison]
+- Sub-standard 1.2.B.1 [1 point | Completeness] Explains the use of an equivalent normalization scheme (e.g., Z-score or quantile scaling for the three metrics before weighting) and clarifies its consistency with the original logic.
+- Sub-standard 1.2.B.2 [2 points | Accuracy] Demonstrates a ranking or Spearman correlation ≥0.95 (or equivalent evidence) to prove the variant score does not alter the risk ranking, and explains the marginal impact of weight differences on the result.
+- Sub-standard 1.2.B.3 [1 point | Conclusiveness] Compares the segmentation results of the original score and the variant (e.g., number of customers with scores ≥60, difference in average balance) and recommends the most suitable scheme for business monitoring.
+
+---
+## Requirement 2: Assess the impact of high-risk customers on gross profit and revenue (Max 6 points for this requirement)
+### Standard 2.1: Gross profit proportion calculation (Max 4 points)
+#### Path 2.1.A [4 points | Aggregation by joining on customer ID]
+- Sub-standard 2.1.A.1 [1 point | Completeness] Joins the high-risk `customer_id` list with `quickbooks__profitability_analysis` and aggregates gross profit by customer.
+- Sub-standard 2.1.A.2 [2 points | Accuracy] Ensures anchor point error is ≤0.5%: high-risk gross profit=-345,457,724.29, total gross profit=-2,501,527,891.46, proportion=13.81%.
+- Sub-standard 2.1.A.3 [1 point | Conclusiveness] Points out that the overall gross profit is negative and that high-risk customers contribute 13.81% of the total loss, which will further amplify cash pressure if not controlled.
+
+#### Path 2.1.B [4 points | Direct aggregation at the invoice level]
+- Sub-standard 2.1.B.1 [1 point | Completeness] Groups by invoice level and uses a `CASE WHEN` statement in `quickbooks__profitability_analysis` to flag high-risk customers for direct aggregation.
+- Sub-standard 2.1.B.2 [2 points | Accuracy] The calculated gross profit proportion must be consistent with Path 2.1.A (tolerance ≤0.5%), and any minor discrepancies (e.g., from invoice deduplication, currency fields) should be explained.
+- Sub-standard 2.1.B.3 [1 point | Conclusiveness] Based on the loss structure, states that high-risk customers are also predominantly classified as "Loss Making" at the invoice level, suggesting a need to simultaneously optimize pricing strategies.
+
+### Standard 2.2: Supplementary analysis of revenue/gross profit structure (Max 2 points)
+#### Path 2.2.A [2 points | Cross-analysis of revenue and gross profit proportions]
+- Sub-standard 2.2.A.1 [1 point | Completeness] Provides a comparison between the revenue proportion (`invoice_total`) and the gross profit proportion, clarifying that the calculation methods are consistent.
+- Sub-standard 2.2.A.2 [1 point | Accuracy] Anchor point: revenue proportion=13.93%, which is close to the gross profit proportion, confirming that losses are concentrated in the same customer group.
+
+#### Path 2.2.B [2 points | Explanation of profitability tiers]
+- Sub-standard 2.2.B.1 [1 point | Completeness] Calculates the proportional breakdown of `profitability_tier` or `customer_profit_tier`.
+- Sub-standard 2.2.B.2 [1 point | Conclusiveness] Points out that both high-risk and normal customers are predominantly "Loss Making" (99% of high-risk invoices are "Loss Making"), emphasizing the need for improvements from the cost/pricing side.
+
+---
+## Requirement 3: Analyze the trend and deterioration segments of the collection rate over the last 12 months (Max 8 points for this requirement)
+### Standard 3.1: Month-over-month change and consecutive deterioration statistics (Max 5 points)
+#### Path 3.1.A [5 points | Window function method]
+- Sub-standard 3.1.A.1 [1 point | Completeness] Based on the last 12 months of data from `quickbooks__financial_dashboard`, calculates `MoM = Current Month - Previous Month` and flags months with a decrease.
+- Sub-standard 3.1.A.2 [3 points | Accuracy] Key metric error ≤0.5pp: average collection rate=48.84%, number of declining months=7, cumulative decline=13.46pp, longest consecutive decline=3 months, decline during that period=5.78pp (Jul 2025 → Sep 2025), worst single-month drop=-4.91pp (Aug 2025), latest collection rate=45.76%.
+- Sub-standard 3.1.A.3 [1 point | Conclusiveness] States that "the last 3 months show consecutive and significant deterioration," which constitutes an urgent signal for collections.
+
+#### Path 3.1.B [5 points | Sessionization/grouping method]
+- Sub-standard 3.1.B.1 [1 point | Completeness] Uses a sessionization/grouping technique in SQL (resetting the group on non-decline) to calculate the length and magnitude of consecutive decline periods.
+- Sub-standard 3.1.B.2 [3 points | Accuracy] Metrics must be fully consistent with those in Path 3.1.A (error ≤0.5pp).
+- Sub-standard 3.1.B.3 [1 point | Conclusiveness] Points out that the collection rate has been deteriorating at an accelerated pace since July 2025, which serves as a core trigger for a risk alert.
+
+### Standard 3.2: Output of trend evidence (Max 3 points)
+#### Path 3.2.A [3 points | Detailed table]
+- Sub-standard 3.2.A.1 [1 point | Completeness] Provides a month-by-month table for the 12-month period, including `collection_rate_percentage`, `MoM`, and a trend flag.
+- Sub-standard 3.2.A.2 [1 point | Accuracy] The sum of `MoM` values in the table reconciles with the summary metric (cumulative decline of 13.46pp).
+- Sub-standard 3.2.A.3 [1 point | Conclusiveness] Summarizes key turning points: a 4.91pp drop in August 2025, and a 5.78pp consecutive deterioration period from July 2025 to September 2025.
+
+#### Path 3.2.B [3 points | Narrative description of the trend]
+- Sub-standard 3.2.B.1 [1 point | Completeness] When unable to display a table, provides key points such as consecutive decline periods, cumulative drop, and the latest value.
+- Sub-standard 3.2.B.2 [2 points | Conclusiveness] Explains potential reasons for the decline, such as procurement cycles or collection efficiency, and suggests monitoring actions (e.g., a single-month drop >3pp triggers a warning meeting).
+
+---
+## Requirement 4: Compare structural differences between high-risk and normal customers (Max 8 points for this requirement)
+### Standard 4.1: Comparison of key average values (Max 4 points)
+#### Path 4.1.A [4 points | Mean comparison]
+- Sub-standard 4.1.A.1 [1 point | Completeness] Groups customers by high-risk status and provides the average values for customer lifespan, invoice count, average invoice amount, payment rate, credit score, business stability, and average outstanding balance.
+- Sub-standard 4.1.A.2 [2 points | Accuracy] Anchor point error ≤0.5: High-risk averages=911.82 (`lifespan`) / 38.38 (`total_invoices`) / 20,815.66 (`avg_invoice_amount`) / 38.04% (`payment_rate`) / 467.49 (`credit_score`) / 45.70 (`business_stability`) / 107,413.63 (avg `outstanding_balance`); Normal averages=931.81 / 39.51 / 20,325.81 / 91.51% / 773.35 / 84.65 / 9,734.09.
+- Sub-standard 4.1.A.3 [1 point | Conclusiveness] Points out that high-risk customers have a similar lifespan but exhibit poor payment ability, weak credit, and high balances, making them the primary source of receivables risk.
+
+#### Path 4.1.B [4 points | Difference or ratio]
+- Sub-standard 4.1.B.1 [1 point | Completeness] Provides the difference or ratio of high-risk relative to normal customers (e.g., the difference and multiple for average `outstanding_balance`).
+- Sub-standard 4.1.B.2 [2 points | Accuracy] Differences must align with the means above: payment rate difference ≈ -53.47pp, credit score difference ≈ -305.86, average balance difference ≈ 97,679.54, balance multiple ≈ 11.03, etc.
+- Sub-standard 4.1.B.3 [1 point | Conclusiveness] Explains how these differences affect the probability of bad debt and the prioritization of collection efforts.
+
+### Standard 4.2: Distribution characteristics analysis (Max 3 points)
+#### Path 4.2.A [3 points | Binned proportions]
+- Sub-standard 4.2.A.1 [1 point | Completeness] Bins at least two of the following metrics: customer lifespan, invoice count, or average invoice amount, and provides counts or proportions of high-risk vs. normal customers in each bin.
+- Sub-standard 4.2.A.2 [1 point | Accuracy] Anchor points (error ≤±2 customers): Lifespan <1 year: high-risk=80, normal=427; Invoice count 50-99: high-risk=130, normal=837; Average invoice amount 20k-50k: high-risk=178, normal=1,035.
+- Sub-standard 4.2.A.3 [1 point | Conclusiveness] States that high-risk customers are concentrated in the "medium-to-high ticket size, 10-99 invoice count" range, and a small number of high-value orders amplify the risk.
+
+#### Path 4.2.B [3 points | Concentration analysis]
+- Sub-standard 4.2.B.1 [1 point | Completeness] Calculates the proportion of the top 10% of high-risk customers' outstanding balance relative to the total high-risk outstanding balance.
+- Sub-standard 4.2.B.2 [1 point | Accuracy] Anchor point: The top 10% outstanding balance is 7,660,804.86, which is 17.87% of the total high-risk outstanding balance.
+- Sub-standard 4.2.B.3 [1 point | Conclusiveness] Notes that risk concentration is not high but still warrants a dedicated collection plan for these top customers.
+
+### Standard 4.3: Profitability tier differences (Max 1 point)
+#### Path 4.3.A [1 point | Conclusiveness] States that regardless of risk group, the invoice-level profitability tier is almost always "Loss Making" (99% of high-risk invoices are "Loss Making"), suggesting the need for simultaneous corrective action on costs and pricing.
+
+---
+## Requirement 5: Estimate potential loss for the next 6 months and establish a risk warning system (Max 7 points for this requirement)
+### Standard 5.1: Potential loss estimation (Max 5 points)
+#### Path 5.1.A [5 points | Scenario method using revenue × collection rate]
+- Sub-standard 5.1.A.1 [1 point | Completeness] Uses the last 12-month average revenue of 5,641,018.82 as a baseline and sets at least two collection rate scenarios: the latest value of 45.76% and a stress scenario (latest value - longest consecutive deterioration of 5.78pp = 39.98%).
+- Sub-standard 5.1.A.2 [3 points | Accuracy] Calculates the 6-month potential loss (error ≤3%): baseline loss=1,043,306.43; stress loss=2,999,611.76; allocated based on the high-risk receivables proportion of 64.71%: 675,137.36 and 1,941,088.36 respectively.
+- Sub-standard 5.1.A.3 [1 point | Conclusiveness] States the loss range under the two scenarios and explains the logic of how the cash gap widens if the collection rate continues to deteriorate.
+
+#### Path 5.1.B [5 points | Net cash flow conversion]
+- Sub-standard 5.1.B.1 [1 point | Completeness] Uses the sum of `forecasted_net_cash_flow` for the next 6 months from `quickbooks__cashflow_forecast` (442,502) as a baseline. When `inflows` are missing, uses the 12-month cumulative decline of 13.46pp as a reduction factor.
+- Sub-standard 5.1.B.2 [3 points | Accuracy] Calculates potential loss=59,560.77, with an allocation to high-risk customers of 38,542.56 (error ≤5%).
+- Sub-standard 5.1.B.3 [1 point | Conclusiveness] Emphasizes that this method is conservative and recommends populating the forecast fields to improve accuracy.
+
+#### Path 5.1.C [5 points | Receivables balance conversion]
+- Sub-standard 5.1.C.1 [1 point | Completeness] Estimates extreme loss as high-risk outstanding balance of 42.86M multiplied by the collection rate decline (5.78pp or 4.91pp).
+- Sub-standard 5.1.C.2 [3 points | Accuracy] Outputs a range: ≈2,477,195 (for 5.78pp decline) and ≈2,104,330 (for 4.91pp decline), and explains its role as an upper-bound risk estimate.
+- Sub-standard 5.1.C.3 [1 point | Conclusiveness] Suggests preparing a cash buffer or external financing options in case the collection rate continues to deteriorate.
+
+### Standard 5.2: Risk concentration and tiering (Max 2 points)
+#### Path 5.2.A [2 points | Quantitative risk tiering]
+- Sub-standard 5.2.A.1 [1 point | Completeness] Segments customers based on risk score (≥60, 40-59.9, <40) and lists the customer count and balance for each tier: ≥60=116 customers/12.60M, 40-59.9=259 customers/27.80M, <40=24 customers/2.46M.
+- Sub-standard 5.2.A.2 [1 point | Conclusiveness] Notes that the 40-59.9 tier accounts for ~65% of the balance, but the ≥60 tier still holds a significant 12.6M and should be prioritized for attention.
+
+### Standard 5.3: Continuous monitoring metrics (Max 1 point)
+#### Path 5.3.A [1 point | Conclusiveness] Proposes monitoring KPIs for the next 6 months (e.g., a consecutive decline of ≥3 months triggers an alert, a threshold for the balance of Top 10% customers, a monthly collection rate target of ≥48%), which correspond to the scenario calculations.
+
+---
+## Requirement 6: Propose tiered customer management and risk control strategies (Max 3 points for this requirement)
+### Standard 6.1: Strategy design and execution loop (Max 3 points)
+#### Path 6.1.A [3 points | Tiered strategy + quantitative targets]
+- Sub-standard 6.1.A.1 [1 point | Completeness] Clearly defines four tiers based on risk score/receivables size (≥70, 60–69, 50–59, <50) and maps them to corresponding strategies (e.g., freeze credit, require partial prepayment, send automatic reminders) and the number of customers covered by each.
+- Sub-standard 6.1.A.2 [1 point | Accuracy] Ensures strategies are supported by data evidence (e.g., ≥70 tier: 22 customers with 2.27M balance; Top 10% customers account for 17.87% of high-risk balance; loss proportion of 13.81%).
+- Sub-standard 6.1.A.3 [1 point | Conclusiveness] Proposes quantitative goals and a review frequency (e.g., reduce the high-risk receivables proportion from 64.71% to <50% within 60 days, increase the monthly collection rate by ≥2pp).
+
+#### Path 6.1.B [3 points | Integrated credit, pricing, and collections strategy]
+- Sub-standard 6.1.B.1 [1 point | Completeness] Covers credit limit adjustments, collection cadence, pricing/gross profit remediation, and cash buffering strategies (e.g., factoring/credit insurance).
+- Sub-standard 6.1.B.2 [1 point | Accuracy] References key data (gross profit loss of 13.81%, potential loss range, collection rate decline of 5.78pp) to support the proposed strategies.
+- Sub-standard 6.1.B.3 [1 point | Conclusiveness] Forms a closed loop of "Identify→Warn→Execute→Review" and specifies the owners and timelines for each action.

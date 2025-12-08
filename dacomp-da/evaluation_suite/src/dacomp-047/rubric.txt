@@ -1,0 +1,91 @@
+# [Total Score | 15 points]  The solution must satisfy two core requirements:
+- Requirement 1: Provide the interrelationships between vegetable categories and single-item sales volumes and their seasonal characteristics
+- Requirement 2: Recommend three fruit-and-vegetable combinations for replenishment in July 2023
+---
+## Requirement 1: Provide the interrelationships between vegetable categories and single-item sales volumes and their seasonal characteristics (this requirement can earn up to 7 points)
+### Standard 1.1 [up to 4 points]: Interrelationship analysis
+#### Path 1.1.A [3 points]: Basic correlation analysis
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Specify sample and scope (SKU daily sales → align by the same month; output a matrix or mean_corr aggregated by combination).
+- Sub-standard 1.1.A.2 [2 points | Accuracy]: Hit the following anchors (error ±0.05):
+  - Combination {Clean Lotus Root (1), Small Chili Pepper (portion), Enoki Mushrooms (box)} with mean_corr ≈ 0.73
+  - Combination {Yunnan Lettuce, Long Eggplant, Green-stem Loose Cauliflower} with mean_corr ≈ 0.24
+#### Path 1.1.B [4 points]: Deep synergy analysis (clustering + correlation validation)
+- Sub-standard 1.1.B.1 [1 point | Completeness]: Feature selection (SKU daily or weekly sales via Z-score), K-means or hierarchical clustering, provide {labels, centroids}.
+- Sub-standard 1.1.B.2 [2 points | Accuracy]: Clustering setup and outputs consistent with the scope (k, standardization, randomness control), verifiable.
+- Sub-standard 1.1.B.3 [1 point | Conclusiveness]: Output verifiable conclusions:
+  1) Identify Top 3 combinations within clusters, list mean_corr or a cluster-center correlation metric;
+  2) Cross-validate with the correlation matrix from 1.1.A, mark same-direction/opposite-direction and numeric differences;
+  3) Propose synergy/complementary operations (co-promotion/matched display/bundling) and monitoring metrics.
+#### Path 1.1.C [2 points]: Business logic analysis
+- Sub-standard 1.1.C.1 [1 point | Completeness]: Analyze relationships between categories based on vegetable category characteristics, cooking pairings, or nutritional complementarities.
+- Sub-standard 1.1.C.2 [1 point | Conclusiveness]: Must output ≥ 3 explicit category pairing logics (e.g., "leafy vegetables + solanaceous are suitable for quick stir-fry", "root vegetables + mushrooms are suitable for soups") and propose specific operational actions (matched display/set menu promotions/attached recommendations).
+#### Path 1.1.D [2 points]: Analysis based on sales co-occurrence frequency
+- Sub-standard 1.1.D.1 [1 point | Completeness]: Infer interrelationships based on co-occurrence frequency of different categories sold on the same day.
+- Sub-standard 1.1.D.2 [1 point | Accuracy]: Results must be data-driven and accurate, with evidence. Ensure the difference from the standard answer is less than 0.5%. (Top 3 common category combinations: 【Leafy vegetables + Chili Pepper + Edible fungi】 occurred 35 times; 【Leafy vegetables + Cauliflower + Chili Pepper】 occurred 32 times; 【Aquatic roots & stems + Leafy vegetables + Chili Pepper】 occurred 9 times)
+- Sub-standard 1.1.D.3 [1 point | Conclusiveness]: Provide verifiable conclusions based on data from 1.1.D.2.
+#### Path 1.1.E [0 points]: No correlation analysis performed
+- If the model does not identify interrelationships via correlation coefficients, clustering, or co-occurrence frequency, the score is 0 points.
+### Standard 1.2 [up to 3 points]: Seasonality analysis
+#### Path 1.2.A [3 points]: Baseline forecasting method (daily average × 31)
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Scope: For July of each year 2020–2022, "daily average = that year’s July total / 31", then take the average of the 3 years’ daily averages; 2023-07 forecast = daily average × 31; output {SKU, Item Name, pred_2023_07}.
+- Sub-standard 1.2.A.2 [2 points | Accuracy]: Hit the following key anchors (quantity error ±0.5%):
+  - 102900005116714 Broccoli: forecast total ≈ 969.77 kg
+  - 102900005115779 Yunnan Lettuce: forecast total ≈ 994.63 kg
+  - 102900011009970 Green-stem Loose Cauliflower: forecast total ≈ 407.84 kg
+#### Path 1.2.B [3 points]: Robust forecasting method (quantile trimming + anomaly detection)
+- Sub-standard 1.2.B.1 [1 point | Completeness]: Clarify trimming thresholds (e.g., P10–P90), obtain robust daily average and 2023-07 forecast; output structure same as 1.2.A.
+- Sub-standard 1.2.B.2 [2 points | Accuracy]: Trimming implementation, thresholds, and results are consistent with the description and verifiable (e.g., P10/P90 settings, comparison with untrimmed differences).
+- Sub-standard 1.2.B.3 [1 point | Conclusiveness]: List ≥ 2 SKUs showing "untrimmed vs robust method" forecast differences (numeric and relative) and attribute causes (extremes/out-of-stock/abnormal fluctuations); propose adopted scope and risk control recommendations (e.g., enable trimming thresholds and anomaly alerts).
+#### Path 1.2.C [2 points]: Seasonal business analysis
+- Sub-standard 1.2.C.1 [1 point | Completeness]: Based on historical data or industry knowledge, analyze seasonal consumption characteristics of vegetable categories in July (e.g., summer preference for refreshing items, roots helping with cooling).
+- Sub-standard 1.2.C.2 [1 point | Conclusiveness]: Must clearly point out ≥ 3 categories’ July seasonal characteristics (e.g., "leafy vegetables July month-over-month growth > 20%", "Aquatic roots & stems have strong cooling demand in summer"), and give clear replenishment advice (increase/decrease/stabilize) based on this.
+---
+## Requirement 2: Recommend three fruit-and-vegetable combinations for replenishment in July 2023 (this requirement can earn up to 8 points)
+### Standard 2.1 [up to 5 points]: Combination construction and metrics
+#### Path 2.1.A [3 points]: Profit-first (seasonal forecast × loss cost adjustment)
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Based on the forecasts from Requirement 1.2, scope: Effective cost = Cost / (1 − Loss Rate (%)); Adjusted gross margin = Unit price − Effective cost; Expected profit = Adjusted gross margin × 2023-07 forecast. Output 3 combinations (each ≥ 3 SKUs) with fields: {Item Name, SKU, forecast total, Unit price, Cost, Loss Rate (%), Adjusted gross margin, Expected profit} and combination totals.
+- Sub-standard 2.1.A.2 [2 points | Accuracy]: Hit the following anchors (error: quantity ±0.5%, price/profit ±0.5):
+  - Broccoli: average price ≈ 9.90, average cost ≈ 6.83, Loss Rate (%) ≈ 9.26%, Adjusted gross margin ≈ 2.38, Expected profit ≈ 2305.50
+  - Yunnan Lettuce: average price ≈ 8.21, average cost ≈ 5.10, Loss Rate (%) ≈ 15.25%, Adjusted gross margin ≈ 2.20, Expected profit ≈ 2185.17
+  - Green-stem Loose Cauliflower: average price ≈ 7.06, average cost ≈ 4.48, Loss Rate (%) ≈ 17.06%, Adjusted gross margin ≈ 1.65, Expected profit ≈ 673.48
+#### Path 2.1.B [3 points]: Synergy-first (low-correlation/complementary constraints)
+- Sub-standard 2.1.B.1 [1 point | Completeness]: Use correlation results from Requirement 1.1, constrain that "combinations cover ≥ 2 categories", output 3 combinations with member lists, attach mean_corr.
+- Sub-standard 2.1.B.2 [2 points | Accuracy]: Hit anchors (error ±0.05):
+  - Combination {Clean Lotus Root (1), Small Chili Pepper (portion), Enoki Mushrooms (box)} with mean_corr ≈ 0.73
+  - Combination {Yunnan Lettuce, Long Eggplant, Green-stem Loose Cauliflower} with mean_corr ≈ 0.24
+#### Path 2.1.C [4 points]: Scenario-based combination design (consumption scenarios + pricing strategy)
+- Sub-standard 2.1.C.1 [1 point | Completeness]: Design differentiated combinations based on consumption scenarios (e.g., salad, quick stir-fry, light meals, home-style dishes), each combination clearly positioned (basic assurance/high-margin/value-for-money, etc.).
+- Sub-standard 2.1.C.2 [2 points | Accuracy]: Verify by pseudo-process:
+```
+Scenario definition: Define 3 different consumption scenarios (e.g., summer salad/Chinese quick stir-fry/seasonal specialties)
+Pricing strategy: Each combination explicitly sets price positioning (high margin/mid-range/affordable) and target customer segment
+Combination logic: Design combination members based on cooking methods/nutritional pairing/flavor complementarity
+Differentiation verification: Ensure the 3 combinations achieve differentiated coverage across scenarios/pricing/categories
+```
+- Sub-standard 2.1.C.3 [1 point | Conclusiveness]: Output scenario-based combination plans: include combination name, target scenario, price positioning, core selling points, and expected performance. Missing any one of these yields no points.
+#### Path 2.1.D [5 points]: Comprehensive optimization (constraints + risk + marketing)
+- Sub-standard 2.1.D.1 [1 point | Completeness]: Objective: max comprehensive returns (profit + risk adjustment + marketing value); Constraints: budget, Loss Rate (%) threshold, category coverage; Risk factors: weather, seasonal fluctuation, inventory backlog.
+- Sub-standard 2.1.D.2 [2 points | Accuracy]: Provide verifiable outputs: {combination configuration, expected returns, risk assessment, constraint satisfaction}, including Loss Rate (%) control and marketing synergy effect calculations.
+- Sub-standard 2.1.D.3 [2 points | Conclusiveness]: Cross-validate with other paths: compare pros/cons of profit-maximization vs scenario-based vs synergy-based plans, provide final recommended combinations and risk warning mechanism.
+#### Path 2.1.E [2 points]: Sales-driven (historical performance first)
+- Sub-standard 2.1.E.1 [1 point | Completeness]: Based on historical sales data or sales performance, select best-selling/stable items to construct combinations.
+- Sub-standard 2.1.E.2 [1 point | Conclusiveness]: Must provide ≥ 5 specific sales data points (e.g., "Broccoli July sales 1163 kg, ranked 1st", "Yunnan Lettuce 738 kg ranked 2nd"), and clearly explain the selection logic (Top sales/stable growth/continuous bestseller, etc.).
+#### Path 2.1.F [3 points]: Loss control optimization
+- Sub-standard 2.1.F.1 [1 point | Completeness]: Based on Loss Rate (%) data analysis, prioritize low-loss varieties to construct combinations, and provide loss-rate control strategies.
+- Sub-standard 2.1.F.2 [2 points | Accuracy]: Must provide ≥ 6 specific Loss Rate (%) data points (e.g., "Wuhu Green Pepper loss 5.70%", "Enoki Mushrooms (box) loss 0.45%"), calculate overall combination Loss Rate (%) (error ±0.1%), and propose quantitative risk control measures (e.g., "combination Loss Rate (%) controlled below X%").
+#### Path 2.1.G [5 points]: Multi-dimensional indicators
+- Sub-standard 2.1.G.1 [1 point | Completeness]: Must clearly provide at least 3 differentiated fruit-and-vegetable combinations, and each combination must cover "core strategic directions" (e.g., sales-led, seasonal fit, low loss), while including specific Item Names within the combination and their Category Name. Failure to meet any element yields no points.
+- Sub-standard 2.1.G.2 [2 points | Accuracy]: Item-level data within each combination (e.g., specified-period sales, Loss Rate (%)) must be fully consistent with the data outputs from earlier analysis (example: Broccoli July 2022 sales 1163.3 kg, Loss Rate (%) 9.26%).
+- Sub-standard 2.1.G.3 [2 points | Conclusiveness]: For each combination, clearly explain the "core characteristics" (e.g., "summer refreshing type" "low-loss high-efficiency type") and "expected advantages" (e.g., "matches consumption trends" "reduces waste, increases profitability"), and the strategy differences between combinations must be obvious (e.g., respectively focusing on sales, seasonality, loss).
+### Standard 2.2 [up to 3 points]: Strategy implementation and risk management
+#### Path 2.2.A [3 points]: Comprehensive implementation plan (marketing + inventory + risk), (each path score must be an integer)
+- Sub-standard 2.2.A.1 [1 point | Completeness]: Provide priorities and role positioning for the three combinations, and formulate differentiated implementation strategies (time periods, frequency, promotion methods, etc.).
+- Sub-standard 2.2.A.2 [2 points | Conclusiveness]: Must provide a complete implementation plan (if not complete, 0 points):
+  1) Marketing strategy: attached sales, bundling promotions, differentiated competition (e.g., viral potential, innovative combinations);
+  2) Inventory management: replenishment periods (morning market/evening market), dynamic adjustment ratios, Loss Rate (%) threshold control;
+  3) Risk warning: countermeasures for weather impact, seasonal fluctuations, inventory backlog;
+  4) KPI monitoring: targets and monitoring cycles for sales/gross margin/reported loss (breakage/damage) rate.
+  Merely listing data or lacking specific action plans: 0–1 points.
+#### Path 2.2.B [2 points]: Basic implementation suggestions
+- Sub-standard 2.2.B.1 [1 point | Completeness]: Provide basic replenishment strategy suggestions for the recommended combinations (e.g., replenishment timing, key focus, etc.).
+- Sub-standard 2.2.B.2 [1 point | Conclusiveness]: Must provide ≥ 3 clear, actionable suggestions (e.g., "prioritize replenishing items with Loss Rate (%) below X%", "increase the share of Aquatic roots & stems by Y% in late July", "complete replenishment before morning/evening market"), and each suggestion must be executable.

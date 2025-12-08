@@ -1,0 +1,216 @@
+# [Total Score | 32 Points] The solution must satisfy two core requirements:
+- Requirement 1: Analyze the factors that make videos go viral
+- Requirement 2: Provide suggestions to improve video creation
+---
+## Requirement 1: Analyze the factors that make videos go viral (Max 20 points)
+### Standard 1.1: Analyze how `Video Category` affects virality [Max 6 points]
+#### Path 1.1.A [6 points | Comprehensive category analysis]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Compute average `Views` for each `Video Category`.
+- Sub-standard 1.1.A.2 [1 point | Completeness]: Compute median `Views` for each `Video Category`.
+- Sub-standard 1.1.A.3 [1 point | Completeness]: Compute the occurrence count for each `Video Category`.
+- Sub-standard 1.1.A.4 [3 points | Accuracy]: Results are accurate per the reference below with up to 1% deviation. Notes: (1) Provide 5 or more categories correctly to earn credit; (2) average views, occurrence count, and median views are each worth 1 point.
+
+| Video Category | Average Views | Occurrences | Median Views |
+|------------------|----------------|----------|--------------|
+| Single-player Games | 1243331.567 | 217 | 745953.0 |
+| Daily | 2690701.945 | 220 | 1552256.0 |
+| Film and TV Talk | 578345.5196 | 102 | 317568.5 |
+| Esports | 892425.9167 | 132 | 578204.0 |
+| Drawing | 295547.1111 | 9 | 317961.0 |
+| General | 1222567.032 | 185 | 504380.0 |
+| Social Sciences and Humanities | 1021408.253 | 221 | 644474.0 |
+| Original Music | 2010390.333 | 57 | 1037126.0 |
+| Food | 1293583.115 | 87 | 1133140.0 |
+| Live Music | 1359755.864 | 66 | 704745.5 |
+| MMD/3D | 499076.8696 | 23 | 160052.0 |
+| Shorts/Hand-drawn/Voice-over | 797092.9043 | 115 | 542597.0 |
+| Film Editing | 1909319.213 | 254 | 779910.0 |
+| Xinghai | 1146959.783 | 46 | 907272.0 |
+| Comedy | 3603086.534 | 176 | 1747624.5 |
+| Mobile/Tablet | 424219.875 | 192 | 248081.0 |
+| Kichiku Remix | 4270374.181 | 320 | 1088848.0 |
+| Variety | 835242.6471 | 187 | 379163.0 |
+| Fitness | 4616314.449 | 205 | 838058.0 |
+| Handcraft | 1765133.8 | 15 | 1369272.0 |
+| Covers | 1237721.531 | 113 | 575918.0 |
+| Science Popularization | 1665701.339 | 56 | 410030.0 |
+| Online Games | 938624 | 18 | 382065.0 |
+| Sports | 2139064.615 | 13 | 2605361.0 |
+| Celebrities | 761550.2557 | 219 | 337765.0 |
+| Beauty | 762305.1957 | 138 | 389606.0 |
+| Speeches/Public Courses | 1979330.571 | 35 | 1154169.0 |
+| Electronic Music | 3559690.067 | 15 | 2870181.0 |
+| Shorts | 1328814.88 | 50 | 827563.0 |
+| Audio-Visual Tech | 304916.0455 | 22 | 365831.5 |
+| Domestic Original Content | 631285.9403 | 402 | 223088.5 |
+| Dance - General | 764224.3333 | 99 | 333652.0 |
+| MAD/AMV | 3440573.71 | 107 | 928309.0 |
+| Instrument Performance | 3459120.86 | 57 | 846802.0 |
+| Fashion | 461361.2727 | 77 | 266410.0 |
+| Human VOCALOID | 3092334.175 | 97 | 573882.0 |
+| Celebrity Dance | 831939.1905 | 189 | 277787.0 |
+| Animals | 1808772.143 | 21 | 1942580.0 |
+| Mobile Games | 1540424.633 | 79 | 451999.0 |
+| Music Videos | 2614087.378 | 37 | 1129850.0 |
+| DIY Tech Association | 1908312.837 | 49 | 1041720.0 |
+| Tokusatsu | 2171092.273 | 11 | 165642.0 |
+| VOCALOID/UTAU | 1284806.529 | 17 | 492020.0 |
+| Hot Topics | 3752031 | 1 | 3752031.0 |
+| Trailers/News | 132411.875 | 8 | 116295.0 |
+| Photography/Video | 241627.1228 | 57 | 114661.0 |
+| PC Building | 357131.4044 | 136 | 149442.5 |
+| Runway | 1053309.143 | 7 | 1204812.0 |
+| Style Guide | 2362294.167 | 6 | 1367326.0 |
+| Rhythm Games | 840590.5 | 4 | 347676.5 |
+| GMV | 3364048 | 8 | 2608231.5 |
+| Board/Card Games | 6893927.667 | 3 | 1629743.0 |
+| Cars | 840188.9118 | 34 | 266074.0 |
+| Machinery | 274384.5 | 2 | 274384.5 |
+| Fun Science and Humanities | 910897.5 | 2 | 910897.5 |
+| Otaku Dance | 5012061.444 | 63 | 317917.0 |
+| Dance Tutorials | 435821 | 26 | 140782.0 |
+| Street Dance | 282103.2727 | 22 | 291072.5 |
+| Chinese Dance | 518960.75 | 4 | 575750.0 |
+| Music - General | 1269895.016 | 63 | 808317.0 |
+| Audio MAD | 235300.25 | 4 | 165563.5 |
+
+If the solution analyzes top-ranked or larger-sample videos, validate using this pseudo-code:
+```
+// Pseudo-code: verify a single case
+For each Video Category:
+1. Filter videos per the range specified in the solution.
+2. For the filtered subset:
+   a. Compute average views, occurrence count, and median views by category.
+3. Present category name plus computed average views, occurrences, and median views. Each metric is worth 1 point.
+```
+---
+### Standard 1.2: Analyze how `Video Tags` affect virality [Max 3 points]
+#### Path 1.2.A [3 points | Comprehensive tag analysis]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Count occurrences for each tag.
+- Sub-standard 1.2.A.2 [2 points | Accuracy]: Provide leading tags with their counts; reference top 20 below (5 or more correct tags earn credit):
+
+| Video Tag | Occurrences |
+| --- | --- |
+| Comedy | 875 |
+| bilibili Rising Star Program | 586 |
+| All-round Check-in Challenge | 569 |
+| Dance | 437 |
+| Kichiku | 435 |
+| Digital | 418 |
+| Celebrities | 302 |
+| Kichiku Remix | 252 |
+| Celebrity Dance | 212 |
+| Variety | 211 |
+| Weight Loss and Shaping | 209 |
+| Life | 203 |
+| Chinese Animation | 196 |
+| Knowledge Sharer | 193 |
+| Silly Humor | 187 |
+| Daily | 185 |
+| Self-made | 176 |
+| Esports | 173 |
+| Entertainment | 167 |
+| Editing | 156 |
+
+If the solution analyzes top-ranked or larger-sample videos, validate with:
+```
+// Pseudo-code: verify a single case
+For each Video Tag:
+1. Filter videos per the solution's scope.
+2. For the filtered subset, compute the occurrence count.
+3. Present the tag name and its count.
+```
+---
+### Standard 1.3: Analyze how `Title` affects virality [Max 9 points]
+#### Path 1.3.A [9 points | Comprehensive title analysis]
+- Sub-standard 1.3.A.1 [1 point | Completeness]: Analyze titles and count keyword occurrences (exclude punctuation).
+- Sub-standard 1.3.A.2 [1 point | Completeness]: Analyze titles and compute average or median `Views` for each keyword.
+- Sub-standard 1.3.A.3 [1 point | Completeness]: Compute average or median `Views` for different title length ranges.
+- Sub-standard 1.3.A.4 [2 points | Accuracy]: Verify each keyword's occurrence count or share; 5 or more correct keywords earn credit (up to 1% deviation allowed).
+```
+// Pseudo-code: verify a single case
+For each title keyword:
+1. Count its occurrences in titles.
+2. Present the keyword and its occurrence count.
+```
+If the solution analyzes top-ranked or larger-sample videos, validate with:
+```
+// Pseudo-code: verify a single case
+For each title keyword:
+1. Filter data per the solution's scope.
+2. For the filtered subset, count keyword occurrences.
+3. Present the keyword and its occurrence count.
+```
+- Sub-standard 1.3.A.5 [2 points | Accuracy]: Verify each keyword's average or median views; 5 or more correct averages or medians earn credit (up to 1% deviation allowed).
+
+Average views:
+```
+// Pseudo-code: verify a single case
+For each title keyword:
+1. Compute its average views.
+2. Present the keyword and the computed average views.
+```
+If the solution analyzes top-ranked or larger-sample videos, validate with:
+```
+// Pseudo-code: verify a single case
+For each title keyword:
+1. Filter data per the solution's scope.
+2. Compute average views for that keyword.
+3. Present the keyword and the computed average views.
+```
+
+Median views:
+```
+// Pseudo-code: verify a single case
+For each title keyword:
+1. Compute its median views.
+2. Present the keyword and the computed median views.
+```
+If the solution analyzes top-ranked or larger-sample videos, validate with:
+```
+// Pseudo-code: verify a single case
+For each title keyword:
+1. Filter data per the solution's scope.
+2. Compute median views for that keyword.
+3. Present the keyword and the computed median views.
+```
+- Sub-standard 1.3.A.6 [2 points | Accuracy]: Verify average or median views for each title length range.
+```
+// Pseudo-code: verify a single case
+For each title length range:
+1. Compute its average or median views.
+2. Present the title length range and the computed average or median views.
+```
+If the solution analyzes top-ranked or larger-sample videos, validate with:
+```
+// Pseudo-code: verify a single case
+For each title length range:
+1. Filter data per the solution's scope.
+2. Compute average or median views for that range.
+3. Present the title length range and the computed average or median views.
+```
+---
+### Standard 1.4: Interaction data analysis [Max 1 point]
+#### Path 1.4.A [1 point | Interaction data path]
+- Sub-standard 1.4.A.1 [1 point | Completeness]: Analyze interaction data (`Danmaku Count`, `Comments`, `Favorites`, `Likes`, `Coins`, `Shares`), e.g., correlations, medians, or means with views/rankings. At least 3 interaction metrics are sufficient.
+---
+### Standard 1.5: Fan data analysis [Max 1 point]
+#### Path 1.5.A [1 point | Fan data path]
+- Sub-standard 1.5.A.1 [1 point | Completeness]: Study `Creator Followers` distribution and link it to `Video Category` or compare follower distributions across categories.
+---
+## Requirement 2: Provide concrete suggestions to improve video creation (Max 12 points)
+### Standard 2.1: Synthesize analysis and give positive recommendations [Max 3 points]
+#### Path 2.1.A [3 points | Recommendations based on analysis]
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Recommend suitable tracks (`Video Category` choices), e.g., categories with higher views or higher frequency.
+- Sub-standard 2.1.A.2 [1 point | Completeness]: Recommend suitable `Video Tags`.
+- Sub-standard 2.1.A.3 [1 point | Completeness]: Recommend suitable title guidance, including title length.
+---
+### Standard 2.2: Synthesize analysis and give negative/avoidance recommendations [Max 3 points]
+- Sub-standard 2.2.A.1 [1 point | Completeness]: Point out underperforming or hard-to-start categories to avoid.
+- Sub-standard 2.2.A.2 [1 point | Completeness]: Indicate tags or tag counts to avoid.
+- Sub-standard 2.2.A.3 [1 point | Completeness]: Indicate title lengths to avoid.
+---
+### Standard 2.3: Recommendations for beginners (general sense is sufficient) [Max 6 points]
+- Sub-standard 2.3.A.1 [2 points | Conclusion]: Beginners do not have to follow top creators' head categories; they can choose areas with low follower requirements but high views (e.g., Daily/Comedy/Shorts) to break through more easily.
+- Sub-standard 2.3.A.2 [2 points | Conclusion]: Emphasize the importance of engagement rate (especially like rate) for video reach. Set explicit interaction prompts in the video to drive likes, comments, and shares, boosting engagement and entry into recommendations.
+- Sub-standard 2.3.A.3 [2 points | Conclusion]: Highlight that update frequency matters for audience stickiness and channel growth; keep a steady cadence, e.g., one upload per week.

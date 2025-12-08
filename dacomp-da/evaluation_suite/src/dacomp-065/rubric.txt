@@ -1,0 +1,127 @@
+# [Total Score | 34 Points] Recruitment Data Analysis and Bias Diagnosis Scoring Rubric
+
+Objective: To evaluate the impact of factors such as company background (FAANG/Unicorn/BigTech/Other), education, and experience on technical interview performance and hiring outcomes, and to identify process biases. The rubric follows a “Requirement → Standard → Path → Sub-standard” structure. Each sub-standard is scored on Completeness (1) | Precision (4) | Conclusion (1). Unless otherwise specified, precision anchors allow for a tolerance of ±2% or ±0.02 points.
+
+———
+
+## Requirement 1: Evaluate the difference in technical performance among candidates from different company backgrounds (Max 10 points)
+
+### Standard 1.1: Analysis Sample Construction and Background Mapping (Max 3 points; deterministic)
+
+#### Path 1.1.A [3 points | Technical Interview Sample Governance]
+
+- Sub-standard 1.1.A.1 [Completeness | 1 point] Uses a join of `greenhouse__interview_enhanced` and `greenhouse__application_enhanced`, first deduplicating to the latest record for each `application_id` using `ROW_NUMBER() OVER (PARTITION BY application_id ORDER BY applied_at DESC NULLS LAST, rowid)`. Then, filters for `LOWER(job_stage)='technical interview'` and `technical_score IS NOT NULL` to construct an “interview-level” sample of 2,512 scorecards. Must state that aggregating by `application_id` (using the mean of interview scores) forms an “application-level” sample of 964 records.
+- Sub-standard 1.1.A.2 [Precision | 1 point] Clearly defines and implements the company mapping dictionary in SQL/code:
+    *   FAANG = {Google/Alphabet, Meta/Facebook, Amazon, Apple, Netflix}
+    *   Unicorn/HighGrowth = {Uber, Airbnb, Stripe, Palantir, Snowflake, Databricks, Coinbase, Robinhood, Revolut, ByteDance, Instacart, Notion, Okta, Twilio, Canva, Nubank, SpaceX, Datadog, MongoDB, Dropbox, Slack, Pinterest, Shopify, Spotify, Square/Block, Lyft, DoorDash, OpenAI, Brex, Figma, Rippling, Discord, Affirm, UiPath, Coupang, Klarna, Peloton, Zoom, Snap, Atlassian}
+    *   BigTech (non-FAANG) = {Microsoft, Oracle, IBM, Adobe, Salesforce, LinkedIn, Intel, Nvidia, PayPal, Cisco, SAP, Workday, VMware, Dell, HP/HPE, Intuit, Qualcomm}
+    *   All others are mapped to 'Other'. Replication anchors: interview-level records=2,512, application-level records=964.
+- Sub-standard 1.1.A.3 [Conclusion | 1 point] Reports the sample sizes for both levels and specifies that application-level aggregated metrics (average technical score / positive recommendation rate) are used as the measure of “true performance”:
+    *   Interview-level: FAANG=340, Unicorn=950, BigTech=272, Other=950;
+    *   Application-level: FAANG=125, Unicorn=356, BigTech=116, Other=367;
+    *   Application-level metric definitions: `avg_technical_score = AVG(technical_score)`, `pos_rec_rate = AVG(overall_recommendation IN ('strong_yes','yes'))`.
+
+### Standard 1.2: Significance Testing for Technical Performance Differences (Max 7 points; choose one)
+
+#### Path 1.2.A [7 points | Parametric Method: ANOVA + Welch's t-test]
+
+- Sub-standard 1.2.A.1 [Completeness | 1 point] Performs a one-way ANOVA (four groups) on the application-level `avg_technical_score`. Subsequently, runs Welch's t-tests for the pairs {FAANG vs Other, FAANG vs BigTech, FAANG vs Unicorn, BigTech vs Other, Unicorn vs Other, BigTech vs Unicorn} and provides Cohen's d. Must specify that the analysis is based on the 964x1 aggregated results.
+- Sub-standard 1.2.A.2 [Precision | 4 points] Replicates anchors (tolerance ±0.03 points or ±10% for statistics):
+    *   Group means: FAANG=7.815, Unicorn=7.445, BigTech=7.430, Other=7.239;
+    *   One-way ANOVA: F=2.618 (p=0.0498);
+    *   Welch's differences (denoted as “former − latter”): FAANG−Other=+0.575 (t=2.773, p=0.0060, d=0.282), FAANG−BigTech=+0.384 (t=1.529, p=0.128, d=0.197), FAANG−Unicorn=+0.369 (p=0.071), BigTech−Other=+0.191 (p=0.367), Unicorn−Other=+0.206 (p=0.171), BigTech−Unicorn=−0.015 (p=0.941).
+- Sub-standard 1.2.A.3 [Conclusion | 1 point] States that the application-level average technical score for FAANG is significantly higher than Other (small-to-medium effect size), while other pairwise differences are not significant. The overall ANOVA is borderline significant. Notes that differences in job role composition and variance might dilute global significance.
+
+#### Path 1.2.B [7 points | Non-parametric Method: Kruskal-Wallis + Dunn's Test]
+
+- Sub-standard 1.2.B.1 [Completeness | 1 point] Explains that due to the discrete nature of score distributions, a Kruskal-Wallis test is used on the application-level `avg_technical_score`, followed by Dunn's test with Bonferroni correction for post-hoc comparisons if significant.
+- Sub-standard 1.2.B.2 [Precision | 4 points] Replicates: Kruskal H=7.198 (p=0.0659). For Dunn's test (Bonferroni adjusted, z-value tolerance ±0.2): FAANG vs Other is the only significant pair with z=2.64 (p_adj=0.0498); other pairs have p_adj≥0.38. Must also cite quantiles: FAANG quartiles Q1=7, Median=8, Q3=10; for all other groups, Q1=6, Median=8, Q3=9.
+- Sub-standard 1.2.B.3 [Conclusion | 1 point] States that from a non-parametric perspective, only “FAANG > Other” shows a significant rank difference, while other group differences are not significant. Notes that the magnitude of difference across quantiles is mostly within a 0–1 point range.
+
+#### Path 1.2.C [7 points | Permutation/Bootstrap Method]
+
+- Sub-standard 1.2.C.1 [Completeness | 1 point] Describes the procedure: for FAANG vs Other samples, perform ≥10,000 permutations (or group bootstraps), recalculating the mean difference of `avg_technical_score` in each iteration to build an empirical distribution and confidence interval.
+- Sub-standard 1.2.C.2 [Precision | 4 points] Replicates anchors (tolerance ±0.02): Observed mean difference=0.575; two-sided permutation p-value=0.0078; bootstrap 95% CI=[0.167, 0.984]; bootstrap distribution mean ≈0. Must provide run parameters (random seed, number of iterations).
+- Sub-standard 1.2.C.3 [Conclusion | 1 point] Emphasizes that even under randomization tests, the FAANG mean technical score remains significantly higher than Other, with the confidence interval falling entirely in the positive range, ruling out chance as an explanation.
+
+———
+
+## Requirement 2: Isolate the independent effect of company background after controlling for education/experience (Max 12 points)
+
+### Standard 2.1: Multivariate Regression on Continuous Technical Performance (Max 6 points; choose one)
+
+#### Path 2.1.A [6 points | OLS + Robust Errors]
+
+- Sub-standard 2.1.A.1 [Completeness | 1 point] Model: `technical_score ~ C(company_group, reference='BigTech') + C(education_level) + C(university_tier) + gpa + years_of_experience + total_experience_months + skill_count + C(candidate_gender) + C(candidate_race) + C(interviewer_gender) + C(interviewer_level) + interviewer_experience_years + C(interview_difficulty_level) + C(interview_time_of_day) + C(interview_day_of_week)`. Sample=2,512. Categorical levels with frequency <25 are merged into an “Other” category. Uses HC3 robust standard errors.
+- Sub-standard 2.1.A.2 [Precision | 4 points] Replicates coefficients (tolerance ±0.03): C(company_group)[FAANG]=−0.055 (p=0.747), [Unicorn]=−0.195 (p=0.150), [Other]=−0.228 (p=0.095). Also reports significant control variables: C(interviewer_gender)[Male]=−0.419 (p=7.5e-06), C(interview_day_of_week)[Sunday]=+0.415 (p=0.0046). Model R²=0.064 (Adj R²=0.047).
+- Sub-standard 2.1.A.3 [Conclusion | 1 point] Explains that after controlling for education/experience, BigTech remains the highest-scoring reference group. Other background coefficients show a moderate negative trend but are not significant. Structural differences due to interviewer gender and Sunday interviews are more significant.
+
+#### Path 2.1.B [6 points | Job & Location Fixed Effects]
+
+- Sub-standard 2.1.B.1 [Completeness | 1 point] Adds `C(location) + C(job_title)` fixed effects to the model in 2.1.A, with all other settings unchanged.
+- Sub-standard 2.1.B.2 [Precision | 4 points] Replicates FE model results: C(company_group)[FAANG]=−0.046 (p=0.808), [Unicorn]=−0.235 (p=0.100), [Other]=−0.353 (p=0.014); R²=0.140, Adj R²=0.105; C(interviewer_gender)[Male]=−0.366 (p=0.00022).
+- Sub-standard 2.1.B.3 [Conclusion | 1 point] Concludes that adding job/location FE increases R² by approximately 0.076. The negative difference for the 'Other' group compared to 'BigTech' becomes significant, suggesting that job/location distribution explains a substantial portion of the original mean difference.
+
+### Standard 2.2: Binary Models for Hiring/Offer Outcome (Max 6 points; choose one)
+
+#### Path 2.2.A [6 points | Logit: stage_hired]
+
+- Sub-standard 2.2.A.1 [Completeness | 1 point] Model: `stage_hired ~ avg_technical_score + avg_comm_score + avg_problem_solving_score + pos_rec_rate + C(company_group, reference='BigTech') + C(education_level) + C(university_tier) + gpa + years_of_experience + skill_count + C(candidate_gender) + C(candidate_race)`. Sample=964 (application-level). Categorical levels with frequency <20 are merged into “Other”.
+- Sub-standard 2.2.A.2 [Precision | 4 points] Replicates: C(company_group)[FAANG]=0.924 (OR=2.52, p=0.060), [Unicorn]=0.634 (OR=1.89, p=0.142), [Other]=0.350 (OR=1.42, p=0.425); `avg_technical_score`=0.105 (OR=1.11, p=0.381), `avg_comm_score`=0.091 (OR=1.10, p=0.434); Pseudo-R²=0.0385.
+- Sub-standard 2.2.A.3 [Conclusion | 1 point] States that after controlling for actual performance, FAANG candidates have a hiring probability approximately 2.5 times that of BigTech candidates, and this effect is borderline significant. Neither average technical nor communication scores are significant in the model, suggesting the presence of additional preference factors.
+
+#### Path 2.2.B [6 points | Hired Rate by Score Bins]
+
+- Sub-standard 2.2.B.1 [Completeness | 1 point] Bins application-level `avg_technical_score` into: ≤4, 4–6, 6–7.5, 7.5–8.5, >8.5 (each bin with ≥7 samples). Compares the mean `stage_hired` rate for each background and provides pairwise z-tests.
+- Sub-standard 2.2.B.2 [Precision | 4 points] Replicates key bins (tolerance ±0.03):
+    *   4–6 bin: BigTech 0.129 (4/31), FAANG 0.174 (4/23), Other 0.067 (6/89), Unicorn 0.108 (8/74); BigTech vs FAANG z=−0.46 (p=0.646).
+    *   >8.5 bin: BigTech 0.054 (2/37), FAANG 0.170 (9/53), Other 0.097 (10/103), Unicorn 0.145 (16/110).
+- Sub-standard 2.2.B.3 [Conclusion | 1 point] Explains that hiring differences exist within the same score bands but are unstable: FAANG leads in high-score bands, while the difference is reversed in lower bands. Suggests further clarification is needed considering job roles and decision thresholds.
+
+#### Path 2.2.C [6 points | Multilevel/Mixed Model]
+- Sub-standard 2.2.C.1 … (If chosen, must provide replicable anchors)
+
+———
+
+## Requirement 3: Identify and Quantify Interview Process Biases (Max 12 points)
+
+### Standard 3.1: Threshold/Same-Score Decision Consistency (Max 4 points; choose one)
+
+#### Path 3.1.A [4 points | Interaction Term Threshold Test]
+
+- Sub-standard 3.1.A.1 [Completeness | 1 point] Builds an interview-level Logit model: `pos_rec ~ technical_score + C(company_group, reference='BigTech') + technical_score*C(company_group, reference='BigTech') + C(candidate_gender) + C(candidate_race) + C(interviewer_gender) + C(interviewer_level) + interviewer_experience_years + C(interview_difficulty_level) + C(interview_day_of_week)`. Sample=2,512. Merges categories with frequency <25.
+- Sub-standard 3.1.A.2 [Precision | 2 points] Replicates: `technical_score`=1.775 (OR=5.90, p<1e-14); `C(company_group)[FAANG]`=−3.846 (p=0.127); interaction `technical_score:FAANG`=+0.617 (p=0.105); C(candidate_gender)[Male]=1.837 (OR=6.28, p=0.0041); C(candidate_gender)[Non-binary]=−0.726 (OR=0.484, p=0.132). Max deviance residual=3.83, Pseudo-R²=0.721.
+- Sub-standard 3.1.A.3 [Conclusion | 1 point] States that no significant difference in the “technical score slope” by company background was found, but male candidates are significantly more likely to receive a positive recommendation. The high model fit suggests quasi-complete separation and should be reviewed alongside threshold analysis.
+
+#### Path 3.1.B [4 points | Binning + Confidence Intervals]
+
+- Sub-standard 3.1.B.1 [Completeness | 1 point] Bins interview-level `technical_score` (≤4, 4–6, 6–7.5, 7.5–8.5, >8.5), calculates the `pos_rec` rate, and outputs the Wilson 95% CI.
+- Sub-standard 3.1.B.2 [Precision | 2 points] Replicates (tolerance ±0.02):
+    *   4–6 bin: BigTech 0.566 (CI [0.433,0.690]), FAANG 0.367 ([0.269,0.477]), Other 0.448 ([0.379,0.519]), Unicorn 0.380 ([0.317,0.449]);
+    *   6–7.5 bin: BigTech 0.737, FAANG 0.833, Other 0.885, Unicorn 0.947;
+    *   7.5–8.5 bin all ≈1.00; >8.5 bin: BigTech 0.971, FAANG 0.992, Other 0.997, Unicorn 0.991.
+- Sub-standard 3.1.B.3 [Conclusion | 1 point] Points out that in the low-score bin, the recommendation rate for BigTech is significantly higher than for FAANG (diff ≈0.20, z≈2.25), while all groups converge at high scores. Recommends setting a unified review threshold for low-scoring interviews.
+
+### Standard 3.2: Process Allocation Bias (Difficulty/Time Slot) (Max 4 points; choose one)
+
+#### Path 3.2.A [4 points | Chi-Squared Distribution Test]
+
+- Sub-standard 3.2.A.1 [Completeness | 1 point] Constructs contingency tables: company_group × interview_difficulty_level (Easy/Medium/Hard) and company_group × interview_time_of_day (Morning/Midday/Afternoon/Evening).
+- Sub-standard 3.2.A.2 [Precision | 2 points] Replicates:
+    *   Difficulty χ²=19.81 (df=6, p=0.00299); Distribution (Easy/Hard/Medium): BigTech 53/56/163, FAANG 69/40/231, Unicorn 196/212/542, Other 200/181/569.
+    *   Time Slot χ²=12.22 (df=9, p=0.201); Time Slot % (Afternoon/Evening/Midday/Morning): BigTech 21.3%/59.2%/6.3%/13.2%, FAANG 14.7%/60.0%/10.9%/14.4%, Unicorn 14.4%/63.7%/8.7%/13.2%, Other 14.8%/62.2%/9.0%/14.0%.
+- Sub-standard 3.2.A.3 [Conclusion | 1 point] Concludes that interview difficulty allocation is significantly different (Unicorn/Other candidates are more often assigned Hard interviews), while time slot allocation is not significantly different. Recommends adding fairness constraints to interview difficulty scheduling.
+
+### Standard 3.3: Interviewer and Demographic Bias Diagnosis (Max 4 points; choose one)
+
+#### Path 3.3.A [4 points | Interview-level Logit (Scores → Recommendation)]
+
+- Sub-standard 3.3.A.1 [Completeness | 1 point] Model: `pos_rec ~ technical_score + communication_score + problem_solving_score + C(candidate_gender) + C(candidate_race) + C(interviewer_gender) + C(interviewer_level) + interviewer_experience_years + C(interview_difficulty_level) + C(interview_day_of_week)`. Sample=2,512. Merges categories with frequency <25.
+- Sub-standard 3.3.A.2 [Precision | 2 points] Replicates (coefficient tolerance ±0.05): technical_score=1.109 (OR=3.03, p=1.29e-13), communication_score=1.242 (OR=3.46, p=8.4e-18), problem_solving_score=0.760 (OR=2.14, p=7.9e-08); C(candidate_gender)[Male]=2.529 (OR=12.54, p=2.9e-04), [Non-binary]=−0.864 (OR=0.421, p=0.117); C(candidate_race)[Native American]=−1.690 (OR=0.184, p=0.0277); C(interviewer_gender)[Male]=−0.586 (OR=0.556, p=0.0543); C(interviewer_level)[Director]=−2.697 (OR=0.067, p=1.0e-06); Pseudo-R²=0.792.
+- Sub-standard 3.3.A.3 [Conclusion | 1 point] Points out that while technical/communication/problem-solving scores are significantly positive predictors, male candidates have ~12.5x higher odds of receiving a positive recommendation, and Native American candidates have ~0.18x the odds. Recommends introducing dual-rater or blind reviews and investigating the stringency of senior-level interviewers. Notes the high model fit and advises monitoring for quasi-separation risk.
+
+#### Path 3.3.C [4 points | Residual Fairness/AIR]
+
+- Sub-standard 3.3.C.1 [Completeness | 1 point] Uses predicted values `p_hat` from the 2.2.A Logit model to calculate residuals `stage_hired - p_hat`. Computes the average residual for each company background group and also calculates `AIR = min(group_hire_rate) / max(group_hire_rate)`.
+- Sub-standard 3.3.C.2 [Precision | 2 points] Replicates: Average residuals (FAANG=+2.89e-18, BigTech=−3.04e-17, Unicorn=−1.76e-17, Other=−1.39e-17) are close to 0. Hired rates: FAANG=0.152, BigTech=0.060, Unicorn=0.112, Other=0.087; AIR=0.397 (<0.8).
+- Sub-standard 3.3.C.3 [Conclusion | 1 point] Concludes that model residuals do not show systemic error, but an AIR below 0.8 indicates significant adverse impact against the BigTech background group. Recommends incorporating this into fairness monitoring and review processes for hiring decisions.

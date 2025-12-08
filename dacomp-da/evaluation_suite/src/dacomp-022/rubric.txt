@@ -1,0 +1,27 @@
+# [Total Score | 14 points] The solution needs to meet the following three core requirements:
+- Requirement 1: Impact of Vehicle Type on earnings and recommendations
+- Requirement 2: Impact of service quality rating on earnings and recommendations
+- Requirement 3: Impact of other dimensions on earnings and recommendations
+---
+## Requirement 1: Impact of Vehicle Type on earnings and recommendations (Maximum 5 points for this requirement)
+### Criterion 1.1: Earnings analysis by the Vehicle Type dimension
+#### Path 1.1.A [5 points | Per-kilometer fare analysis method]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Calculate per-kilometer ride fare by Vehicle Type and provide corresponding strategies
+- Sub-criterion 1.1.A.2 [3 points | Accuracy]: The per-kilometer ride fare is calculated correctly (total ride fare / total ride distance); Note: when calculating, you need to filter rows where Booking Value is "completed". The average per-kilometer ride fare for the Go Sedan Vehicle Type is **34.66**.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: Recommend choosing the Go Sedan Vehicle Type; Auto and Bike can also be recommended.
+---
+## Requirement 2: Impact of service quality rating on earnings and recommendations (Maximum 5 points for this requirement)
+### Criterion 2.1: Earnings analysis by the service quality rating dimension
+#### Path 2.1.A [5 points | Correlation analysis method]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: Compute the correlation between service quality rating and per-kilometer ride fare, and provide corresponding strategies
+- Sub-criterion 2.1.A.2 [1 point | Accuracy]: The per-kilometer ride fare is calculated correctly (total ride fare / total ride distance); Note: when calculating, you need to filter rows where Booking Value is "completed".
+- Sub-criterion 2.1.A.3 [2 points | Conclusion]: Service quality rating and earnings are not simply directly proportional; both the high-rating band and the low-rating band have relatively high earnings, with the mid-rating band the lowest
+- Sub-criterion 2.1.A.4 [1 point | Conclusion]: Recommend maintaining the high-rating band as much as possible
+---
+## Requirement 3: Impact of other dimensions on earnings and recommendations (Maximum 4 points for this requirement)
+### Criterion 3.1: Multi-dimensional joint analysis
+#### Path 3.1.A [4 points | Multi-dimensional analysis method]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Compute the correlation between the driving time period and per-kilometer ride fare, and provide corresponding strategies. Analyses by hour, morning and evening peak periods, or daytime vs nighttime are all acceptable.
+- Sub-criterion 3.1.A.2 [1 point | Completeness]: Compute the correlation between operating region and per-kilometer ride fare, and provide corresponding strategies.
+- Sub-criterion 3.1.A.3 [1 point | Completeness]: Compute the correlation between ride distance (short-haul vs long-haul) and per-kilometer ride fare, and provide corresponding strategies.
+- Sub-criterion 3.1.A.4 [2 points | Completeness]: Compute the correlation between combinations of multiple dimensions and per-kilometer ride fare, and provide corresponding strategies. You may select certain dimension combinations to compute correlation with earnings.

@@ -1,0 +1,123 @@
+# [Total Score | 48 points] Job Value Re-evaluation Scoring Rubric (Tier 1/2, High/Very High Competition)
+
+  - Requirement 1: Data Scoping and Core Metric Calculation
+  - Requirement 2: Identification of Output Mismatch for High/Very High Competition Job Profiles
+  - Requirement 3: Diagnosis of Work Characteristic Differences and Input-Output Imbalance
+  - Requirement 4: Job Value Re-evaluation Report, Redeployment Suggestions, and Prioritization
+
+  ———
+
+  ## Requirement 1: Data Scoping and Core Metric Calculation (Up to 12 points)
+
+  ### Standard 1.1: Sample Filtering and Field Definitions (Up to 6 points)
+
+  #### Path 1.1.A | Tier 1/2 Sample Filtering + Field Verification
+  - Sub-standard 1.1.A.1 (Completeness | 1 pt): Clearly state that only workday__job_overview is used, filtering for job_value_tier IN {'Tier 1', 'Tier 2'}, and list the fields required for subsequent analysis (active_positions_count, current_employees_count, high_performer_percentage, career_growth_potential_percentage, job_health_score, avg_career_development_score, talent_competition_level, avg_weekly_hours, is_work_shift_required, retention_difficulty_level). No additional cleaning or assumptions are permitted.
+  - Sub-standard 1.1.A.2 (Accuracy | 4 pts): Verify the sample size and baseline definitions: total number of job profiles = 900 (tolerance ±1); the count of records where active_positions_count=0 must be 0. Output the overall averages: avg_saturation ≈ 0.7186, avg_tqi ≈ 0.0624, avg_job_health ≈ 70.8101, avg_career_development ≈ 3.2197, avg_weekly_hours ≈ 42.8708 (tolerance ≤0.5%). State that percentage fields are kept on a 0–1 scale.
+  - Sub-standard 1.1.A.3 (Conclusion | 1 pt): Declare that this sample definition will be used for all subsequent metrics and reiterate that "percentage fields are decimals" and "saturation is calculated only when active_positions_count>0".
+
+  #### Path 1.1.B | Competitive Stratification First (including competition level confirmation)
+  - Sub-standard 1.1.B.1 (Completeness | 1 pt): On the Tier 1/2 sample, provide statistics on the talent_competition_level structure, noting that the advanced analysis will only cover High and Very High.
+  - Sub-standard 1.1.B.2 (Accuracy | 4 pts): Report the sample sizes for High and Very High as 349 and 311, respectively (tolerance ≤±1), while verifying the overall avg_saturation ≈ 0.7186 and avg_tqi ≈ 0.0624 remain unchanged. Separately output the average job_health_score for High ≈ 70.0708 and Very High ≈ 75.0759 (tolerance ≤1%), without introducing additional processing.
+  - Sub-standard 1.1.B.3 (Conclusion | 1 pt): Raise the business question that "the Very High group has a higher health score, but output mismatch still needs to be checked," and reaffirm that the data definitions remain consistent.
+
+  ### Standard 1.2: Derived Metrics and Per-Tier Baselines (Up to 6 points)
+
+  #### Path 1.2.A | Per-Job-Profile Calculation of saturation / TQI
+  - Sub-standard 1.2.A.1 (Completeness | 1 pt): For each job profile, generate saturation = current_employees_count / active_positions_count (calculated when the denominator > 0) and tqi = high_performer_percentage × career_growth_potential_percentage.
+  - Sub-standard 1.2.A.2 (Accuracy | 4 pts): Output the averages for Tier 1 and Tier 2: Tier 1 avg_saturation ≈ 0.7207, avg_tqi ≈ 0.0617, avg_weekly_hours ≈ 45.0015; Tier 2 avg_saturation ≈ 0.7168, avg_tqi ≈ 0.0630, avg_weekly_hours ≈ 41.1118 (tolerance ≤0.5%), must be calculated directly from the original fields.
+  - Sub-standard 1.2.A.3 (Conclusion | 1 pt): Explain the operational meaning that Tier 1 is closer to saturation and has higher weekly hours, yet its TQI is slightly lower.
+
+  #### Path 1.2.B | Distributional Property Characterization (Distribution-sensitive perspective)
+  - Sub-standard 1.2.B.1 (Completeness | 1 pt): Provide quantiles (at least P25/P50/P75) or an equivalent density description for saturation and tqi for the combined Tier 1/2 sample.
+  - Sub-standard 1.2.B.2 (Accuracy | 4 pts): Must present median_saturation ≈ 0.7143, median_tqi ≈ 0.0554, and the ranges for saturation [0.000, 1.200] and tqi [0.0050, 0.2709] (tolerance ≤0.01). The description must be consistent with the distribution, with no smoothing assumptions.
+  - Sub-standard 1.2.B.3 (Conclusion | 1 pt): Point out the long-tail characteristics of saturation/talent quality index, providing context for setting "over-saturated/under-staffed" thresholds later.
+
+  ———
+
+  ## Requirement 2: Identification of Output Mismatch for High/Very High Competition Job Profiles (Up to 12 points)
+
+  ### Standard 2.1: Mismatch Identification Method (Up to 6 points)
+
+  #### Path 2.1.A | Quantile Threshold Method (Recommended)
+  - Sub-standard 2.1.A.1 (Completeness | 1 pt): Define combined_output = (job_health_score + avg_career_development_score)/2, and independently find the Q25 for the High and Very High groups respectively.
+  - Sub-standard 2.1.A.2 (Accuracy | 4 pts): Provide the thresholds: High Q25=33.850, Very High Q25=35.6075 (tolerance ≤1%). The total number of mismatched job profiles (combined_output < their respective Q25) is 164, with 86 in High and 78 in Very High (tolerance ≤3%). The result must be consistent with the subset counts.
+  - Sub-standard 2.1.A.3 (Conclusion | 1 pt): Articulate that 'a job profile is considered an output mismatch if it falls into the bottom quartile within its own competition level,' and explain the management implication that high competition does not equate to high output.
+
+  ### Standard 2.2: Feature Comparison of Mismatched Job Profiles (Up to 6 points)
+
+  #### Path 2.2.A | Inter-group Mean Comparison
+  - Sub-standard 2.2.A.1 (Completeness | 1 pt): Compare job_health_score, avg_career_development_score, avg_weekly_hours, is_work_shift_required, retention_difficulty_level, saturation, tqi, and combined_output between the mismatched and non-mismatched sets.
+  - Sub-standard 2.2.A.2 (Accuracy | 4 pts): Must reproduce: Non-mismatched group avg_health ≈ 76.30, avg_cds ≈ 3.207, avg_weekly_hours ≈ 43.59, shift_rate ≈ 18.75%, avg_combined ≈ 39.76; Mismatched group avg_health ≈ 60.71, avg_cds ≈ 3.079, avg_weekly_hours ≈ 44.18, shift_rate ≈ 22.56%, avg_combined ≈ 31.89 (tolerance ≤2%).
+  - Sub-standard 2.2.A.3 (Conclusion | 1 pt): Point out that mismatched positions have higher inputs in terms of hours/shifts/retention difficulty but lower output, and thus need to be prioritized for calibration.
+
+  #### Path 2.2.B | Workload Segmentation
+  - Sub-standard 2.2.B.1 (Completeness | 1 pt): Create cross-segments using avg_weekly_hours>45, whether shift work is required, and retention_difficulty_level≥High, and calculate the mismatch rate for each.
+  - Sub-standard 2.2.B.2 (Accuracy | 4 pts): Reproduce key information: 96 job profiles with >45h and shift=1, of which 28 are mismatched (mismatch rate ≈29.17%); 243 total job profiles with >45h; provide the overall mismatch rate ≈24.85%, and state that this combination is significantly higher than the overall level (tolerance ≤1pp).
+  - Sub-standard 2.2.B.3 (Conclusion | 1 pt): Conclude that "high hours + shift work" is one of the core drivers of mismatch and needs to be included as a governance priority.
+
+  ———
+
+  ## Requirement 3: Diagnosis of Work Characteristic Differences and Input-Output Imbalance (Up to 12 points)
+
+  ### Standard 3.1: Input vs. Output Measurement and Imbalance Identification (Up to 6 points)
+
+  #### Path 3.1.A | Output/Input Ratio (ratio) Method
+  - Sub-standard 3.1.A.1 (Completeness | 1 pt): Define output_input_ratio = combined_output / input_score, where input_score = avg_weekly_hours/40 + 0.5×shift_flag + retention_score (Low=0.25, Medium=0.5, High=0.75, Very High=1.0).
+  - Sub-standard 3.1.A.2 (Accuracy | 4 pts): For the High/Very High subset, provide overall Q25 ≈ 16.817 and Q75 ≈ 23.070 (tolerance ≤1%). There are 165 low-ratio job profiles (ratio < Q25). Provide a statistical comparison: low-ratio group avg_ratio ≈ 14.54, avg_hours ≈ 46.82, shift rate ≈ 67.3%, Very High retention ≈ 80.0%; other groups avg_ratio ≈ 21.77, avg_hours ≈ 42.71, shift rate ≈ 3.84%, Very High retention ≈ 23.4%.
+  - Sub-standard 3.1.A.3 (Conclusion | 1 pt): Explain the structural contradiction of "heavy input, light output" for low-ratio positions and the necessity for governance.
+
+  #### Path 3.1.B | Input Burden - Output Score (imbalance) Method
+  - Sub-standard 3.1.B.1 (Completeness | 1 pt): Construct output_norm = 0.6×(job_health/100) + 0.4×((avg_career_development−1)/4), input_burden = 0.4×saturation + 0.3×(avg_weekly_hours/40) + 0.1×shift_flag + 0.2×retention_score, and imbalance_score = input_burden − output_norm.
+  - Sub-standard 3.1.B.2 (Accuracy | 4 pts): Reproduce overall avg_imbalance ≈ 0.1354, median ≈ 0.1299. For the Top 25 imbalanced job profiles: avg_imbalance ≈ 0.499, avg_weekly_hours ≈ 47.09, shift rate ≈ 84%, Very High retention=100% (tolerance ≤0.01/1pp).
+  - Sub-standard 3.1.B.3 (Conclusion | 1 pt): Explain that the Top 25 are driven by a combination of shift work and 'Very High' retention difficulty, where the input-side burden far exceeds the output.
+
+  #### Path 3.1.C | Saturation × Output Quadrant (Reduce vs Invest)
+  - Sub-standard 3.1.C.1 (Completeness | 1 pt): Using the median of output_norm ≈0.656 as a boundary, define reduce = saturation>1.0 & output_norm<median, and invest = saturation<0.6 & output_norm>median.
+  - Sub-standard 3.1.C.2 (Accuracy | 4 pts): Report 53 'reduce' jobs (avg_sat ≈ 1.117, avg_out ≈ 0.571, avg_tqi ≈ 0.0545), 115 'invest' jobs (avg_sat ≈ 0.406, avg_out ≈ 0.725, avg_tqi ≈ 0.0590), and 492 'other' jobs (tolerance ≤1%).
+  - Sub-standard 3.1.C.3 (Conclusion | 1 pt): Explain the business meaning that 'reduce' jobs need headcount reduction and 'invest' jobs need headcount increase, providing a quantitative basis for redeployment.
+
+  ### Standard 3.2: Pattern Insights and Driving Factors (Up to 6 points)
+
+  #### Path 3.2.A | Correlation Analysis
+  - Sub-standard 3.2.A.1 (Completeness | 1 pt): Provide the correlation coefficients between output_z and tqi, saturation, avg_weekly_hours, shift_flag, Very High retention, as well as the correlation coefficients between imbalance_score and avg_weekly_hours, shift_flag, retention_score.
+  - Sub-standard 3.2.A.2 (Accuracy | 4 pts): Must reproduce corr(output_z, tqi) ≈ -0.011, corr(output_z, saturation) ≈ 0.016, corr(output_z, hours) ≈ -0.035, corr(output_z, shift) ≈ 0.061, corr(output_z, VeryHigh_retention) ≈ 0.119; corr(imbalance, hours) ≈ 0.424, corr(imbalance, shift) ≈ 0.409, corr(imbalance, retention_score) ≈ 0.407 (tolerance ≤0.01).
+  - Sub-standard 3.2.A.3 (Conclusion | 1 pt): Draw the conclusion that "output is weakly correlated with talent quality/saturation, while imbalance is strongly correlated with hours/shifts/retention," identifying the key levers for governance.
+
+  #### Path 3.2.B | Role/Family Concentration
+  - Sub-standard 3.2.B.1 (Completeness | 1 pt): Aggregate the count and average characteristics (hours, shift, retention, saturation, ratio/imbalance) of imbalanced/mismatched samples by job_title or job_family_names.
+  - Sub-standard 3.2.B.2 (Accuracy | 4 pts): Identify typical roles with ≥5 samples: Junior Security Engineer (avg_imb ≈ 0.386, avg_hours ≈ 46.41, shift_rate=100%, Very High retention=100%), DevOps Engineer (avg_imb ≈ 0.248, avg_hours ≈ 47.74, shift_rate=100%, Very High retention=100%), Security Engineer (avg_imb ≈ 0.300, avg_hours ≈ 46.34, shift_rate=100%); also point out that Product Manager (avg_hours ≈ 49.31, shift_rate=0) and Sales Manager (avg_hours ≈ 45.15, shift_rate=0) have significant imbalances.
+  - Sub-standard 3.2.B.3 (Conclusion | 1 pt): Summarize the patterns of the "high-pressure, on-shift zone for Security/DevOps" and the "high-workload zone for Product/Sales", and contrast them with the light-load characteristics of high-ROI roles like HRBP/UX.
+
+  #### Path 3.2.C | Workload Threshold Strategy (Supplementary perspective)
+  - Sub-standard 3.2.C.1 (Completeness | 1 pt): Define a high-load combination (avg_weekly_hours>45, shift_flag=1, retention_difficulty_level≥High) and compare imbalance rates.
+  - Sub-standard 3.2.C.2 (Accuracy | 4 pts): Report that this combination includes 96 job profiles, with a mean imbalance_score ≈ 0.298, and 82.3% exceeding the overall median. They account for 58/165 ≈ 35.2% of the Top 25% imbalanced jobs. Compare this with the overall rate of imbalance>median (50%) and the overall mismatch rate (24.85%).
+  - Sub-standard 3.2.C.3 (Conclusion | 1 pt): Propose strategies for automation, shift optimization, and compensatory time off for the high-load combination, and explain their consistency with the imbalance diagnosis results.
+
+  ———
+
+  ## Requirement 4: Re-evaluation Report, Redeployment Suggestions, and Prioritization (Up to 12 points)
+
+  ### Standard 4.1: Report Structure and Evidentiary Chain (Up to 6 points)
+
+  #### Path 4.1.A | Structured Re-evaluation Report
+  - Sub-standard 4.1.A.1 (Completeness | 1 pt): The report must cover sections on methodology/definitions, sample size, core anchors (Q25/Q75, means, etc.), scale of mismatch and imbalance, role patterns, input/output metrics, redeployment lists, priorities, and KPIs/targets.
+  - Sub-standard 4.1.A.2 (Accuracy | 4 pts): All cited figures must be consistent with verified data: tier_12_jobs=900, high_comp_jobs=660, mismatched=164, ratio Q25/Q75=16.817/23.070, reduce=53, invest=115, correlation coefficients (-0.011/0.016/...), high-load mismatched 28/96, high load>median 82.3%, etc. The job profiles listed must come from actual low-ROI/high-ROI samples (e.g., JP00000242, JP00000247, JP00000740, JP00000652, JP00000366, JP00000204, JP00000154, JP00000515, JP00000225, JP00000344, JP00000180, JP00000699, JP00000207, JP00000209, JP00000422, JP00000451, JP00000200, JP00000447, JP00000468, JP00000276, JP00000290, JP00000267, JP00000788, JP00000437, JP00000432, JP00000606, JP00000633) and be accompanied by saturation, ratio, hours, shift, and retention metrics (e.g., JP00000276 sat≈0.769, ratio≈30.53, hours=38.0, shift=0).
+  - Sub-standard 4.1.A.3 (Conclusion | 1 pt): Formulate the conclusion that "high competition does not equal high output" and "the input side is the key lever," indicating the expected direction for improvement.
+
+  #### Path 4.1.B | Reduce / Invest Dual Lists
+  - Sub-standard 4.1.B.1 (Completeness | 1 pt): Output ≥10 candidates each for the 'reduce' and 'invest' lists, including job_title / job_profile_id / saturation / output_norm or ratio / avg_weekly_hours / shift / retention.
+  - Sub-standard 4.1.B.2 (Accuracy | 4 pts): The 'reduce' list must cover representative job profiles: JP00000242 (sat≈1.059, output_norm≈0.558, ratio≈10.31, hours≈43.2, shift=1, Very High), JP00000247 (1.050,0.621,10.75,47.9,1,Very High), JP00000652 (1.133,0.542,11.42,51.8,1,Very High), JP00000740 (1.111,0.513,11.55,52.3,1,Very High), JP00000860 (1.185,0.544,12.18,46.7,1,Very High), JP00000366 (1.176,0.597,12.52,46.9,1,Very High), JP00000204 (1.136,0.609,12.81,47.9,1,Very High), JP00000154 (1.050,0.512,13.42,45.5,1,Very High), JP00000515 (1.087,0.587,13.69,43.8,1,Very High), JP00000225 (1.031,0.596,14.59,44.4,1,Very High). The 'invest' list must include high-ROI job profiles: JP00000344 (sat=0.500, output_norm≈0.918, ratio≈30.93, hours≈39.1, shift=0, Medium), JP00000180 (0.476,0.739,30.54,39.0,0,Medium), JP00000699 (0.333,0.830,29.81,38.9,0,Medium), JP00000207 (0.543,0.677,29.74,40.1,0,Medium), JP00000209 (0.429,0.742,28.68,35.7,0,Medium), JP00000422 (0.357,0.690,27.90,38.7,0,Medium), JP00000451 (0.528,0.663,27.69,41.6,0,Medium), JP00000200 (0.250,0.670,27.61,38.9,0,Medium), JP00000447 (0.591,0.723,27.52,43.3,0,Medium), JP00000468 (0.500,0.687,26.97,40.5,0,Medium). The overall averages must match the reduce/invest summary table.
+  - Sub-standard 4.1.B.3 (Conclusion | 1 pt): Articulate the resource reallocation significance of the dual lists (freeing up headcount from over-saturated, low-output roles to support the growth of high-ROI roles).
+
+  ### Standard 4.2: Redeployment Prioritization and Execution Path (Up to 6 points)
+
+  #### Path 4.2.A | Quantitative Prioritization + Action Plan
+  - Sub-standard 4.2.A.1 (Completeness | 1 pt): Define a priority_score = 0.6×imbalance + 0.2×retention_score + 0.2×tier_weight (Tier1=1.0, Tier2=0.6) or an equivalent logic, and explain its purpose.
+  - Sub-standard 4.2.A.2 (Accuracy | 4 pts): List high-priority samples: JP00000740 priority≈0.774, imbalance≈0.624, ratio≈11.55, sat≈1.111, hours≈52.3, shift=1; JP00000652 priority≈0.760; JP00000788 priority≈0.751; JP00000267 priority≈0.741; JP00000204 priority≈0.703; JP00000366 priority≈0.715; JP00000154 priority≈0.730; JP00000109 priority≈0.697; JP00000860 priority≈0.748 (tolerance ≤0.01), ensuring consistency with the previously mentioned anchors.
+  - Sub-standard 4.2.A.3 (Conclusion | 1 pt): Break down priorities into tiers such as P1 (on-shift Security/DevOps roles), P2 (overworked but high-potential Product/ML/Data), P3 (high-ROI HRBP/Frontend/UX), and propose phased goals (e.g., within 6 months, reduce avg weekly hours for Security/DevOps to ≤44h, decrease Top 25 imbalance score by ≥30%, increase output_norm for the 'Invest' group by ≥0.05).
+
+  #### Path 4.2.B | Resource Reallocation and KPI Safeguarding
+  - Sub-standard 4.2.B.1 (Completeness | 1 pt): Propose redeployment strategies from the dimensions of downsizing/transfers, adding headcount/outsourcing, automation and process governance, and retention and development projects, and link them to specific job families.
+  - Sub-standard 4.2.B.2 (Accuracy | 4 pts): Strategies must reference verified data: P1 (Very High + shift + high hours) focuses on Security/DevOps (e.g., JP00000290 ratio≈10.54, imbalance≈0.417; JP00000267 ratio≈10.13; JP00000437 ratio≈11.21) to implement shift restructuring and automation; P2 (High hours Product/Data) covers JP00000432 (hours≈48.2, imbalance≈0.288), JP00000606 (hours≈48.0, imbalance≈0.230) to drive project pool convergence; P3 (understaffed, high-output ML/Data) like JP00000633 (ratio≈14.62, imbalance≈0.203) should be supported with assetization/mentorship; P4 (high-ROI HRBP/Frontend/UX) like JP00000344, JP00000180, JP00000699, JP00000207, JP00000451 should be prioritized for resource allocation. All listed metrics must be consistent with previous paths.
+  - Sub-standard 4.2.B.3 (Conclusion | 1 pt): Set quantifiable KPIs (e.g., reduce the shift work rate for 'Very High' retention jobs from the current ≈52.4% to ≤30%, reduce the proportion of imbalanced job profiles from 25.0% to ≤18%, increase the tqi for the 'invest' group by ≥15%), and define a review cadence (bi-weekly/quarterly) to ensure a closed loop.

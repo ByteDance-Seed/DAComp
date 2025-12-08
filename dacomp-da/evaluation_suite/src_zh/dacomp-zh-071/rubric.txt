@@ -1,0 +1,185 @@
+==============================
+一、任务背景（dacomp-071 最终评分标准）
+==============================
+- 数据来源：/Users/bytedance/workspace/dacomp-release/dacomp-da/tasks/dacomp-071/dacomp-071.sqlite，核心表 lever__opportunity_stage_history，辅表 lever__opportunity_enhanced 用于闭环验证。
+- 评分基准：仅接受在上述库上执行的 SQL/Python 结果；所有锚点基于 2025-02-21 重新验证，误差容忍度保持比例类 ±0.005、天数 ±0.5 天、计数 ±1。
+
+# [总分 | 48分] 招聘漏斗效率诊断—评分标准
+
+---
+
+## 需求1：数据准备与阶段指标构建（最高 12分）
+
+### 标准1.1：数据表识别与阶段顺序设定
+
+#### 路径1.1.A [6分 | 业务阶段映射法]
+
+- 小标准1.1.A.1 [1分 | 完备性]：明确使用 lever__opportunity_stage_history（字段：opportunity_id、stage、valid_from、days_in_stage、archive_reason、job_team 等）为主数据，lever__opportunity_enhanced 仅用于校验闭环；给出业务阶段顺序 Application Review→Phone Screening→Technical Assessment→First Interview→Second Interview→Final Interview→Reference Check→Offer Discussion→Background Check→Hired，并标注 rank=1…10。
+- 小标准1.1.A.2 [4分 | 精确性]：按 stage 聚合样本量与平均停留天数，需复现锚点：Application Review 3000/5.92、Phone Screening 1962/9.12、Technical Assessment 1342/44.11、First Interview 768/16.10、Second Interview 460/19.56、Final Interview 224/42.28、Reference Check 83/63.54、Offer Discussion 74/38.54、Background Check 55/39.29、Hired 51/49.90。
+- 小标准1.1.A.3 [1分 | 结论性]：说明采用业务顺序消除 valid_from 倒序导致的阶段错判风险，确认后续推进分析均基于该映射。
+
+#### 路径1.1.B [6分 | 时间窗口 LEAD 法]
+
+- 小标准1.1.B.1 [1分 | 完备性]：声明在每个 opportunity 内按 datetime(valid_from) DESC 排序，并用 LEAD(stage) / LEAD(rank) 捕捉下一阶段。
+- 小标准1.1.B.2 [4分 | 精确性]：复算各 stage 的 samples 与 avg_days，与路径1.1.A 锚点一致；注明必须倒序排序，避免 Application Review 被识别为终态。
+- 小标准1.1.B.3 [1分 | 结论性]：阐明时间倒序窗口能与业务映射互相验证，确保推进链条一致。
+
+#### 路径1.1.C [6分 | 归因标签法]
+
+- 小标准1.1.C.1 [1分 | 完备性]：声明直接使用 stage_history 原始记录，不做额外清洗或补充。
+- 小标准1.1.C.2 [4分 | 精确性]：按 stage 聚合 samples、avg_days，结果需与路径1.1.A 数值一致；如存在差异，需说明筛选或聚合口径。
+- 小标准1.1.C.3 [1分 | 结论性]：说明后续将以 archive_reason 分箱判断通过/流失，与“进入更高阶段”口径不同，应双口径对照。
+
+---
+
+### 标准1.2：阶段核心指标计算
+
+#### 路径1.2.A [6分 | 业务顺序判定×全量口径]
+
+- 小标准1.2.A.1 [1分 | 完备性]：输出包含 stage、rank、samples、avg_days、pass_rate（MAX(rank)>当前rank 占比）、attrition_rate（MAX(rank)=当前rank 且 stage≠Hired）、efficiency_index=pass_rate/avg_days×100 的完整表格。
+- 小标准1.2.A.2 [4分 | 精确性]：锚点需匹配（容差 ±0.005）：Application Review pass=0.6540/attr=0.3460/eff=11.0523；Phone Screening 0.6840/0.3160/7.5039；Technical Assessment 0.5723/0.4277/1.2973；First Interview 0.5990/0.4010/3.7202；Second Interview 0.4870/0.5130/2.4900；Final Interview 0.3705/0.6295/0.8764；Reference Check 0.8916/0.1084/1.4031；Offer Discussion 0.7432/0.2568/1.9285；Background Check 0.9273/0.0727/2.3600；说明 pass/attr CASE 条件与分组方式。
+- 小标准1.2.A.3 [1分 | 结论性]：指出“前段推进率高、后段流失凸显”的漏斗特征，强调后续仅对 samples≥100 的阶段输出结论与建议。
+
+#### 路径1.2.B [6分 | 时间逆序 LEAD 口径]
+
+- 小标准1.2.B.1 [1分 | 完备性]：定义 progressed = next_stage 非空、attrited = next_stage 为空且 stage≠Hired，形成同构指标表。
+- 小标准1.2.B.2 [4分 | 精确性]：各项数值需与路径1.2.A 在容差内重合；明确实现步骤：按 opportunity_id 分区、valid_from 倒序、LEAD 标记下一阶段、再统计比例。
+- 小标准1.2.B.3 [1分 | 结论性]：说明时间窗口法能覆盖时间戳异常，与业务映射口径一致验证。
+
+#### 路径1.2.C [6分 | 归因分类口径]
+
+- 小标准1.2.C.1 [1分 | 完备性]：以归因集合 {Proceeding, Advanced to next stage, Qualified, Hired} 为“通过”，其余视为“流失”，输出 samples、avg_days、pass_rate、drop_rate、efficiency_index。
+- 小标准1.2.C.2 [4分 | 精确性]：关键阶段需满足：Technical Assessment pass≈0.0037/drop≈0.9963/eff≈0.0084；Final Interview pass≈0.0089/drop≈0.9911/eff≈0.0211；其他阶段与路径1.2.A 差异控制在容差内，并说明归因映射与占比计算。
+- 小标准1.2.C.3 [1分 | 结论性]：指出归因视角能揭示拒绝原因但推进率显著降低，需与推进口径结合解读。
+
+#### 路径1.2.D [6分 | 闭环机会口径]
+
+- 小标准1.2.D.1 [1分 | 完备性]：筛选闭环机会（lever__opportunity_enhanced.archived_at 非空或出现 Hired），复用路径1.2.A 指标框架。
+- 小标准1.2.D.2 [4分 | 精确性]：锚点需达成：Application Review samples≈954/pass≈0.6583/attr≈0.3417；Technical Assessment samples≈433/avg≈44.14/pass≈0.6097/attr≈0.3903/eff≈1.3813；Final Interview samples≈106/avg≈41.98/pass≈0.6038/attr≈0.3962/eff≈1.4382；说明闭环判定条件。
+- 小标准1.2.D.3 [1分 | 结论性]：解释闭环仅保留结案样本，数量下降但能验证瓶颈判断。
+
+---
+
+## 需求2：关键瓶颈阶段识别（最高 12分）
+
+### 标准2.1：avg_days>25 且 attrition>40 的阶段
+
+#### 路径2.1.A [6分 | 业务顺序口径]
+
+- 小标准2.1.A.1 [1分 | 完备性]：基于路径1.2.A 指标筛选 avg_days>25 & attrition_rate>0.40。
+- 小标准2.1.A.2 [4分 | 精确性]：仅 Technical Assessment（44.11 天/attr=0.4277/samples=1342）与 Final Interview（42.28 天/attr=0.6295/samples=224）符合；不得出现其他阶段。
+- 小标准2.1.A.3 [1分 | 结论性]：声明两阶段为漏斗瓶颈，原因是“耗时长 + 流失高”。
+
+#### 路径2.1.B [6分 | LEAD 口径]
+
+- 小标准2.1.B.1 [1分 | 完备性]：采用路径1.2.B 的 progressed/attrited 指标重复筛选。
+- 小标准2.1.B.2 [4分 | 精确性]：筛选结果需与路径2.1.A 完全一致；如不一致须说明排序或判定差异。
+- 小标准2.1.B.3 [1分 | 结论性]：确认不同推进口径均锁定 Technical Assessment 与 Final Interview。
+
+#### 路径2.1.C [6分 | 归因分类口径]
+
+- 小标准2.1.C.1 [1分 | 完备性]：在路径1.2.C 指标中筛选 avg_days>25 & drop_rate>0.40（样本≥100）。
+- 小标准2.1.C.2 [4分 | 精确性]：结果仍为 Technical Assessment（drop≈0.9963）与 Final Interview（drop≈0.9911）；Reference Check 虽 drop≈0.7711 但 samples=83，仅记录不纳入结论。
+- 小标准2.1.C.3 [1分 | 结论性]：说明归因视角判定更严苛但结论与推进口径一致。
+
+### 标准2.2：瓶颈阶段支撑性统计
+
+#### 路径2.2.A [6分 | 通过/流失人数]
+
+- 小标准2.2.A.1 [1分 | 完备性]：列示瓶颈阶段的 advanced（progressed）/attrited 计数。
+- 小标准2.2.A.2 [4分 | 精确性]：Technical Assessment advanced≈768、attrited≈574；Final Interview advanced≈83、attrited≈141（容差 ±1）。
+- 小标准2.2.A.3 [1分 | 结论性]：强调高流失直接削弱后段转化，并量化流失规模。
+
+#### 路径2.2.B [6分 | Stage-to-Hire 转化率]
+
+- 小标准2.2.B.1 [1分 | 完备性]：计算 stage_to_hire = AVG(max_rank=10)（样本≥100）并输出对照阶段。
+- 小标准2.2.B.2 [4分 | 精确性]：Technical Assessment≈0.0380、Final Interview≈0.2277，同时给出 First Interview≈0.0664、Second Interview≈0.1109 作为对照；说明计算步骤（按 stage 聚合，比较 MAX(rank)）。
+- 小标准2.2.B.3 [1分 | 结论性]：指出提升瓶颈阶段通过率对录用率提升的杠杆作用。
+
+---
+
+## 需求3：低效率阶段识别（最高 6分）
+
+### 标准3.1：效率指数 <1.5
+
+#### 路径3.1.A [6分 | 业务顺序效率]
+
+- 小标准3.1.A.1 [1分 | 完备性]：基于路径1.2.A 的 efficiency_index 筛选 <1.5（样本≥100）。
+- 小标准3.1.A.2 [4分 | 精确性]：输出 Technical Assessment=1.2973、Final Interview=0.8764；Reference Check=1.4031 仅作观察（samples=83）。
+- 小标准3.1.A.3 [1分 | 结论性]：说明低效率阶段与瓶颈重叠，应优先优化。
+
+#### 路径3.1.B [6分 | 归因效率]
+
+- 小标准3.1.B.1 [1分 | 完备性]：使用路径1.2.C 的效率指数筛选 <1.5（样本≥100）。
+- 小标准3.1.B.2 [4分 | 精确性]：Technical Assessment≈0.0084、Final Interview≈0.0211；Reference Check≈0.3603（samples<100）需标注观察；说明归因结果受标签驱动。
+- 小标准3.1.B.3 [1分 | 结论性]：指出归因口径体现候选标签结果，需与推进指标联读。
+
+#### 路径3.1.C [6分 | 闭环效率]
+
+- 小标准3.1.C.1 [1分 | 完备性]：在闭环样本内复算 efficiency_index 并筛选 <1.5。
+- 小标准3.1.C.2 [4分 | 精确性]：Technical Assessment≈1.3813（samples=433）、Final Interview≈1.4382（samples=106）；说明计算与闭环选取的细节。
+- 小标准3.1.C.3 [1分 | 结论性]：指出即使聚焦结案机会，两阶段仍低效。
+
+---
+
+## 需求4：瓶颈阶段深度诊断（最高 12分）
+
+### 标准4.1：耗时结构与长尾
+
+#### 路径4.1.A [6分 | 通过 vs 流失耗时对比]
+
+- 小标准4.1.A.1 [1分 | 完备性]：分别输出 Technical Assessment、Final Interview 的 avg_days_progressed 与 avg_days_attrited。
+- 小标准4.1.A.2 [4分 | 精确性]：Technical Assessment progressed≈43.48 vs attrited≈44.96；Final Interview progressed≈42.78 vs attrited≈41.99。
+- 小标准4.1.A.3 [1分 | 结论性]：指出 TA 流失者耗时更长（流程摩擦），FI 差异极小（评价口径主导）。
+
+#### 路径4.1.B [6分 | 分位数与长尾占比]
+
+- 小标准4.1.B.1 [1分 | 完备性]：输出 median、P75、P90 及 share_gt_P75、share_gt_P90。
+- 小标准4.1.B.2 [4分 | 精确性]：Technical Assessment median=44、P75=55、P90=70、share_gt_P75≈0.2429、share_gt_P90≈0.0976；Final Interview median=39、P75=50、P90=63、share_gt_P75≈0.2500、share_gt_P90≈0.0848；说明分位数取 nearest-rank，长尾占比以条件计数实现。
+- 小标准4.1.B.3 [1分 | 结论性]：指出两阶段长尾样本占比高，需设定 SLA 与排期优化。
+
+#### 路径4.1.C [6分 | 时长分桶流失率]
+
+- 小标准4.1.C.1 [1分 | 完备性]：按 0–14、15–30、31–45、46–60、61+ 天分桶并计算 attrition/drop。
+- 小标准4.1.C.2 [4分 | 精确性]：Technical Assessment attr≈{0.370,0.407,0.410,0.453,0.451}；Final Interview attr≈{0.600,0.614,0.642,0.585,0.704}（对应桶序）；明确分桶逻辑与 attrited 判定。
+- 小标准4.1.C.3 [1分 | 结论性]：说明时长越长流失越高，支撑压缩排期、提升批改速度。
+
+### 标准4.2：流失归因与团队差异
+
+#### 路径4.2.A [6分 | 最终停留归因 Top]
+
+- 小标准4.2.A.1 [1分 | 完备性]：统计“最终停在该阶段且未进入下一阶段”的 archive_reason Top3。
+- 小标准4.2.A.2 [4分 | 精确性]：Technical Assessment：Failed technical assessment≈314、Technical skills insufficient≈198、Coding challenge failed≈51；Final Interview：Cultural fit concerns≈95、Interview performance below expectations≈35、Better candidate selected≈10。
+- 小标准4.2.A.3 [1分 | 结论性]：总结 TA 主要因技术能力不足，FI 聚焦文化契合/面试表现。
+
+#### 路径4.2.B [6分 | 团队维度拆解]
+
+- 小标准4.2.B.1 [1分 | 完备性]：对 job_team 样本≥20 的组别输出 samples、avg_days、pass_rate、efficiency_index。
+- 小标准4.2.B.2 [4分 | 精确性]：Technical Assessment：Marketing pass≈0.5079/eff≈1.1218、Engineering pass≈0.5482/eff≈1.2561、Data pass≈0.6207/eff≈1.4273 等；Final Interview：Data pass≈0.2273/eff≈0.5747、Marketing pass≈0.3056/eff≈0.6748、Sales pass≈0.3158/eff≈0.8016 等；说明使用 GROUP BY stage, job_team 聚合。
+- 小标准4.2.B.3 [1分 | 结论性]：指出效率偏低的团队优先级，辅助制定定向优化计划。
+
+#### 路径4.2.C [6分 | 全量归因分布]
+
+- 小标准4.2.C.1 [1分 | 完备性]：统计瓶颈阶段全量记录（含非最终）archive_reason Top3。
+- 小标准4.2.C.2 [4分 | 精确性]：Technical Assessment：Failed technical assessment≈758、Technical skills insufficient≈440、Coding challenge failed≈128；Final Interview：Cultural fit concerns≈148、Interview performance below expectations≈56、Better candidate selected≈17。
+- 小标准4.2.C.3 [1分 | 结论性]：说明全量视角可指导题库分层、面试官辅导与文化面环节优化。
+
+---
+
+## 需求5：改进建议（最高 6分）
+
+### 标准5.1：数据驱动的阶段改进方案
+
+#### 路径5.1.A [6分 | 阶段差异化举措]
+
+- 小标准5.1.A.1 [1分 | 完备性]：分别针对 Technical Assessment 与 Final Interview 提出 ≥3 条可执行行动（限 samples≥100 阶段）。
+- 小标准5.1.A.2 [4分 | 精确性]：举措需与数据吻合，例如：TA（avg_days=44.11、attr=0.4277、share_gt_P75=0.2429）→前置技术短测、题库分层、批改 SLA≤7 天、自动提醒/批改、候选准备指引，目标设定 avg_days≤30、pass_rate≥0.62、efficiency≥1.8；FI（attr=0.6295、Cultural fit concerns=95、share_gt_P90=0.0848）→结构化文化面、终面 48h 决策、Panel 排期保障、面试官校准、薪酬期望预沟通，目标 avg_days≤25、pass_rate≥0.45、efficiency≥1.8。
+- 小标准5.1.A.3 [1分 | 结论性]：说明预期收益与监控方式（阶段 SLA 看板、stage_to_hire、share_gt_P75 等指标闭环）。
+
+#### 路径5.1.B [6分 | 治理与监控体系]
+
+- 小标准5.1.B.1 [1分 | 完备性]：提出覆盖 TA & FI 的治理框架（SLA 设定、产能配置、候选体验管理、指标看板）。
+- 小标准5.1.B.2 [4分 | 精确性]：细化阈值：TA 发题≤24h、提交≤7天、批改≤72h；FI 排期≤7天、决策≤48h；持续监控 avg_days、share_gt_P75、attrited_cnt、stage_to_hire、Cultural fit concerns 占比等。
+- 小标准5.1.B.3 [1分 | 结论性]：说明实施节奏（如 6–8 周试点→季度复盘）、效率指数目标（≥1.8）与持续迭代机制。
+
+---

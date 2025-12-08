@@ -1,0 +1,1 @@
+基于 klaviyo__campaigns 与 klaviyo__persons 的行为数据，围绕邮件投放时机与主题的组合效果，设计一套分析来评估不同发送时间窗口（明确分为：①工作日 vs 周末，②上午（0–12 点）vs 下午（12–24 点），③节假日前 3 天 vs 节假日后 3 天）与主题文案（subject 的关键词分组：折扣相关/新品上新/故事化叙事）的交互对 打开率（open_rate）、点击率（click_rate） 与 后续活跃留存（active_retention_rate_week、active_retention_rate_month） 的影响

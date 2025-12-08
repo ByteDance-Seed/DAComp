@@ -1,0 +1,116 @@
+# [Total Score | 38 points] Employee Value and Risk Assessment System Scoring Rubric
+---
+## Requirement 1: Define Core Employees and Conduct Multi-dimensional Profiling (Up to 9 points)
+### Criterion 1.1: Core Employee Definition and Median Calculation (Up to 4 points)
+#### Path 1.1.A【4 points｜Whole-table Median Method (Recommended)】
+- Sub-criterion 1.1.A.1｜Completeness: States that core employees are defined as having `overall_employee_score > 75` and a `career_development_score` strictly greater than the whole-table median of 78.495664 (calculated from all 156,205 rows without deduplication).
+- Sub-criterion 1.1.A.2｜Accuracy: Provides the median of 78.495664 (tolerance ±0.001), which filters to 29,438 core employees (tolerance ±10 employees), accounting for 18.8457% of the total (tolerance ±0.2pp). Must provide SQL or an equivalent verifiable process.
+- Sub-criterion 1.1.A.3｜Conclusion: Reiterates the 'core employee = high overall score + high development' definition and clearly states that all subsequent core analysis is based on this sample of 29,438 individuals.
+
+### Criterion 1.2: Multi-dimensional Profiling of Core Employees (Up to 5 points)
+#### Path 1.2.A【5 points｜Numerical Profiling】
+- Sub-criterion 1.2.A.1｜Completeness: Covers the mean values for six metrics (age, tenure, total positions held, total promotions, lateral moves, management positions held), plus the percentage with management experience.
+- Sub-criterion 1.2.A.2｜Accuracy: Mean values are: age 47.7541, tenure 6.2766, positions 3.4103, promotions 1.4749, lateral moves 0.9354, management positions 0.3760 (all with tolerance ±0.05), and the percentage with management experience is 24.937% (tolerance ±1pp).
+- Sub-criterion 1.2.A.3｜Conclusion: Summarizes insights that core employees are characterized as 'more senior (+10 years in age), have longer tenure (+1.21 years), double the promotions, and a quarter have management experience.'
+
+#### Path 1.2.B【5 points｜Categorical Profiling】
+- Sub-criterion 1.2.B.1｜Completeness: Covers the structural breakdown of at least three of the four categories: marital status, ethnicity, career phase, and maturity segment.
+- Sub-criterion 1.2.B.2｜Accuracy: Benchmark percentages (tolerance ±1pp): Marital Status: Married 71.42%, Single 14.59%, Divorced 12.46%, Widowed 1.54%; Ethnicity: White 40.75%, Asian 34.76%, Hispanic 10.72%, Black 8.40%, Mixed 3.04%, Other 2.32%; `career_phase`: Senior 64.17%, Mid 21.33%, Early 14.50%; `employee_maturity_segment`: Established 42.03%, Veteran 30.74%, Developing 20.42%, New Hire 6.80%.
+- Sub-criterion 1.2.B.3｜Conclusion: Points out that 'core members are predominantly married and in senior career phases, with White/Asian ethnicities being dominant, and maturity concentrated in Established/Veteran segments.'
+
+#### Path 1.2.C【5 points｜Core vs. Overall Comparison】
+- Sub-criterion 1.2.C.1｜Completeness: Compares at least three metrics (e.g., age, tenure, number of promotions) and explains the basis for calculating the overall population means (direct aggregation from the entire table, no deduplication).
+- Sub-criterion 1.2.C.2｜Accuracy: Overall population mean benchmarks: age 37.7421, tenure 5.0659, promotions 0.8120 (tolerance ±0.05). Must provide the difference between core and overall (e.g., age +10.01 years, tenure +1.21 years, promotions +0.66 times).
+- Sub-criterion 1.2.C.3｜Conclusion: Extracts the relative advantages of core employees (more experienced, faster promotions, moderate cross-functional movement) and points out that this group represents the business pillars, possessing both experience and potential.
+
+---
+## Requirement 2: Risk Distribution of Core Employees and Association with Organizational Environment (Up to 12 points)
+### Criterion 2.1: High-Risk Distribution by Career Phase × Maturity Segment (Up to 4 points)
+#### Path 2.1.A【4 points｜Cross-tabulation Method】
+- Sub-criterion 2.1.A.1｜Completeness: Lists a table of `core_n / high_n / high_pct` for all Career Phase × Maturity Segment combinations.
+- Sub-criterion 2.1.A.2｜Accuracy: Key benchmarks (tolerance ±0.1pp): Early-New Hire 2003/129/6.4403%; Senior-Veteran 9050/258/2.8508%; Early-Developing 0.1325%; Mid-Developing/Established 0%; Senior-Established 0.4072%; Senior-Developing 0.4450%.
+- Sub-criterion 2.1.A.3｜Conclusion: Explains the bimodal risk pattern of 'early-career new hires' and 'senior veterans,' linking it to potential causes like onboarding and recognition.
+
+#### Path 2.1.B【4 points｜Relative Risk Lift Method】
+- Sub-criterion 2.1.B.1｜Completeness: Calculates `risk_lift = group_high_pct / 1.4641%` (the overall high-risk rate for core employees).
+- Sub-criterion 2.1.B.2｜Accuracy: Provides risk lifts for Early-New Hire at 4.3989x and Senior-Veteran at 1.9472x, with other combinations being ≤0.31x. Must provide the formula or SQL snippet.
+- Sub-criterion 2.1.B.3｜Conclusion: Explains the business implications of high-lift combinations (e.g., Early-New Hire requires enhanced mentorship; Senior-Veteran focus should be on expert tracks and honorary incentives).
+
+### Criterion 2.2: Environmental Differences Between High-Risk vs. Non-High-Risk Core Employees (Up to 4 points)
+#### Path 2.2.A【4 points｜Mean Comparison】
+- Sub-criterion 2.2.A.1｜Completeness: Compares four metrics: `work_conditions_score`, `dept_turnover_rate`, `dept_management_ratio`, `dept_health_score`.
+- Sub-criterion 2.2.A.2｜Accuracy: High-risk vs. non-high-risk mean benchmarks (tolerances: scores ±0.05, ratios ±0.005): work conditions 6.5986 vs. 6.8220; department health 49.1949 vs. 53.3231; department turnover 0.1480 vs. 0.1615; management ratio ≈0 (must note that the data is close to zero).
+- Sub-criterion 2.2.A.3｜Conclusion: Points out that high-risk core employees are in poorer work conditions and lower-health teams; the turnover rate difference is not significant, but department health lags noticeably.
+
+#### Path 2.2.B【4 points｜Binned Robustness Analysis】
+- Sub-criterion 2.2.B.1｜Completeness: Performs a segmented comparison on binned `work_conditions_score` (≤6 / 7-8 / ≥9) and `dept_health_score` (<41 / 41-50 / 51-60 / >60).
+- Sub-criterion 2.2.B.2｜Accuracy: Key percentages (tolerance ±2pp): For work conditions ≤6, high-risk is 57.08%, non-high-risk is 41.02%; for work conditions ≥9, high-risk is 13.92%. Within the 41-50 health score bin, high-risk is 57.31%, non-high-risk is 26.93%.
+- Sub-criterion 2.2.B.3｜Conclusion: Emphasizes that the conclusion holds under binning, identifying 'poor work conditions and declining department health' as the primary exposure variables.
+
+### Criterion 2.3: Compensation and Organizational Distribution Differences (Up to 4 points)
+#### Path 2.3.A【4 points｜Compensation Distribution and Lift】
+- Sub-criterion 2.3.A.1｜Completeness: For each `compensation_tier`, outputs the high-risk percentage, overall core employee percentage, and the lift.
+- Sub-criterion 2.3.A.2｜Accuracy: Benchmarks (tolerance ±1pp): High-risk distribution: T1 47.56%, T2 40.14%, T3 11.14%, T4 1.16%. Overall core distribution: T2 52.33%, T1 31.92%, T3 9.60%, T4 5.04%, T5 1.11%. Lifts: T1=1.4899, T2=0.7671, T3=1.1605, T4=0.2301.
+- Sub-criterion 2.3.A.3｜Conclusion: Points out that the low-compensation T1 tier is the most concentrated 'structural minefield' for high-risk core employees and that calibration of compensation and development pace should be prioritized.
+
+#### Path 2.3.B【4 points｜Concentration by Organization Type/Sub-type】
+- Sub-criterion 2.3.B.1｜Completeness: Provides the percentage and lift for `organization_type` and the TOP high-risk sub-types.
+- Sub-criterion 2.3.B.2｜Accuracy: Type benchmarks (tolerance ±1pp): Business Unit 43.62%, Support Function 29.23%, Engineering 27.15%, with lifts of approx. 1.03/1.01/0.95 respectively. Top 3 sub-types: Quality Assurance 14.15% (lift 4.3536), Customer Operations 31.09% (lift 2.7199), Human Resources 19.03% (lift 2.7175).
+- Sub-criterion 2.3.B.3｜Conclusion: Pinpoints QA/Customer Ops/HR as business lines with high-risk concentration, suggesting that improvements should start from the organizational experience in these areas.
+
+---
+## Requirement 3: Identify High-Value Attrition Risk Employees and Analyze Their Characteristics (Up to 7 points)
+### Criterion 3.1: Set of High-Value Attrition Risk Employees (Up to 3 points)
+#### Path 3.1.A【3 points｜Direct Filtering】
+- Sub-criterion 3.1.A.1｜Completeness: Defines the set as `retention_stability_score < 60` and `overall_employee_score > 80`, based on the entire population.
+- Sub-criterion 3.1.A.2｜Accuracy: The set size is 4,706 people, representing 3.0127% of the total (tolerance ±0.1pp). Mean values: work conditions 6.4258, department health 54.7431, department turnover rate 0.1565 (tolerances: scores ±0.05, ratios ±0.005).
+- Sub-criterion 3.1.A.3｜Conclusion: States that this group performs excellently but has low stability and should be flagged as a 'high-value attrition risk' priority list.
+
+#### Path 3.1.B【3 points｜Threshold Sensitivity】
+- Sub-criterion 3.1.B.1｜Completeness: Tests at least two threshold variations (e.g., `overall_employee_score > 85`, `retention_stability_score < 55`), keeping the other main condition constant.
+- Sub-criterion 3.1.B.2｜Accuracy: Benchmark results: `overall_employee_score > 85` → 4,472 people; `retention_stability_score < 55` → 2,828 people. Must state that the calculation is verifiable.
+- Sub-criterion 3.1.B.3｜Conclusion: Compares the sample size reduction and explains the business rationale for ultimately choosing 80/60 (to cover critical talent while considering resource capacity).
+
+### Criterion 3.2: Value Segmentation and Work Condition Characteristics (Up to 4 points)
+#### Path 3.2.A【4 points｜Value Segmentation + Condition Distribution】
+- Sub-criterion 3.2.A.1｜Completeness: Outputs the distribution for `employee_value_segment`, `is_work_shift_required`, and `is_union_eligible`.
+- Sub-criterion 3.2.A.2｜Accuracy: Benchmarks (tolerance ±1pp): Value Segments: Developing-Moderate Risk 48.90%, High Value-Stable 20.31%, Developing-Stable 17.28%, Standard Performer 11.73%, High Value-Flight Risk 1.76%; Shift Required: Yes 22.27%/No 77.73%; Union Eligible: Yes 38.59%/No 61.41%.
+- Sub-criterion 3.2.A.3｜Conclusion: Points out that the target group is concentrated in the 'Developing-needs support' and 'High Value-Stable' segments, and that shift/union attributes will determine the intervention methods (e.g., shift rota adjustments, union communication).
+
+#### Path 3.2.B【4 points｜Comparison with Overall Population】
+- Sub-criterion 3.2.B.1｜Completeness: Compares the high-value risk group with the entire employee population in terms of shift work, union eligibility, and compensation tiers.
+- Sub-criterion 3.2.B.2｜Accuracy: Overall population benchmarks: Shift Required Yes 23.0761%, Union Eligible Yes 36.3445%; Compensation distribution: T1 45.83%, T2 44.41%, T3 6.31%, T4 2.91%, T5 0.54% (tolerance ±1pp). Must show the difference or lift between the two groups (e.g., HV group T1 share +8.44pp).
+- Sub-criterion 3.2.B.3｜Conclusion: Explains that the HV group has higher union coverage, slightly lower shift work, and a higher concentration in low compensation tiers, inferring a need for flexible compensation/shift strategies to retain key talent.
+
+---
+## Requirement 4: Tiered Strategy Matrix and Departmental Priority Recommendations (Up to 10 points)
+### Criterion 4.1: Tiered Retention and Development Strategy Matrix (Up to 5 points)
+#### Path 4.1.A【5 points｜Three-Dimensional Matrix Strategy (Management Level × Department Performance × Organization Sub-Type)】
+- Sub-criterion 4.1.A.1｜Completeness: Covers at least a 3×3×3 matrix of key cells. Recommends using Level 0/Level 1/Level 2+ × Needs Improvement/Average/Good × QA/HR/Customer Ops/Engineering/Finance sub-types.
+- Sub-criterion 4.1.A.2｜Accuracy: Strategies must be anchored to real data points, e.g., Level 0 × Needs Improvement × Quality Assurance → core=318, high_risk=55, rate=17.2956%, avg work conditions 7.58, dept health 47.79; Level 0 × Needs Improvement × Human Resources → 741/57/7.6923%, work conditions 7.00, health 49.21; Level 0 × Needs Improvement × Customer Operations → 2424/134/5.5281%, work conditions 6.52, health 42.92. Each strategy must outline: problem → action → expected outcome metric (e.g., `work_conditions_score` +0.5, health +5).
+- Sub-criterion 4.1.A.3｜Conclusion: Forms a list of ≥6 actionable strategies, prioritized, with quantitative targets and recommended ownership (e.g., reduce the high-risk rate in QA to below 10% within the quarter).
+
+#### Path 4.1.B【5 points｜Career Phase × Maturity Segment Driven Strategy】
+- Sub-criterion 4.1.B.1｜Completeness: Designs at least 3 tiered plans based on the bimodal risk pattern (Early-New Hire, Senior-Veteran, Others).
+- Sub-criterion 4.1.B.2｜Accuracy: Strategies must align with data: Early-New Hire 2003/129/6.4403% (lift 4.40) → Focus on mentorship, key task pairing; Senior-Veteran 9050/258/2.8508% (lift 1.95) → Strengthen expert tracks, recognition incentives; Other combinations with high-risk ≤0.45% → Maintain standard operations, monitor skill rotation. Must specify quantitative metrics (e.g., 90-day retention rate, number of recognitions).
+- Sub-criterion 4.1.B.3｜Conclusion: Clearly defines the target window (probationary period/half-year/annual) and success measurement for each strategy to ensure a closed action loop.
+
+### Criterion 4.2: Departmental Priority Ranking and Expected Impact (Up to 5 points)
+#### Path 4.2.A【5 points｜Weighted Scoring Method】
+- Sub-criterion 4.2.A.1｜Completeness: Defines `Priority = 0.4·norm(high_cnt) + 0.3·norm(high_rate) + 0.2·norm(turnover) + 0.1·norm(health_gap)`. Explains that normalization uses min-max scaling within departments, and `health_gap = (max_health - dept_health)/(max_health - min_health)`.
+- Sub-criterion 4.2.A.2｜Accuracy: Outputs the TOP 5 departments and their metrics (tolerances: rate ±0.1pp, health ±1, turnover ±0.01, Priority ±0.02):
+  1. R&D Center: core=2039, high_risk=92, high_risk_rate=4.512%, health=57.91, turnover=0.1010, priority=0.732
+  2. Human Resources Dept: 1841/68/3.6936%/54.56/0.1521/0.659
+  3. Quality Assurance Dept: 1178/55/4.6689%/56.38/0.1277/0.623
+  4. Customer Service Dept: 3156/50/1.5843%/46.44/0.2509/0.619
+  5. Finance Department: 1330/57/4.2857%/58.15/0.0804/0.539
+- Sub-criterion 4.2.A.3｜Conclusion: States that the top 6 departments (adding the Marketing Dept with 34 high-risk employees) cover 82.60% of high-risk core employees and estimates the expected impact (e.g., reducing the high-risk rate in priority departments by 1pp would mitigate risk for ~26 individuals, saving on replacement costs, etc.).
+
+#### Path 4.2.B【5 points｜Rule-based Sorting Method】
+- Sub-criterion 4.2.B.1｜Completeness: Proposes a filtering rule independent of the weighted method (e.g., high-risk rate >2% AND department health <55, sorted descending by the number of high-risk employees).
+- Sub-criterion 4.2.B.2｜Accuracy: Lists at least 5 departments that meet the criteria and provides benchmarks for high-risk count, risk rate, health, turnover rate, etc., consistent with the database.
+- Sub-criterion 4.2.B.3｜Conclusion: Formulates a phased implementation plan (Phase 1: QA/HR/R&D, Phase 2: Finance/Customer Service, etc.) and describes the expected impact.
+
+### Criterion 4.3: Consistency Between Strategy and Analytical Conclusions (Up to 1 point)
+#### Path 4.3.A【1 point｜Single Path】
+- Sub-criterion 4.3.A.1｜Conclusion: The strategic plan must explicitly align with the previously identified insights (T1 compensation risk, Early-New Hire and Senior-Veteran bimodal risk, QA/HR/Customer Ops hotspots, higher union eligibility in the HV group, etc.) and include a reminder not to use gender/age as hard thresholds, but only for trend analysis.

@@ -1,0 +1,137 @@
+# [Total Score | 66 points] The solution must satisfy the following six core requirements:
+
+## Requirement 1: Data Understanding & Target Vendor Screening (Max 12 points for this requirement)
+### Criterion 1.1: Field Definition and Dimension Mapping (Max 6 points)
+#### Path 1.1.A [6 points | Field-Dimension Dictionary Method]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Must only reference the `netsuite2_vendor_risk_analysis` table and explicitly map fields to the four dimensions: Financial (e.g., `avg_payment_delay`, `financial_health_score`, `total_payables`), Operational (`quality_score`, `cybersecurity_score`, `innovation_capability_score`), Market (`market_volatility_index`, `alternative_suppliers_count`, `price_volatility_coefficient`, `seasonal_demand_factor`, `switching_cost_estimate`), and Strategic (`spend_concentration_ratio`, `dependency_level`, `contract_expiry_date`, `environmental_rating`, `geographic_region`).
+- Sub-criterion 1.1.A.2 [4 points | Accuracy]: Provide per-field definitions, including: calculating the contract window for `analysis_date` and `contract_expiry_date` via `months_to_expiry = (julianday(contract_expiry_date) - julianday(analysis_date))/30.4375`; mapping `dependency_level` to `dep_factor` as {Minimal:0.2, Low:0.4, Medium:0.6, High:0.85, High Dependency:0.95, Critical:1.0, other:0.6}; mapping environmental rating as {A+:95,A:90,B+:80,B:70,B-:65,C+:55}. Field names must be consistent with `PRAGMA table_info` and no external tables may be added.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: State that the aforementioned set of fields completely covers the drivers for the four resilience dimensions, the data source is a single-table static snapshot, and can directly support subsequent modeling and warning mechanisms.
+
+#### Path 1.1.B [6 points | Sampling Verification Method]
+- Sub-criterion 1.1.B.1 [1 point | Completeness]: Display a sample of ≥5 raw records (including `vendor_id`, `total_vendor_spend`, `avg_payment_delay`, `market_volatility_index`, `contract_expiry_date`, etc.) and indicate data types (numeric/text/date).
+- Sub-criterion 1.1.B.2 [4 points | Accuracy]: Verify the statistics for `months_to_expiry`: min ≈ -17.28, mean ≈ -8.26, max ≈ 13.67, with an allowed tolerance of ±0.01. If the result deviates, the source of the error must be explained.
+- Sub-criterion 1.1.B.3 [1 point | Conclusion]: State that this table is a static snapshot as of 2024-01-01 and can be directly used as the baseline dataset for the resilience model and warning rules.
+
+### Criterion 1.2: Target Vendor Screening & Exposure Profiling (Max 6 points)
+#### Path 1.2.A [6 points | Rule-based Filtering]
+- Sub-criterion 1.2.A.1 [1 point | Completeness]: Declare the filtering condition `spend_concentration_ratio > 0.15 OR strategic_importance_level IN ('Mission Critical','High Strategic Value')` and deduplicate by `vendor_id`.
+- Sub-criterion 1.2.A.2 [4 points | Accuracy]: Recalculate the total number of target vendors = 91. Key distributions must satisfy: `High Strategic Value`=82, `Mission Critical`=1, other `Strategic`=8; `activity_status` distribution: Dormant=78, Inactive=6, Active=5, Moderate=2; Regional spend share: Southwest≈40.55%, Northeast≈25.22%, West Coast≈19.17%, Central US≈6.11%, Southeast≈6.03%, Global≈2.92% (tolerance ±1pp).
+- Sub-criterion 1.2.A.3 [1 point | Conclusion]: State that this filtered set covers 91 out of 93 high-exposure entities and serves as the main analysis list for subsequent risk management.
+
+#### Path 1.2.B [6 points | Exposure Scoring Method]
+- Sub-criterion 1.2.B.1 [1 point | Completeness]: Define exposure as `exposure = total_vendor_spend * spend_concentration_ratio * dep_factor`, with `dep_factor` mapping executed as per 1.1.A.2.
+- Sub-criterion 1.2.B.2 [4 points | Accuracy]: Provide the threshold `exposure ≥ 1.7242` (unit=currency) that covers ≥90% of the exposure, corresponding to 91 vendors and a cumulative exposure share of ≈99.99999%. List the regional exposure distribution: Southwest=41.13%, Northeast=38.59%, West Coast=11.92%, Central US=3.70%, Southeast=2.93%, Global=1.73%.
+- Sub-criterion 1.2.B.3 [1 point | Conclusion]: Point out that the exposure perspective reveals a concentration risk in Critical/High dependency vendors (totaling ≈99.86% of exposure), which cross-validates the rule-based filtering approach.
+
+---
+
+## Requirement 2: Four-Dimension Resilience Scoring System Construction & Calculation (Max 18 points for this requirement)
+### Criterion 2.1: Indicator Selection & Risk Adjustment (Max 12 points)
+#### Path 2.1.A [6 points | Indicator + Weighting Method]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: List ≥3 indicators per dimension and their directionality: Financial (`financial_health_score` ↑ is better, `avg_payment_delay` ↓ is better, `overdue_payment_percentage` ↓ is better), Operational (`quality_score`, `cybersecurity_score`, `innovation_capability_score` all ↑ are better), Market (`alternative_suppliers_count` ↑ is better, `market_volatility_index` ↓ is better, `price_volatility_coefficient` ↓ is better, `seasonal_demand_factor` ↓ is better, `switching_cost_estimate` ↓ is better), Strategic (`spend_concentration_ratio` ↓ is better, `dep_factor` ↓ is better, `months_to_expiry` ↑ is better, `environmental_rating` ↑ is better).
+- Sub-criterion 2.1.A.2 [4 points | Accuracy]: Use the weight vectors: Financial (0.50/0.25/0.25), Operational (0.40/0.30/0.30), Market (0.20/0.40/0.20/0.10/0.10), Strategic (0.25/0.20/0.20/0.35). Normalize using Min-Max, invert risk indicators, and derive the four-dimensional average scores: Financial 67.65, Operational 49.32, Market 48.11, Strategic 30.95 (±0.05 tolerance).
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: Clarify that the indicator combination covers the four drivers of solvency, performance, market sensitivity, and long-term strategic resilience, and has explanatory power for supply disruption risk.
+
+#### Path 2.1.B [6 points | Risk Adjustment Method]
+- Sub-criterion 2.1.B.1 [1 point | Completeness]: Set penalty items: `compliance_rating='Poor'` deducts 2.5 points from the Financial dimension; `activity_status IN ('Dormant','Inactive')` deducts 3 points from the Operational dimension; `quality_score<60` deducts an additional 2 points; `relationship_stability='Very New'` deducts 5 points from the Strategic dimension; `alternative_suppliers_count<=2` deducts 2 points from the Market dimension.
+- Sub-criterion 2.1.B.2 [4 points | Accuracy]: Post-penalty scores must be clipped to the [0,100] range. Verify that the updated mean values are: Financial 67.65, Operational 49.32, Market 48.11, Strategic 30.95. The overall resilience mean is 49.01, standard deviation 7.60, minimum 32.54, maximum 73.95.
+- Sub-criterion 2.1.B.3 [1 point | Conclusion]: Point out that the risk adjustment significantly compresses optimistic bias for vendors with `relationship_stability='Very New'` (80 vendors) and high payment delays, preventing assessment distortion.
+
+### Criterion 2.2: Normalization & Weighting Strategy (Max 3 points)
+#### Path 2.2.A [3 points | Min-Max + Risk Inversion]
+- Sub-criterion 2.2.A.1 [1 point | Completeness]: Explain the three-step process: ① Calculate Min-Max for each indicator; ② Apply `1 - normalized_value` for risk-type indicators; ③ Calculate dimension scores by applying weights from 2.1.
+- Sub-criterion 2.2.A.2 [1 point | Accuracy]: Verify key extremal values: `avg_payment_delay` mean 23.59 / max 48.00, `market_volatility_index` mean 0.253 / max 0.459, `alternative_suppliers_count` mean 3.01 / min 1. Must not use out-of-sample data.
+- Sub-criterion 2.2.A.3 [1 point | Conclusion]: Emphasize that this method facilitates alignment with business thresholds and can explain why vendors with extreme values receive low scores.
+
+### Criterion 2.3: Dimensional Synthesis & Overall Resilience (Max 3 points)
+#### Path 2.3.A [3 points | Weighted Aggregation]
+- Sub-criterion 2.3.A.1 [1 point | Completeness]: Overall resilience = equal-weighted average of the 4 dimensions (0.25 each), with the final score in the [0,100] range.
+- Sub-criterion 2.3.A.2 [1 point | Accuracy]: Verify the overall mean is 49.01 (±0.05), and the strategic dimension mean of 30.95 is the weakest link. Only 4 vendors have `resilience_score≥65`, while 19 have `vendor_risk_score≥65`.
+- Sub-criterion 2.3.A.3 [1 point | Conclusion]: Clearly state that strategic shortcomings are the main cause, with high dependency and short contract durations shifting the overall distribution downwards.
+
+---
+
+## Requirement 3: 12-18 Month Dynamic Warning Design (Max 12 points for this requirement)
+### Criterion 3.1: Warning Triggers & Scenario Identification (Max 6 points)
+#### Path 3.1.A [6 points | Rule Set Method]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: List at least 8 types of triggers: contract ≤12 months, contract 12–18 months, financial delay >30 days, financial health <60, alternative supply ≤2, market volatility ≥0.35, quality <60, cybersecurity <60, relationship 'Very New', concentration ≥0.4.
+- Sub-criterion 3.1.A.2 [4 points | Accuracy]: Itemized counts must be reproducible: contract ≤12 months=91, 12–18 months=2, `avg_payment_delay>30`=23, `financial_health_score<60`=9, `overdue_payment_percentage>0`=13, `alternative_suppliers_count<=2`=34, `market_volatility_index>=0.35`=18, `quality_score<60`=3, `cybersecurity_score<60`=11, `relationship_stability='Very New'`=80, `spend_concentration_ratio>=0.4`=74.
+- Sub-criterion 3.1.A.3 [1 point | Conclusion]: Point out that the combination "contract ≤12 months + alternatives ≤2" applies to 34 vendors, corresponding to an expected loss of ≈0.736M, and is the top priority for a joint warning.
+
+#### Path 3.1.B [6 points | Time Window + Scenario Combination]
+- Sub-criterion 3.1.B.1 [1 point | Completeness]: Bin by `months_to_expiry`: ≤0:80, 0–6:5, 6–12:6, 12–18:2, >18:0, and state the total spend for each bin (≈0.031M, 13.342M, 22.186M, 8.470M respectively).
+- Sub-criterion 3.1.B.2 [4 points | Accuracy]: Within the ≤12 month group, cross-reference triggers and list ≥3 high-risk scenarios: ① contract ≤0 & financial delay >30 (11 vendors); ② contract ≤6 & market volatility ≥0.35 (2 vendors); ③ contract ≤12 & alternatives ≤2 (34 vendors, expected loss ≈0.736M).
+- Sub-criterion 3.1.B.3 [1 point | Conclusion]: Emphasize that "contract ≤12 months + insufficient alternatives" covers 37% of the target list and requires prioritized action on contract renewals and dual-sourcing.
+
+### Criterion 3.2: Risk Scoring & Probability Mapping (Max 6 points)
+#### Path 3.2.A [6 points | Hazard Score]
+- Sub-criterion 3.2.A.1 [1 point | Completeness]: Hazard formula: `hazard = vendor_risk_score + 12*contract_le_12 + 6*contract_12_18 + 8*financial + 5*market + 8*structural + 5*operational + 6*relationship`. Thresholds: High-risk ≥95, Medium-risk 75–94.
+- Sub-criterion 3.2.A.2 [4 points | Accuracy]: Calculation results must satisfy: High-risk=7, Medium-risk=53, hazard mean ≈78.56, max=118.
+- Sub-criterion 3.2.A.3 [1 point | Conclusion]: State that the high-risk list contributes ≈2.12M to expected loss, accounting for 74.38% of the total, and must be included in contingency drills.
+
+#### Path 3.2.B [6 points | Probability Mapping + Expected Loss]
+- Sub-criterion 3.2.B.1 [1 point | Completeness]: Define `p12 = min(0.8, 0.08 + 0.055*trigger_sum)` and `expected_loss = exposure * p12`; `trigger_sum` is the sum of indicators from the 3.1.A triggers.
+- Sub-criterion 3.2.B.2 [4 points | Accuracy]: Reproduce: total expected loss = 2.850971M; high-risk portfolio contribution = 2.120500M; regional expected loss: Southwest≈1.1978M, Northeast≈1.0506M, West Coast≈0.3421M, Central US≈0.1339M, Southeast≈0.0867M, Global≈0.0398M (tolerance ±5%).
+- Sub-criterion 3.2.B.3 [1 point | Conclusion]: State that the warning list (hazard≥75) covers 97.70% of the expected loss and is confirmed for the monthly watch list.
+
+---
+
+## Requirement 4: Personalized Resilience Improvement Paths & Contingency Plans (Max 6 points for this requirement)
+### Criterion 4.1: Vendor-level & Segmented Strategies (Max 6 points)
+#### Path 4.1.A [6 points | Trigger-to-Action Library]
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: Establish a trigger-to-action mapping, for example: contract ≤12 → "Initiate renewal negotiations in T+2 weeks"; financial delay → "Complete payment process overhaul in T+1 month"; market volatility → "Configure price hedging or price locks"; alternatives ≤2 → "Launch dual-sourcing pilot in T+6 weeks"; relationship Very New → "Hold joint governance meeting in T+1 month".
+- Sub-criterion 4.1.A.2 [4 points | Accuracy]: Provide a risk summary and action plan (including timelines) for at least 5 vendors, which must match their triggers:
+  - NET71245521108 (Northeast, expected_loss≈0.734M, triggers: contract≤12/financial delay/alternatives≤2) → "Sign supplementary contract in T+2 weeks, onboard second source in T+1 month".
+  - NET84989627765 (Southwest, expected_loss≈0.599M, triggers: financial delay/market volatility/operational shortcomings) → "Go live with AP reconciliation in T+3 weeks, execute hedging pilot in T+6 weeks, complete factory rectification in T+2 months".
+  - NET40861498764 (Southwest, expected_loss≈0.446M, triggers: contract≤12/financial delay) → "Lock in renewal price range in T+2 weeks, implement early payment incentives in T+1 month".
+  - NET21007599994 (Global, expected_loss≈0.207M, triggers: contract≤12/financial delay/relationship Very New) → "Establish joint governance committee in T+1 week, complete contract extension in T+1 month".
+  - NET99254013394 (Southwest, expected_loss≈0.186M, triggers: contract≤12/financial delay) → "Complete credit term renegotiation in T+2 weeks, introduce tiered invoice settlement in T+1 month".
+- Sub-criterion 4.1.A.3 [1 point | Conclusion]: State that the action combinations correspond one-to-one with triggers and their execution progress can be checked in quarterly reviews.
+
+#### Path 4.1.B [6 points | Segmented Playbook Method]
+- Sub-criterion 4.1.B.1 [1 point | Completeness]: Segment vendors by `playbook_tier`: TierA-Crisis (hazard≥100 or expected_loss≥100k) 8 vendors, TierB-FinanceOps (75≤hazard<100 and financial trigger) 10 vendors, TierC-Monitor the remaining 75 vendors.
+- Sub-criterion 4.1.B.2 [4 points | Accuracy]: For each segment, provide short-term/mid-term/contingency measures and quantitative targets:
+  - TierA (total expected_loss≈2.457M): Short-term "Complete contract renegotiation + funding guarantee in T+2 weeks", Mid-term "Introduce second source within 90 days, target ≥40% reduction in expected_loss", Contingency "Pre-position ≥20% of alternative factory capacity".
+  - TierB (expected_loss≈0.160M): Short-term "Reduce average payment delay to ≤25 days within 30 days", Mid-term "Improve VMI/safety stock within 60 days", Contingency "Activate cash flow emergency pool".
+  - TierC (expected_loss≈0.234M): Short-term "Maintain monthly monitoring", Mid-term "Update ESG audit semi-annually", Contingency "Trigger 3-day supply recovery drill".
+- Sub-criterion 4.1.B.3 [1 point | Conclusion]: State that the segmented strategy is highly reusable and can be managed by segment with rolling reviews in monthly meetings.
+
+---
+
+## Requirement 5: Return on Investment (ROI) Calculation & Portfolio Optimization (Max 12 points for this requirement)
+### Criterion 5.1: Strategy-level ROI Calculation (Max 6 points)
+#### Path 5.1.A [6 points | Rule-based ROI]
+- Sub-criterion 5.1.A.1 [1 point | Completeness]: Cover four types of strategies: contract extension, payment optimization, price hedging, dual-sourcing.
+- Sub-criterion 5.1.A.2 [4 points | Accuracy]: Recalculate based on cost/benefit factors (contract 0.9% cost + 22% exposure benefit, payment 0.6% cost + 4% payables benefit, hedging 3.5% cost + 12% exposure benefit, dual-sourcing 2.5% cost + 6% exposure benefit):
+  - Contract Extension: cost≈0.3200M, loss avoided≈2.1718M, ROI≈6.79.
+  - Payment Optimization: cost≈0.0684M, loss avoided≈0.4562M, ROI≈6.67.
+  - Market Hedging: cost≈0.7194M, loss avoided≈0.5108M, ROI≈0.71.
+  - Dual-Sourcing: cost≈0.0752M, loss avoided≈0.1802M, ROI≈2.40.
+- Sub-criterion 5.1.A.3 [1 point | Conclusion]: Provide a priority ranking (Payment≈Contract >> Dual-sourcing > Hedging) and explain their applicable scenarios.
+
+#### Path 5.1.B [6 points | Scenario Analysis Method]
+- Sub-criterion 5.1.B.1 [1 point | Completeness]: For "Contract Extension" and "Payment Optimization", set three Δp assumptions: conservative/baseline/aggressive (multipliers 0.7/1.0/1.2).
+- Sub-criterion 5.1.B.2 [4 points | Accuracy]: Contract Extension ROI range: Conservative≈4.75, Baseline≈6.79, Aggressive≈8.14. Payment Optimization ROI range: Conservative≈4.67, Baseline≈6.67, Aggressive≈8.00.
+- Sub-criterion 5.1.B.3 [1 point | Conclusion]: Point out that strategies with lower benefit elasticity but ROI>4.5 should be deployed first, while hedging-type strategies require pilot validation.
+
+### Criterion 5.2: Portfolio Optimization & Budget Constraints (Max 6 points)
+#### Path 5.2.A [6 points | Focused vs. Broad-based Approach]
+- Sub-criterion 5.2.A.1 [1 point | Completeness]: Compare a "Broad-based" (all four strategies) vs. a "Focused" (Contract + Payment) approach.
+- Sub-criterion 5.2.A.2 [4 points | Accuracy]: Broad-based: cost≈1.1831M, loss avoided≈3.3190M, ROI≈2.81. Focused: cost≈0.3885M, loss avoided≈2.6279M, ROI≈6.77. Must explain the method to avoid double-counting (e.g., aggregate by `vendor_id`).
+- Sub-criterion 5.2.A.3 [1 point | Conclusion]: Conclude that the focused strategy has a higher ROI and is more controllable, and should be implemented first.
+
+#### Path 5.2.B [6 points | Budget-Constrained Optimization]
+- Sub-criterion 5.2.B.1 [1 point | Completeness]: Set annual budget tiers: 0.4M, 0.8M. Select vendors and strategies by ranking them by `expected_loss`.
+- Sub-criterion 5.2.B.2 [4 points | Accuracy]:
+  - Budget 0.4M: Select a combination for NET71245521108 and NET84989627765, total cost≈0.3685M, loss avoided≈1.1793M, ROI≈3.20.
+  - Budget 0.8M: Expand to the top four (adding NET40861498764, NET21007599994), total cost≈0.6629M, loss avoided≈2.1081M, ROI≈3.18.
+- Sub-criterion 5.2.B.3 [1 point | Conclusion]: Recommend that the budget be reviewed on a rolling basis, and to maintain a focused strategy on top-exposure vendors when the budget is below 0.4M.
+
+---
+
+## Requirement 6: Management Reporting & Governance Mechanism (Max 6 points for this requirement)
+### Criterion 6.1: Report-style Output & Governance Cadence (Max 6 points)
+#### Path 6.1.A [6 points | Executive Summary Method]
+- Sub-criterion 6.1.A.1 [1 point | Completeness]: The report must cover core risks, priority actions, ROI ranking, governance cadence, and key KPIs (e.g., number of high-risk vendors, expected loss, contract window, capital employed).
+- Sub-criterion 6.1.A.2 [4 points | Accuracy]: Cite key data: contract ≤12 months=91, `spend_concentration_ratio≥0.4`=74, Dormant=80, High-risk (hazard≥95)=7, TierA expected_loss≈2.457M, regional expected loss Southwest≈1.198M/Northeast≈1.051M.
+- Sub-criterion 6.1.A.3 [1 point | Conclusion]: Propose a governance cadence: monthly warning list review, quarterly action progress/ROI validation, annual budget reallocation. Set a 12-month target: reduce the number of high-risk vendors from 8 to ≤4, and reduce expected loss by ≥40%.

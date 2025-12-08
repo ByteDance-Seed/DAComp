@@ -1,0 +1,97 @@
+# [Total Score | 34 points] The solution needs to satisfy one requirement:
+- Requirement 1: Derive insights into the characteristics of customers with completed high-amount transaction behavior (cumulative over 5000) from aspects such as customer tags, the membership system, and credit ratings.
+
+---
+
+## Requirement 1: Insights into high-amount transaction customer characteristics (up to 34 points for this requirement)
+### Standard 1.1 ：Filter customers with transaction amount over 5000 (maximum 2 points)
+#### Path 1.1.A［2 points|Full population statistical filtering method]
+- Sub-standard 1.1.A.1［2 points｜Completeness］: Correctly join the transaction_history_table and filter to identify customer records with Transaction Payment Status = Paid and cumulative Transaction Amount > 5000; there should be 71 rows of completed high-amount transaction customer data.
+
+### Standard 1.2：Customer tag statistical analysis（ maximum 6 points）
+#### Path 1.2.A［6 points|Tag extraction and feature summarization]
+- Sub-standard 1.2.A.1［2 points｜Completeness］: Using the filtered high-amount transaction Customer IDs, correctly join the customer_tag_table to extract all Tag Name and Tag Count.
+- Sub-standard 1.2.A.2［2 points｜Accuracy］: Based on Customer ID, a total of 51 customers with tags are matched, match rate 71.83%; categorize and organize Tag Name, covering 9 tag names, with no matching errors allowed. Count the frequency and proportion of each tag category among 71 customers; reference answer as follows:
+ | Tag Name | Frequency | Proportion (%) |
+ | --- | --- | --- |
+ | High-Value Customer | 8 | 11.27 |
+ | Newly Registered | 7 | 9.86 |
+ | Key Customer | 7 | 9.86 |
+ | Gold Customer | 6 | 8.45 |
+ | Potential Customer | 5 | 7.04 |
+ | Long-term Cooperation | 5 | 7.04 |
+ | Temporary Customer | 5 | 7.04 |
+ | VIP | 4 | 5.63 |
+ | Under Observation | 4 | 5.63 |
+ | No Tag | 20 | 28.17 |
+- Sub-standard 1.2.A.3［2 points｜Conclusion］: Summarize the characteristics of high-amount transaction customers in terms of customer tags, such as which tags are more common among these customers, and provide at least one actionable recommendation (e.g., “Design a ‘Newcomer Benefits Package’ targeting newly registered high-amount customers”).
+
+### Standard 1.3 ：Membership system statistical analysis（maximum 14 points）
+#### Path 1.3.A［14 points|Membership tier and related conditions association analysis]
+- Sub-standard 1.3.A.1［2 points｜Completeness］: Must include (each item appears as the field name or a synonymous equivalent field): Membership Level; 2) Transaction Amount (a computable field for averages/comparisons; “Points” cannot be used instead); Upgrade Requirements Met; 4) current Member Status; 5) Automatic Renewal at Expiration. Scoring: all five present, 2 points; missing any item, 0 points.
+- Sub-standard 1.3.A.2［2 points｜Accuracy］: Based on Customer ID, a total of 33 customers are matched, match rate 46.48%, covering 5 membership levels; listing the 33 customers separately also counts as correct.
+- Sub-standard 1.3.A.3［2 points｜Accuracy］: Count the frequency and proportion of each membership level among the 33 customers and the Average Transaction Amount; reference answer as follows:
+ | Membership Level | Count | Proportion (%) | Average Transaction Amount (CNY) |
+ | --- | --- | --- | --- |
+ | Diamond Member | 10 | 30.30 | 6724.50 |
+ | Regular Member | 8 | 24.24 | 6676.41 |
+ | Gold Card Member | 6 | 18.18 | 6978.25 |
+ | Silver Card Member | 5 | 15.15 | 7371.33 |
+ | Platinum Member | 4 | 12.12 | 6604.20 |
+
+- Sub-standard 1.3.A.4［2 points｜Accuracy］: For the 33 customers, count the frequency and proportion of whether upgrade requirements are met for each level; listing only frequencies can also earn points. Reference answer as follows:
+ | Membership Level | No_Frequency | Yes_Frequency | No_Proportion (%) | Yes_Proportion (%) |
+ | --- | --- | --- | --- | --- |
+ | Regular Member | 5.0 | 3.0 | 62.5 | 37.5 |
+ | Platinum Member | 2.0 | 2.0 | 50.0 | 50.0 |
+ | Gold Card Member | 3.0 | 3.0 | 50.0 | 50.0 |
+ | Diamond Member | 2.0 | 8.0 | 20.0 | 80.0 |
+ | Silver Card Member | 2.0 | 3.0 | 40.0 | 60.0 |
+
+- Sub-standard 1.3.A.5［2 points｜Accuracy］: For the 33 customers, count the frequency and proportion of current Member Status by level; reference answer as follows:
+ | Membership Level | Frozen_Frequency | Deactivated_Frequency | Normal_Frequency | Frozen_Proportion (%) | Deactivated_Proportion (%) | Normal_Proportion (%) |
+ | --- | --- | --- | --- | --- | --- | --- |
+ | Regular Member | 2.0 | 3.0 | 3.0 | 25.00 | 37.5 | 37.50 |
+ | Platinum Member | 2.0 | 1.0 | 1.0 | 50.00 | 25.0 | 25.00 |
+ | Gold Card Member | 1.0 | 3.0 | 2.0 | 16.67 | 50.0 | 33.33 |
+ | Diamond Member | 2.0 | 4.0 | 4.0 | 20.00 | 40.0 | 40.00 |
+ | Silver Card Member | 1.0 | 2.0 | 2.0 | 20.00 | 40.0 | 40.00 |
+
+- Sub-standard 1.3.A.6［2 points｜Accuracy］: For the 33 customers, count the frequency and proportion of Automatic Renewal by level; reference answer as follows:
+ | Membership Level | No_Frequency | Yes_Frequency | No_Proportion (%) | Yes_Proportion (%) |
+ | --- | --- | --- | --- | --- |
+ | Regular Member | 3.0 | 5.0 | 37.50 | 62.50 |
+ | Platinum Member | 2.0 | 2.0 | 50.00 | 50.00 |
+ | Gold Card Member | 2.0 | 4.0 | 33.33 | 66.67 |
+ | Diamond Member | 2.0 | 8.0 | 20.00 | 80.00 |
+ | Silver Card Member | 4.0 | 1.0 | 80.00 | 20.00 |
+
+- Sub-standard 1.3.A.7［2 points｜Conclusion］: Analyze and describe the characteristics of high-amount transaction customers within the membership system, such as which membership tier these customers tend to be in.
+
+### Standard 1.4 ：Credit rating statistical analysis（maximum 10 points）
+#### Path 1.4.A［10 points|Credit rating and transaction association analysis]
+- Sub-standard 1.4.A.1［2 points｜Completeness］: By matching Customer ID, extract the Credit Grade and Credit Score fields from the customer_credit_rating_table; providing Credit Grade and customer counts earns points.
+- Sub-standard 1.4.A.2［2 points｜Accuracy］: Based on Customer ID, a total of 32 customers are matched, match rate 45.07%, covering 5 credit rating categories; if the total is not provided, the sum must be 32, otherwise no points.
+- Sub-standard 1.4.A.3［2 points｜Accuracy］: For the 32 customers, count the categories of Credit Grade, Frequency, Proportion, and the average Credit Score; if the total is not provided, the sum must be 32, otherwise no points. Reference answer as follows:
+ | Credit Grade | Frequency | Proportion (%) | Average Credit Score |
+ | :------: | :----: | :--------: | :-------------------: |
+ | A | 11 | 34.38 | 747.91 |
+ | AAA | 7 | 21.88 | 750.00 |
+ | BBB | 6 | 18.75 | 770.67 |
+ | AA | 5 | 15.62 | 735.60 |
+ | BB | 3 | 9.38 | 698.33 |
+
+- Sub-standard 1.4.A.4［2 points｜Accuracy］: For the 32 customers, count the Overdue Rate (%), Average Credit Limit, and Average Overdue Total Amount by credit grade; reference answer as follows:
+ | Credit Grade | Overdue Rate (%) | Average Credit Limit | Average Overdue Total Amount |
+ | :------: | :----------: | :--------------: | :-----------------: |
+ | A | 100.00 | 551818.18 | 10454.55 |
+ | AA | 80.00 | 620000.00 | 11600.00 |
+ | AAA | 57.14 | 355714.29 | 7142.86 |
+ | BB | 66.67 | 366666.67 | 11333.33 |
+ | BBB | 83.33 | 536666.67 | 10833.33 |
+
+- Sub-standard 1.4.A.5［2 points｜Conclusion］: Analyze and explain the characteristics of high-amount transaction customers in terms of credit rating, such as the relationship between credit rating and high-amount transactions, and the overall credit level of these customers.
+
+### Standard 1.5 ：Comprehensive analysis and recommendations（maximum 2 points）
+#### Path 1.5.A［2 points|Summary analysis]
+- Sub-standard 1.5.A.1［2 points｜Conclusion］: Based on analyses from customer tags, the membership system, and credit ratings, provide a summary and recommendations, including but not limited to repeat purchases, membership system operations, and credit risk control; reasonable arguments suffice.

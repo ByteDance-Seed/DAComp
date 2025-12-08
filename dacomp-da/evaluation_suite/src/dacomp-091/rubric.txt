@@ -1,0 +1,43 @@
+# [Total Score | 36 points] QuickBooks High-Quality Shrinking-Spend Vendor Diagnostic Rubric
+---
+## Requirement 1: Identification and Basic Quantification of High-Quality Shrinking-Spend Vendors (Up to 6 points)
+### Standard 1.1: Dual-Condition Filtering and Scale Reconciliation
+#### Path 1.1.A [6 points | Fixed-Value Definition Verification]
+- Sub-criterion 1.1.A.1 [1 point | Completeness]: Clearly state that the filtering criteria are `annual_spend_growth_pct < 0` and `overall_performance_score ≥ 7`. Use `vendor_id` for deduplication as the unique identifier and specify the source table as `quickbooks__vendor_performance`.
+- Sub-criterion 1.1.A.2 [4 points | Accuracy]: The following checkpoints must be reproduced within an error margin of ≤0.5% (or ≤0.01 for averages): `COUNT(DISTINCT vendor_id)=342`; `SUM(spend_current_year)=15,052,480.58`; `SUM(spend_prev_year)=13,419,846.71`; `AVG(overall_performance_score)=7.87`; `AVG(annual_spend_growth_pct)=-16.032%`. Calculations must strictly follow the `SUM(spend_current_year)`, `SUM(spend_prev_year)`, and `AVG(...)` definitions.
+- Sub-criterion 1.1.A.3 [1 point | Conclusion]: Point out the actual share of this vendor group in the annual spend structure (`15,052,480.58 / 60,966,493.01 ≈ 24.69%`). Emphasize the potential optimization opportunities and concentration risks brought by the "negative growth + high performance" characteristic.
+
+## Requirement 2: Volatility Coefficient and Composite Risk Score (Up to 6 points)
+### Standard 2.1: Metric Calculation and Stability Identification
+#### Path 2.1.A [6 points | Strict Formula Validation]
+- Sub-criterion 2.1.A.1 [1 point | Completeness]: For each vendor, declare and implement `spend_volatility_coeff = spend_volatility / NULLIF(total_lifetime_spend, 0)` and `composite_risk_score = payment_completion_rate*0.4 + (business_value_score/10)*0.6`. Must use `COALESCE/NULLIF` to prevent division by zero.
+- Sub-criterion 2.1.A.2 [4 points | Accuracy]: The following checkpoints (error ≤0.0005) must be met simultaneously: `AVG(spend_volatility_coeff)=0.944823`; `MIN=0.0008`; `MAX=28.8445`; `AVG(composite_risk_score)=0.781549`; `MIN=0.462261`; `MAX=0.939387`; and provide `PearsonCorr(spend_volatility_coeff, composite_risk_score)≈-0.0087`. Equivalent SQL or pseudocode must be attached to show the aggregation and correlation coefficient calculation process.
+- Sub-criterion 2.1.A.3 [1 point | Conclusion]: Explain that the "risk score and volatility coefficient have almost no correlation (≈0)" and that the extreme value comes from a low-base vendor (e.g., `VEN77516240714` has a volatility coefficient ≈28.84). Propose that individuals with extremely low `total_lifetime_spend` should be reviewed separately.
+
+## Requirement 3: Spend Change Rate by Account Type Dimension (Up to 6 points)
+### Standard 3.1: Last 12 Months vs. Prior 12 Months Comparison
+#### Path 3.1.A [6 points | Time-Window Difference Recalculation]
+- Sub-criterion 3.1.A.1 [1 point | Completeness]: Clearly define the time windows as `2024-10-15` to `2025-10-14` (last 12 months) compared to `2023-10-15` to `2024-10-14` (prior 12 months). The analysis should only target `quickbooks__general_ledger` records for the selected vendors. Spend should be calculated as `CASE WHEN amount<0 THEN -amount ELSE 0 END` and aggregated by `vendor_id+account_type`.
+- Sub-criterion 3.1.A.2 [4 points | Accuracy]: Checkpoints must be within an error margin of ≤0.5% (or ≤0.0005 for ratios): `SUM_last12 = 98,518,359.24`; `SUM_prev12 = 102,209,553.43`; `Δ = -3,691,194.19`; weighted change rate `(SUM_last12 - SUM_prev12)/SUM_prev12 = -0.0361`; at the vendor level, the number of vendors with `change_rate<0` is 189, `>0` is 152, and `Indeterminate` is 1. An equivalent SQL snippet showing the window partitioning and aggregation logic must be provided.
+- Sub-criterion 3.1.A.3 [1 point | Conclusion]: Summarize that "overall account-level spend decreased year-over-year by approximately 3.61%, but nearly half of the vendors still show growth, suggesting the structural loss is driven by specific account types." Point out the need to inspect account segments with consistently negative trends.
+
+## Requirement 4: Transaction Frequency Density Monitoring (Up to 6 points)
+### Standard 4.1: Frequency Statistics Using Active Days Method
+#### Path 4.1.A [6 points | Periodic Frequency Verification]
+- Sub-criterion 4.1.A.1 [1 point | Completeness]: Define `transaction_frequency_density = txn_count_last12 / active_days_last12`, where `txn_count_last12` is the number of transactions within the window, and `active_days_last12` is the number of DISTINCT transaction dates in the same window. The calculation should be performed by `vendor_id+account_type`.
+- Sub-criterion 4.1.A.2 [4 points | Accuracy]: Checkpoints (error ≤0.0005): overall `AVG(frequency_density)=1.0049`; by account type `Expense=1.0044 (min=1.0,max=1.3333)`, `Liability=1.0039 (min=1.0,max=1.3333)`, `Asset=1.0056 (min=1.0,max=2.0)`, `Revenue=1.0057 (min=1.0,max=1.25)`. It should be stated that the result is set to NULL when active days is zero.
+- Sub-criterion 4.1.A.3 [1 point | Conclusion]: Point out that "a density of approximately 1 indicates mostly single transactions per day, and abnormal fluctuations with density >1.25 should be investigated." Recommend incorporating density monitoring into future review procedures.
+
+## Requirement 5: Account Structure and Outlier Exposure (Up to 6 points)
+### Standard 5.1: Account Contribution and Abnormal Combinations
+#### Path 5.1.A [6 points | Structural Share Verification]
+- Sub-criterion 5.1.A.1 [1 point | Completeness]: Aggregate spend for the last 12 months by `account_type`, calculating `total_spend` and the percentage share for each account. The calculation must cover all account types with existing records and state that it is based on the absolute value of negative amounts.
+- Sub-criterion 5.1.A.2 [4 points | Accuracy]: Checkpoints (error ≤0.5%): `Expense` spend in the last 12 months = 58,523,319.71 (59.40% share); `Liability` = 39,995,039.53 (40.60% share); other account types ≈ 0. At least two types of outlier combinations must be listed: ① Top 5 `vendor_id`s with a cliff-like drop in spend (`spend_prev12>0 & spend_last12=0`): `{VEN04283498201, VEN05614179201, VEN20357503951, VEN24666133990, VEN29422500294}` (`change_rate=-1.0`); ② Combinations with the largest growth (e.g., `VEN63441206835` `Expense` `change_rate=221.5981`, `VEN62817879979` `Expense` `change_rate=199.6012`, `VEN29716582887` `Liability` `change_rate=46.1697`).
+- Sub-criterion 5.1.A.3 [1 point | Conclusion]: Explain that "`Expense` + `Liability` accounts for >99% of the spend, and multiple cliff-like drops are concentrated in the `Expense` account type, which requires validation to check if it's due to business contraction or bookkeeping gaps." Propose a requirement to review these outlier combinations.
+
+## Requirement 6: Cash Flow Scenario for a 30% Reduction in Vendor Collaboration (Up to 6 points)
+### Standard 6.1: Scenario Calculation and Risk Index Comparison
+#### Path 6.1.A [6 points | Scenario Simulation Reconciliation]
+- Sub-criterion 6.1.A.1 [1 point | Completeness]: Declare the annual spend share of the high-quality, shrinking-spend vendor segment: `segment_share = 15,052,480.58 / 60,966,493.01 ≈ 0.2469`. Use an adjustment factor `adjust_factor = 1 - segment_share*0.3 ≈ 0.92593` to modify `forecasted_outflows`. Define `adjusted_net_cash_flow = forecasted_inflows - forecasted_outflows*adjust_factor` and `liquidity_risk_index = (outflows - inflows)/inflows`.
+- Sub-criterion 6.1.A.2 [4 points | Accuracy]: Checkpoints (error ≤0.5%, ratios ≤0.0005): `AVG(adjusted_outflows - forecasted_outflows) = -222,973.17`; `AVG(adjusted_net_cash_flow - forecasted_net_cash_flow) = 222,973.17`; `SUM(adjusted_net_cash_flow - forecasted_net_cash_flow) = 4,013,517.12`; `AVG(adjusted_risk_index - baseline_risk_index) = -0.0755`. The number of months with `baseline_risk_index>0` decreases from 8 to 6, with 2 months (e.g., 2025-10-01, 2025-11-01) becoming non-positive. The `max baseline risk_index = 0.5838 (2026-10-01)` drops to `0.4665`. A reproducible SQL query must be provided.
+- Sub-criterion 6.1.A.3 [1 point | Conclusion]: Summarize that "the vendor reduction plan releases approximately 223k in net cash on average per month, significantly lowers the liquidity risk index, and reduces the risk level in the most dangerous month by about 0.1173." Propose that subsequent funding strategies should be reviewed in conjunction with collections pace.

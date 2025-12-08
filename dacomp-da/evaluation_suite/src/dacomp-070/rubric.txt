@@ -1,0 +1,105 @@
+# [Total Score | 38 Points] Acquisition Efficiency Decay × Non-linear Identification × User Value Model × Update Interaction × Strategy Implementation
+---
+## Requirement 1: Acquisition Efficiency Decay Pattern for Region × Device over the Past 6 Months (Up to 10 points)
+### Standard 1.1: Unified Time Window and Field Definitions (Up to 2 points)
+#### Path 1.1.A [2 points | Dynamic 182-day window]
+- Sub-standard 1.1.A.1 [1 point | Completeness]: Using MAX(date_day)=2024-10-13 as the baseline, set start_date = DATE('2024-10-13','-181 day')=2024-04-15. Uniformly apply `WHERE DATE(date_day) BETWEEN '2024-04-15' AND '2024-10-13'` to `google_play__country_report`, `google_play__device_report`, and `google_play__time_series_trends`, and reuse this window in subsequent calculations.
+- Sub-standard 1.1.A.2 [1 point | Accuracy]: State that all daily aggregations are based on this window. Example SQL: `WITH date_bounds AS (SELECT DATE('2024-10-13','-181 day') AS start_date) ... WHERE DATE(date_day) BETWEEN date_bounds.start_date AND '2024-10-13'`. Verify the window length is 182 days (inclusive).
+#### Path 1.1.B [2 points | Last 6 calendar months window]
+- Sub-standard 1.1.B.1 [1 point | Completeness]: With October 2024 as the final month, use `strftime('%Y-%m', date_day)` to filter for the last 6 calendar months [2024-05, 2024-10]. State that daily-to-monthly aggregation involves summing first before calculating ratios.
+- Sub-standard 1.1.B.2 [1 point | Accuracy]: Use `GROUP BY strftime('%Y-%m', date_day)` and perform a full month boundary check (total of 6 periods from 2024-05 to 2024-10). Verify that the monthly SLC (Store Listing Conversion) for each region (e.g., Europe 2024-08=0.0683045516) has a recalculation error of ≤±0.00001.
+### Standard 1.2: Combined Efficiency Metric and Decay Quantification (Up to 6 points)
+#### Path 1.2.A [6 points | Combined Efficiency = Region-weighted SLC × Device Install Share]
+- Sub-standard 1.2.A.1 [1 point | Completeness]: Define `region_conv_d = Σ store_listing_acquisitions / Σ store_listing_visitors` (aggregated by day, region) and `device_share_d = user_installs / Σ user_installs` (aggregated by day, device). The combined index is `pair_eff = region_conv_d × device_share_d`. Limit the device set to the TOP 12 models by user installs from 2024-04-15 to 2024-10-13.
+- Sub-standard 1.2.A.2 [4 points | Accuracy]: Calculate `early_avg`, `late_avg`, `delta`, and `delta_pct` by comparing the "early period" (≤2024-07-15) vs. the "late period" (≥2024-07-16). Provide reproducible SQL/pseudocode. Key anchor points must be directionally consistent with an error ≤±0.00002 (or relative error ≤±0.5pp):
+  - Europe overall `delta = -0.00191698`, `delta_pct = -2.6993%`;
+  - Europe × iPhone 14 `delta = -0.00034346` (`delta_pct = -4.9538%`);
+  - North America overall `delta = -0.00030387` (`delta_pct = -0.4348%`);
+  - Asia overall `delta = +0.00145885` (`delta_pct = +2.1061%`);
+  - South America overall `delta = +0.00251566` (`delta_pct = +3.6735%`).
+- Sub-standard 1.2.A.3 [1 point | Conclusion]: Output a decay/improvement list: 12/12 combinations in Europe are negative (worst=Europe×iPhone14, `delta_pct ≈ -4.95%`), 7/12 in North America are negative, only the iPhone 14 combination in Asia shows a slight decrease (`delta = -3.1e-05`), and 0/12 in South America are negative, with OnePlus 11 (`delta = +0.00034570`) ranking first. Formulate a rectification list showing "all mature markets negative, widespread improvement in emerging markets."
+#### Path 1.2.B [6 points | Dual Series of Device Efficiency × Region Conversion]
+- Sub-standard 1.2.B.1 [1 point | Completeness]: Construct `device_eff = user_installs / active_devices_last_30_days` (units can be multiplied by 1000) and exclude records where the denominator is zero. For the regional series, continue using `region_conv`, sort each by day, and add a time index.
+- Sub-standard 1.2.B.2 [4 points | Accuracy]: Calculate the 182-day slope using `slope = cov(t, metric)/var(t)`, providing python/pandas pseudocode. Key samples must match with an error ≤±1e-07: `Europe slope = -1.3048e-05`, `Asia slope = 1.4455e-05`, `Sony Xperia 1 V slope = -6.09e-06`, `OnePlus 11 slope = 5.98e-06`. Synthesize a composite index based on z-scores `combo_index = 0.5*z(region_slope)+0.5*z(device_slope)`. Verify Europe×Sony Xperia 1 V = -1.4099, South America×OnePlus 11 = +1.6268.
+- Sub-standard 1.2.B.3 [1 point | Conclusion]: Explain that combo indices for device models in mature markets (e.g., Europe Samsung Galaxy A54, Huawei P60) are all negative, while combinations in emerging markets/high-growth models are positive. Prioritize operations based on creative fatigue and device model lifecycle differences.
+#### Path 1.2.C [6 points | Cost-based Metrics (if expenditure fields are available)]
+- Sub-standard 1.2.C.1 [1 point | Completeness]: If an `acquisition_spend` or CPI field exists, define `installs_per_spend` or `CPI` and analyze it in periods like `pair_eff`. If the field is missing, it must be explicitly stated that "cost-based metrics are not available."
+- Sub-standard 1.2.C.2 [4 points | Accuracy]: If available, reproduce the 6-month CPI slope or early/late period difference and explain the value mapping. If the field is missing, this can be marked as "Metric unavailable, no points awarded."
+- Sub-standard 1.2.C.3 [1 point | Conclusion]: Trigger marketing resource strategies based on cost insights (e.g., rising CPI → control bidding, refresh creatives).
+### Standard 1.3: List of Decaying Combinations and Threshold (Up to 2 points)
+#### Path 1.3.A [2 points | Uniform Sorting and Threshold]
+- Sub-standard 1.3.A.1 [1 point | Completeness]: Set a governance threshold `delta_pct ≤ -3%` to filter the four priority combinations: Europe iPhone 14 / OPPO Find X6 / Samsung Galaxy A54 / Huawei P60, sorted in descending order of `|delta_pct|`.
+- Sub-standard 1.3.A.2 [1 point | Accuracy]: List the sorting field and its values (e.g., Europe×iPhone14 `delta_pct=-4.9538%`), ensuring the logic is consistent and can be used to directly align governance priorities.
+
+## Requirement 2: Identifying the Non-linear Relationship between SLC and Quality/Crash Rate (Up to 7 points)
+### Standard 2.1: Non-linear Modeling or Segmented Analysis (Up to 5 points)
+#### Path 2.1.A [5 points | Polynomial/Interaction Regression]
+- Sub-standard 2.1.A.1 [1 point | Completeness]: Build the model `store_listing_conversion_rate ~ quality_z + quality_z^2 + crash_z + crash_z^2 + quality_z×crash_z`, weighted by `active_devices`. Exclude records where visitors or active devices are zero. Standardization uses the mean and standard deviation of the entire sample: `quality_mean=3.9500`, `quality_std=1.6734`, `crash_mean=1.7071`, `crash_std=1.7325`.
+- Sub-standard 2.1.A.2 [4 points | Accuracy]: Output coefficients and R², allowing an error of ≤±5e-05: Linear model `R²=0.00017`, non-linear model `R²=0.00287`. Key coefficients: `coef_quality_z=0.0005689`, `coef_quality_z2=0.0005384`, `coef_crash_z=0.0005501`, `coef_crash_z2=0.0001766`, `coef_quality_z×crash_z=0.0007326`.
+- Sub-standard 2.1.A.3 [1 point | Conclusion]: Explain that "the positive interaction term between quality and crashes indicates that high-crash scenarios are more sensitive to quality improvements; improving quality or stability alone yields limited marginal returns."
+#### Path 2.1.B [5 points | Quantile/Equal-frequency Binning]
+- Sub-standard 2.1.B.1 [1 point | Completeness]: Generate 10 decile bins for quality and crashes using `NTILE(10)` (or equivalent qcut) and calculate the mean for each. Use `rank(method='first')` for duplicates to ensure balanced samples (approx. 145-146 records per bin).
+- Sub-standard 2.1.B.2 [4 points | Accuracy]: Provide the binned means, allowing an error of ≤±0.00005: quality bin SLC (Store Listing Conversion) range [0.06914, 0.07050], with the 6th bin=0.070495, higher than the ends; crash bin range [0.06981, 0.07016], with the 1st bin=0.069921, 3rd bin=0.070164, 6th bin=0.069814, showing a non-monotonic trend. Include a calculation snippet (SQL/pandas) for verification.
+- Sub-standard 2.1.B.3 [1 point | Conclusion]: Point out that the relationship of quality/crashes with SLC is "a convex shape in the middle with a drop-off at both ends," suggesting confounding factors from audience structure or exposure strategy.
+#### Path 2.1.C [5 points | 2D Grid/LOESS for Quality × Crashes]
+- Sub-standard 2.1.C.1 [1 point | Completeness]: Use a 5×5 equal-frequency grid (quality_bin, crash_bin ∈ {1..5}) and calculate `avg_slc` and `count`.
+- Sub-standard 2.1.C.2 [4 points | Accuracy]: Key grid cells must match observations with an error ≤±0.00005: `(1,1)=0.0720807 (n=7)`, `(2,3)=0.0697891 (n=44)`, `(3,4)=0.0698565 (n=75)`, `(5,2)=0.0700987 (n=97)`. Explain that the high-quality + low-crash corner is optimal, while low-quality + medium-crash is the worst.
+- Sub-standard 2.1.C.3 [1 point | Conclusion]: Conclude that "conversion is most favorable when quality ≥ 5.0 and crashes ≤ 0.8/thousand; conversion drops sharply when quality < 3.4 or crashes ≥ 2.8/thousand."
+### Standard 2.2: Non-linear Conclusions and Optimization Recommendations (Up to 2 points)
+#### Path 2.2.A [2 points | Thresholds and Strategy]
+- Sub-standard 2.2.A.1 [1 point | Completeness]: Integrate model and binning results to propose a target range: quality 4.5–5.3, crashes 0.2–0.8/thousand. Identify high-risk zones (quality < 3.4 or crashes > 2.8).
+- Sub-standard 2.2.A.2 [1 point | Conclusion]: Recommend prioritizing the reduction of crashes to ≈0.8/thousand or below before pushing quality to cross the 4.5 mark, clarifying the sequence of QA/engineering resource allocation.
+
+## Requirement 3: User Value Decay Model and Market Maturity Strategy (Up to 9 points)
+### Standard 3.1: Market Maturity Tier Definition (Up to 3 points)
+#### Path 3.1.A [3 points | Tiering by Share of Active Devices]
+- Sub-standard 3.1.A.1 [1 point | Completeness]: Calculate `share_active = active_region / active_total` using the same 182-day window. Calculate the long-term average of the daily results.
+- Sub-standard 3.1.A.2 [1 point | Accuracy]: Verify the averages (error ≤±0.0005): Asia=0.386510, Europe=0.344903, North America=0.190861, South America=0.077726. Based on this, classify markets as Mature (Asia/Europe), Growth (North America), and Emerging (South America).
+- Sub-standard 3.1.A.3 [1 point | Conclusion]: Formulate a tiering declaration to be referenced by subsequent models and strategies.
+#### Path 3.1.B [3 points | Net Install / Total Install Index]
+- Sub-standard 3.1.B.1 [1 point | Completeness]: Define `maturity_index = net_device_installs / total_device_installs` and use the 182-day window.
+- Sub-standard 3.1.B.2 [1 point | Accuracy]: The average index for each region is ≈0.77 (Europe=0.7720, Asia=0.7700, North America=0.7678, South America=0.7700), indicating that maturity differences stem from the share of active devices, not this net growth metric.
+- Sub-standard 3.1.B.3 [1 point | Conclusion]: Add an explanation that "mature regions tend towards competition over the existing user base, while growth regions still need to increase volume," as a preliminary assumption for model interpretation.
+### Standard 3.2: User Value Model (Up to 4 points)
+#### Path 3.2.A [4 points | OLS with Lagged Variables]
+- Sub-standard 3.2.A.1 [1 point | Completeness]: Within the 182-day window, build the model `revenue_per_active_device ~ slc_z + quality_z + crash_z + churn_z + update_rate_z + quality_lag7_z + crash_lag7_z`, with a 7-day lag window. Standardization uses the entire sample's mean/std (`slc_std=0.004204`, `update_std=1.173e-04`).
+- Sub-standard 3.2.A.2 [2 points | Accuracy]: The regression `R²=0.00242`. Key coefficients must have an error ≤±2e-05: `coef_update = 3.91e-06`, `coef_quality_lag = 6.62e-05`, `coef_crash_lag = -8.37e-05`. Explain that `churn_z` has limited contribution to the model due to near-zero variance.
+- Sub-standard 3.2.A.3 [1 point | Conclusion]: Point out that "improving quality/stability alone has a limited pull on `revenue_per_active_device`, but lagged crashes still have a significant suppressive effect; updates must be coordinated with quality, otherwise returns are diluted."
+#### Path 3.2.B [4 points | Tiered Slopes/Elasticity]
+- Sub-standard 3.2.B.1 [1 point | Completeness]: Group by market maturity and calculate `slope = cov(x,y)/var(x)` for `region_conv`, `region_quality`, `region_update_rate` against `revenue_per_active_device`.
+- Sub-standard 3.2.B.2 [2 points | Accuracy]: Verify the slopes (error ≤±5e-05): Mature `rev_vs_conv=-0.00353`, `rev_vs_quality=-0.00130`, `rev_vs_update=-1.28510`; Growth `rev_vs_conv=+0.00224`, `rev_vs_quality=+0.000149`, `rev_vs_update=+0.48111`; Emerging `rev_vs_conv=+0.000181`, `rev_vs_quality=-0.000649`, `rev_vs_update=+0.29279`.
+- Sub-standard 3.2.B.3 [1 point | Conclusion]: Conclude that "mature markets require controlling frequency and improving quality (excessive updates have a negative drag), while growth/emerging markets can rely on boosting conversion and increasing frequency to acquire incremental users."
+### Standard 3.3: Scenario Simulation or Strategy Deduction (Up to 2 points)
+#### Path 3.3.A [2 points | Marginal Scenario]
+- Sub-standard 3.3.A.1 [1 point | Completeness]: Set `ΔSLC=+0.002`, `Δquality=+0.2`, `Δupdate_rate=+0.001`, `Δcrashes=-0.2/thousand`, and use the slopes from 3.2.B to deduce the Δ`revenue_per_active_device` for each maturity tier.
+- Sub-standard 3.3.A.2 [1 point | Conclusion]: Output the results: Growth markets Δ`revenue_per_active_device`≈+0.00052, Emerging≈+0.00016, Mature≈-0.00155 (due to the negative update slope). Propose the action item: "mature regions should first control frequency, while growth regions can increase frequency for volume."
+
+## Requirement 4: Interaction Effect of Update Frequency on Active Devices and Rating (Up to 7 points)
+### Standard 4.1: Interaction Modeling or Correlation Analysis (Up to 5 points)
+#### Path 4.1.A [5 points | Regression with Interaction]
+- Sub-standard 4.1.A.1 [1 point | Completeness]: Model `active_devices_last_30_days ~ update_per_1k + rating + update_per_1k×rating + user_installs + device_uninstalls + quality_score`, where `update_per_1k = update_events / active_devices_last_30_days × 1000`.
+- Sub-standard 4.1.A.2 [3 points | Accuracy]: The regression `R²=0.4377`. Key coefficients must have an error ≤±1.5e4: `coef_update_per_1k=248761.40`, `coef_rating=409620.13`, `coef_interaction=-138219.73`. Other control variables (`user_installs=20.76`, `device_uninstalls=17.21`, `quality_score=85.57`) must be listed.
+- Sub-standard 4.1.A.3 [1 point | Conclusion]: Explain that "accelerating updates during high-rating periods significantly reduces active devices (negative interaction term), requiring canary/staged rollouts."
+#### Path 4.1.B [5 points | Correlation and Grouped Slopes]
+- Sub-standard 4.1.B.1 [1 point | Completeness]: Calculate the overall Pearson correlation and group by the median of rating/active devices. Fit `slope = cov(x,y)/var(x)` for each group.
+- Sub-standard 4.1.B.2 [3 points | Accuracy]: Overall correlations: `corr(update_per_1k, active_devices_last_30_days) = -0.3888`, `corr(update_per_1k, rating) = -0.1020`. Slopes for low/high rating groups are `-2.103e5` and `-4.481e5` respectively. Slopes for low/high active device groups on rating are `-0.0454` and `-0.1152` respectively. Error ≤±2% or ±1e4 (depending on units).
+- Sub-standard 4.1.B.3 [1 point | Conclusion]: Point out that "large-scale/high-rating stages are more sensitive to update frequency, and guaranteeing user experience should be prioritized over frequent releases."
+#### Path 4.1.C [5 points | Lag Window/Event Study]
+- Sub-standard 4.1.C.1 [1 point | Completeness]: Construct the lagged relationship between update rate and active devices (lag0/lag3/lag7).
+- Sub-standard 4.1.C.2 [3 points | Accuracy]: Verify correlations: lag0=-0.3888, lag3=+0.0284, lag7=+0.1113 (error ≤±0.01). Explain that the short-term impact is negative, with a gradual recovery in the long term. A supplementary event window SQL/pandas snippet can be provided.
+- Sub-standard 4.1.C.3 [1 point | Conclusion]: Conclude that "major versions require pre-announcements and a cool-down period; markets where the lag7 impact has not fully recovered need an extended canary phase."
+### Standard 4.2: Strategy Differences Based on Maturity/Rating Tiers (Up to 2 points)
+#### Path 4.2.A [2 points | Tiered Comparison]
+- Sub-standard 4.2.A.1 [1 point | Completeness]: Output the average values by maturity: Mature `update_per_1k=2.6652`, `rating=4.0698`; Growth `update_per_1k=2.6861`; Emerging `update_per_1k=2.6530`. Explain the differences in ratings.
+- Sub-standard 4.2.A.2 [1 point | Conclusion]: Propose the action plan: "Mature markets should stick to low-frequency, high-quality updates (≈2.6/thousand threshold), while growth/emerging markets can increase update frequency to fix defects when the rating is <4.0."
+
+## Requirement 5: Differentiated Product Iteration and Market Investment Strategies (Up to 5 points)
+### Standard 5.1: Integrating Data Insights into a Strategic Framework (Up to 3 points)
+#### Path 5.1.A [3 points | Comprehensive Integration]
+- Sub-standard 5.1.A.1 [1 point | Completeness]: Connect the core findings from Requirements 1-4 in the final deliverable (e.g., Europe combination decay, quality×crash inflection point, maturity tiers, update interaction).
+- Sub-standard 5.1.A.2 [1 point | Accuracy]: Strategic recommendations must be directionally aligned with the data (e.g., "Focus on refreshing creatives for iPhone 14 / Galaxy A54 in Europe, increase investment in OnePlus 11 in South America").
+- Sub-standard 5.1.A.3 [1 point | Conclusion]: Establish executable priorities (short-term creative refresh + stability patches, medium-term canary release strategy, long-term subscription/pricing optimization).
+### Standard 5.2: Actionable Roadmap and KPIs (Up to 2 points)
+#### Path 5.2.A [2 points | KPIs + Experiment Design]
+- Sub-standard 5.2.A.1 [1 point | Completeness]: List key KPIs: `pair_eff`, `region_conv`, `device_eff`, `quality_score`, `crash_rate_per_1k`, `rolling_total_average_rating`, `revenue_per_active_device`, `update_per_1k`. Design A/B or canary experiment trigger conditions.
+- Sub-standard 5.2.A.2 [1 point | Conclusion]: Define monitoring thresholds (e.g., resume ad spending in Europe only after the combination SLC increases by ≥1pp, pause high-frequency updates if the rating drops below 4.0), forming a "monitor→respond→review" closed loop.
