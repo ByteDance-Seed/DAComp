@@ -44,7 +44,7 @@
 
 
 ## 📰 News 
-- **2025-12-03**: 🔥 We release the [DAComp dataset](https://huggingface.co/DAComp) and the [paper](https://arxiv.org/abs/2512.04324).
+- **2025-12-08**: 🔥 We release the [DAComp dataset](https://huggingface.co/DAComp) and the [paper](https://arxiv.org/abs/2512.04324).
 
 
 ## 👋 Overview
@@ -113,7 +113,7 @@ We thank the [OpenHands](https://github.com/OpenHands/OpenHands) team for their 
 # ✍️ Citation
 If you find our work helpful, please cite as
 ```
-@misc{lei2025dacompbenchmarkingdataagents,
+@misc{lei2025dacomp,
       title={DAComp: Benchmarking Data Agents across the Full Data Intelligence Lifecycle}, 
       author={Fangyu Lei and Jinxiang Meng and Yiming Huang and Junjie Zhao and Yitong Zhang and Jianwen Luo and Xin Zou and Ruiyi Yang and Wenbo Shi and Yan Gao and Shizhu He and Zuo Wang and Qian Liu and Yang Wang and Ke Wang and Jun Zhao and Kang Liu},
       year={2025},
