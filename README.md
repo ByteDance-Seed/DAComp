@@ -1,18 +1,16 @@
 <div align="center">
-  <h1 align="center" style="margin-top: 0;">
+  <h1 align="center">
     <img src="assets/DAComp-logo.png" width="230" alt="DAComp Logo" />
     <br>
     Benchmarking Data Agents across the Full Data Intelligence Lifecycle
   </h1>
-
-  <p style="margin-top: 10px; margin-bottom: 0;">
+  <p>
     &nbsp;&nbsp;🌐 <a href="https://da-comp.github.io/">Website</a>&nbsp;&nbsp;|&nbsp;&nbsp;
     📑 <a href="https://arxiv.org/abs/2512.04324">Paper</a>&nbsp;&nbsp;|&nbsp;&nbsp;
     🤗 <a href="https://huggingface.co/DAComp">Dataset</a>&nbsp;&nbsp;|&nbsp;&nbsp;
     🐥 <a href="">Twitter</a>&nbsp;&nbsp;
   </p>
 </div>
-
 
 ## 📰 News 
 - **2025-12-08**: 🔥 We release the [DAComp dataset](https://huggingface.co/DAComp) and the [paper](https://arxiv.org/abs/2512.04324).
