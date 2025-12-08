@@ -1,10 +1,11 @@
 <div align="center">
-  <h1 align="center">
+  <h1 align="center" style="margin-top: 0;">
     <img src="assets/DAComp-logo.png" width="230" alt="DAComp Logo" />
     <br>
     Benchmarking Data Agents across the Full Data Intelligence Lifecycle
   </h1>
-  <p>
+
+  <p style="margin-top: 10px; margin-bottom: 0;">
     &nbsp;&nbsp;🌐 <a href="https://da-comp.github.io/">Website</a>&nbsp;&nbsp;|&nbsp;&nbsp;
     📑 <a href="https://arxiv.org/abs/2512.04324">Paper</a>&nbsp;&nbsp;|&nbsp;&nbsp;
     🤗 <a href="https://huggingface.co/DAComp">Dataset</a>&nbsp;&nbsp;|&nbsp;&nbsp;
