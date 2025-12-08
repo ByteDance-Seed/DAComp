@@ -1,33 +1,3 @@
-<!-- <div align="center">
-  <h1>
-    <img src="assets/DAComp-logo.png" width="600" style="vertical-align: middle;" alt="DAComp Logo"/> 
-    Benchmarking Data Agents across the Full Data Intelligence Lifecycle
-  </h1>
-
-  <p>
-    &nbsp&nbsp🌐<a href="https://da-comp.github.io/">Website</a>&nbsp&nbsp | 
-    &nbsp&nbsp📑<a href="https://arxiv.org/abs/2512.xxxxx">Paper</a>&nbsp&nbsp | 
-    &nbsp&nbsp🤗<a href="https://huggingface.co/DAComp">Dataset</a>&nbsp&nbsp | 
-    &nbsp&nbsp🐥<a href="https://arxiv.org/abs/2512.xxxxx">Twitter</a>&nbsp&nbsp | 
-    &nbsp&nbsp🎮<a href="xxxxxxxxxxx">Demo</a>&nbsp&nbsp |
-  </p>
-</div> -->
-
-<!-- <div style="text-align: center;">
-  <h1 style="display: inline-block; margin: 0;">
-    <img src="assets/DAComp-logo.png" width="230" style="vertical-align: middle;" alt="DAComp Logo" />
-    <br>
-    Benchmarking Data Agents across the Full Data Intelligence Lifecycle
-  </h1>
-
-  <p style="margin-top: 10px; margin-bottom: 0;">
-    &nbsp;&nbsp;🌐<a href="https://da-comp.github.io/">Website</a>&nbsp;&nbsp; | 
-    &nbsp;&nbsp;📑<a href="https://arxiv.org/abs/2512.04324">Paper</a>&nbsp;&nbsp; | 
-    &nbsp;&nbsp;🤗<a href="https://huggingface.co/DAComp">Dataset</a>&nbsp;&nbsp; | 
-    &nbsp;&nbsp;🐥<a href="">Twitter</a>&nbsp;&nbsp; | 
-  </p>
-</div> -->
-
 <div align="center">
   <h1 align="center">
     <img src="assets/DAComp-logo.png" width="230" alt="DAComp Logo" />
@@ -123,3 +93,23 @@ If you find our work helpful, please cite as
       url={https://arxiv.org/abs/2512.04324}, 
 }
 ```
+
+
+## 🌱 About [ByteDance Seed Team](https://team.doubao.com/)
+
+![seed logo](https://github.com/user-attachments/assets/c42e675e-497c-4508-8bb9-093ad4d1f216)
+
+Founded in 2023, ByteDance Seed Team is dedicated to crafting the industry's most advanced AI foundation models. The team aspires to become a world-class research team and make significant contributions to the advancement of science and society.
+
+You can get to know us better through the following channels👇
+<p align="center">
+  <br>
+  <a href="https://team.doubao.com/">
+    <img src="https://img.shields.io/badge/Website-%231e37ff?style=for-the-badge&logo=bytedance&logoColor=white"></a>
+  <a href="https://github.com/user-attachments/assets/93481cda-a7f3-47f3-b333-fe6b3da86b78">
+    <img src="https://img.shields.io/badge/WeChat-07C160?style=for-the-badge&logo=wechat&logoColor=white"></a>
+ <a href="https://www.xiaohongshu.com/user/profile/668e7e15000000000303157d?xsec_token=ABl2-aqekpytY6A8TuxjrwnZskU-6BsMRE_ufQQaSAvjc%3D&xsec_source=pc_search">
+    <img src="https://img.shields.io/badge/Xiaohongshu-%23FF2442?style=for-the-badge&logo=xiaohongshu&logoColor=white"></a>
+  <a href="https://www.zhihu.com/org/dou-bao-da-mo-xing-tuan-dui/">
+    <img src="https://img.shields.io/badge/zhihu-%230084FF?style=for-the-badge&logo=zhihu&logoColor=white"></a>
+</p>
