@@ -22,7 +22,7 @@
 DAComp offers a research-grade benchmark spanning full data intelligence workflows: repository-level data engineering (DAComp-DE), open-ended data analysis (DAComp-DA), a Chinese-localized split (DAComp-zh), and accompanying baseline agents with evaluation suites curated in this repository.
 
 <div align="center">
-  <img src="assets/dacomp.png" width="600" alt="DAComp_Main_Figure">
+  <img src="assets/dacomp.png" width="800" alt="DAComp_Main_Figure">
 </div>
 
 ## 🔍 Installation
