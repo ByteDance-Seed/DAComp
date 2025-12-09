@@ -1,6 +1,6 @@
 # DE Agent Quickstart 🚀
 
-This repository includes various runners for Data Engineering (DE) and Data Analysis (DA) tasks located in `evaluation/benchmarks/dacomp/scripts`. These runners serve as wrappers for Python entry points within `evaluation/benchmarks/dacomp/` and require a model configuration in the `config.toml` file.
+This repository includes various runners for Data Engineering (DE) and Data Analysis (DA) tasks located in [evaluation/benchmarks/dacomp/scripts](evaluation/benchmarks/dacomp/scripts). These runners serve as wrappers for Python entry points within [evaluation/benchmarks/dacomp/](evaluation/benchmarks/dacomp/) and require a model configuration in the [config.toml](config.toml) file.
 
 ## 1. Configure Your Model in `config.toml` 📝
 
@@ -28,9 +28,25 @@ Then reference this key (e.g., `llm.gpt-5-2025-08-07-eval`) using the `-l` / `--
 
 ## 2. Data Layout 📂
 
-* **DE (impl/evol)**: `evaluation/benchmarks/dacomp/data/dacomp_de` (en) and `dacomp_de_zh` (zh)
-* **DA (analysis)**: `evaluation/benchmarks/dacomp/data/dacomp_da` (en) and `dacomp_da_zh` (zh)
-* **DE-arch (modeling_spec)**: `evaluation/benchmarks/dacomp/data/dacomp_de` + `dacomp_de_zh`
+* **DE (arch/impl/evol)**: [evaluation/benchmarks/dacomp/data/dacomp_de](evaluation/benchmarks/dacomp/data/dacomp_de) (en) and [dacomp_de_zh](evaluation/benchmarks/dacomp/data/dacomp_de_zh) (zh)
+
+```
+dacomp_de/
+  ├── dacomp-de-arch-001/
+  ├── …
+  ├── dacomp-de-evol-001/
+  ├── …
+  └── dacomp-de-impl-001/
+```
+
+* **DA (analysis)**: [evaluation/benchmarks/dacomp/data/dacomp_da](evaluation/benchmarks/dacomp/data/dacomp_da) (en) and [dacomp_da_zh](evaluation/benchmarks/dacomp/data/dacomp_da_zh) (zh)
+
+```
+dacomp_da/
+  ├── dacomp-001/dacomp-001.sqlite
+  ├── …
+  └── dacomp-da.jsonl
+```
 
 ## 3. Scripts Overview 🔧 (Run from the Repository Root)
 
