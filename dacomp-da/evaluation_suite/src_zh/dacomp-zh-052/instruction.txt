@@ -1,1 +1,0 @@
-注意到一些团队的项目健康度评分很高但实际完成率偏低，需要从 asana__team_efficiency_metrics 表中分析collaboration_efficiency_score和resource_optimization_score均达到8分以上、但完成率低于70%的团队。深入挖掘这些团队在项目规模分布、成员 工作负荷、任务复杂度等方面的特征，找出健康度评分与实际执行表现不匹配的深层原因，并提出针对性的团队管理优化建议。

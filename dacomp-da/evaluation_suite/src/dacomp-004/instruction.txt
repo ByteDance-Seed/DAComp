@@ -1,1 +1,0 @@
-For each month, determine which product has the highest Sales Amount and provide its corresponding Product Code. Separately analyze how these products perform across different months, and explore the relationship between their repurchase rate and Sales Amount.

@@ -1,1 +1,0 @@
-Analyze the sales trends from 2015 to 2018 for the three categories—Office Supplies, Technology, and Furniture—identify the fastest-growing product category each year, and, combined with regional sales data, assess performance differences among Regional Managers across regions.

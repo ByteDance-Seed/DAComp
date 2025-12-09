@@ -1,2 +1,0 @@
-Below are our bank’s collected credit and operating data for small, micro, and medium enterprises. Using existing Credit Ratings, revenue capacity, profit stability, and upstream/downstream dependency, perform a quantitative analysis of the credit risk of enterprises with credit histories.
-Assume our bank’s annual total credit is RMB 100 million. Incorporating churn rates, design an allocation plan for credit limits and interest rates, and explain in detail the rules by which the limits and rates vary with risk levels.

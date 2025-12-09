@@ -1,1 +1,0 @@
-Analyze the marketing characteristics of user groups across different age segments (churn risk, share rate, feedback rating), and design differentiated product and marketing campaign recommendation strategies.

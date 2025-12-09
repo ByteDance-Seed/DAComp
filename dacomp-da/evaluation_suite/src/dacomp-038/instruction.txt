@@ -1,1 +1,0 @@
-Starting from July 5, we gray-released a new version of strategies such as Search Strategy and Guess You Like strategy. Analyze the performance of the new strategy version and determine which can proceed to full rollout.

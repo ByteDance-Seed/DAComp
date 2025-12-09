@@ -1,1 +1,0 @@
-I am studying China’s economic development and water use and have obtained the relevant data. Based on the dataset I provide, please analyze, from China’s overall data, how the overall relationship between the share of Industrial Water Consumption and the level of economic development looks. Does this relationship differ when broken down by different provinces and municipalities?

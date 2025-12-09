@@ -1,1 +1,0 @@
-高投资优先级应用的资本效率问题CFO关注com.dev.photoeditor应用：过去12个月投入了$2M research budget，但overall_performance_score从85分下降到72分。请分析该应用在不同geographical regions的performance divergence，特别是在revenue超过$7的top markets与revenue低于$3的markets之间的具体差异。

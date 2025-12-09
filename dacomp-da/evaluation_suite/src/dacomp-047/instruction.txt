@@ -1,1 +1,0 @@
-To adjust replenishment decisions, based on the interrelationships between vegetable categories and single-item sales volumes and their seasonal characteristics, please recommend three fruit-and-vegetable combinations for replenishment in July 2023.

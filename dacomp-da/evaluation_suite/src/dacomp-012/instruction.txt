@@ -1,1 +1,0 @@
-Analyze the trend of diamond price per carat across different carat intervals (e.g., <=0.5 carat, 0.51-1 carat, 1.01-1.5 carats, >1.5 carats). In addition, investigate the extent to which other factors affect diamond prices.

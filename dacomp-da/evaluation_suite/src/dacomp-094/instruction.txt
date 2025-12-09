@@ -1,5 +1,0 @@
-Based on the behavioral data from `klaviyo__campaigns` and `klaviyo__persons`, design an analysis to evaluate the interactive impact of different email delivery timing windows and subject line themes on `open_rate`, `click_rate`, and subsequent active retention (`active_retention_rate_week`, `active_retention_rate_month`).
-
-The analysis should focus on the combined effect of:
-- **Sending Time Windows**, specifically segmented into: ① Weekdays vs. Weekends, ② Morning (0-12h) vs. Afternoon (12-24h), and ③ 3 days before a holiday vs. 3 days after a holiday.
-- **Subject Line Content**, grouped by keywords in the subject: discount-related / new product launch / storytelling.

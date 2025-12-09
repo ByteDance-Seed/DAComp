@@ -1,3 +1,0 @@
-A peculiar phenomenon has been observed recently: some projects have a very short `avg_close_time_days` (less than 15 days), but their `team_stability_percentage` is low (this metric needs to be redefined, as the current data shows it as 100%). Are these projects, characterized by rapid delivery but high turnover, truly healthy?
-
-Please conduct an in-depth analysis of the quality indicators (including indirect metrics like bug rate, rework frequency, and code quality) and long-term sustainability of such projects to explore the true relationship between speed and stability and its impact on long-term project success.

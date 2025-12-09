@@ -1,1 +1,0 @@
-最近注意到一个奇怪现象：某些项目的avg_close_time_days很短（低于15天），但team_stability_percentage却很低（需要重新定义该指标，因为当前数据显 示为100%）。这种快速交付但人员流动大的项目是否真的健康？请深入分析这类项目的quality indicators（包括bug率、返工次数、代码质量等间接指标）和long-term sustainability，探索速度与稳定性之间的真实关系以及对项目长期成功的影响。

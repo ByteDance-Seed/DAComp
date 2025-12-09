@@ -1,9 +1,0 @@
-Using conversation, user profile, and usage event data from the past six months, compare the structural differences in Intercom conversation and product usage behavior among paying customers. The analysis should be sliced by customer segmentation (new_contract/renewal/churn_watch) and account size (seat count, annual contract value).
-
-Calculate the following metrics:
-- Message Response Delay = `first_response_at` − `initiated_at` (in minutes)
-- First Response Bot Ratio = Count of conversations where responder_type = 'bot' ÷ Total conversations
-- Conversation-to-Feature-Usage Conversion Rate = Number of customers with a feature event within 72 hours after a conversation ends ÷ Total customers
-- Weekly/Monthly Retention Rate = Percentage of active customers in the current week/month who remain active in the next week/month (where 'active' is defined as having ≥1 core feature event).
-
-The analysis must unify timezones and exclude outlier conversations (response time/duration > P99 or < P1). The output should be a reproducible metrics dashboard. The conclusion should focus on identifying key operational touchpoints and feature paths that can enhance the long-term activity of high-value customers.

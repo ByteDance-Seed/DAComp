@@ -1,1 +1,0 @@
-Across the full year 2024, do ride bookings exhibit "peaks and troughs" (specific times of day or specific dates with higher booking volumes)? Analyze those periods across dimensions such as cancellation rate and per-kilometer ride cost, and provide operational recommendations for the Uber platform.

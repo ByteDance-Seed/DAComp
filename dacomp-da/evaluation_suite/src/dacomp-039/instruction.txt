@@ -1,1 +1,0 @@
-For levels launched in 2024, compare how Churn Rate and Level Rating change across combinations of Difficulty Level and Level Type. How can we use these patterns to optimize levels?
