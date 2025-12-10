@@ -8,7 +8,7 @@
     &nbsp;&nbsp;🌐 <a href="https://da-comp.github.io/">Website</a>&nbsp;&nbsp;|&nbsp;&nbsp;
     📑 <a href="https://arxiv.org/abs/2512.04324">Paper</a>&nbsp;&nbsp;|&nbsp;&nbsp;
     🤗 <a href="https://huggingface.co/DAComp">Dataset</a>&nbsp;&nbsp;|&nbsp;&nbsp;
-    🐥 <a href="">Twitter</a>&nbsp;&nbsp;
+    🐥 <a href="https://x.com/fangyu_lei/status/1998458208160198714?s=20">Twitter</a>&nbsp;&nbsp;
   </p>
 </div>
 
