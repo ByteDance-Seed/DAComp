@@ -11,7 +11,7 @@ from loguru import logger
 
 from .pipeline import extract_total_score
 
-DEFAULT_INSTANCE_RANGE = range(1, 51)
+DEFAULT_INSTANCE_RANGE = range(1, 101)
 LANGUAGE_CONFIG = {
     "zh": {
         "src": "src_zh",
