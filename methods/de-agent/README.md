@@ -30,6 +30,12 @@ Then reference this key (e.g., `llm.gpt-5-2025-08-07-eval`) using the `-l` / `--
 
 * **DE (arch/impl/evol)**: [evaluation/benchmarks/dacomp/data/dacomp_de](evaluation/benchmarks/dacomp/data/dacomp_de) (en) and [dacomp_de_zh](evaluation/benchmarks/dacomp/data/dacomp_de_zh) (zh)
 
+Please copy the data to the target folder.
+```
+cp -R ../../dacomp-de/tasks/. evaluation/benchmarks/dacomp/data/dacomp_de/
+cp -R ../../dacomp-de/tasks_zh/. evaluation/benchmarks/dacomp/data/dacomp_de_zh/
+```
+
 ```
 dacomp_de/
   ├── dacomp-de-arch-001/
@@ -40,6 +46,12 @@ dacomp_de/
 ```
 
 * **DA (analysis)**: [evaluation/benchmarks/dacomp/data/dacomp_da](evaluation/benchmarks/dacomp/data/dacomp_da) (en) and [dacomp_da_zh](evaluation/benchmarks/dacomp/data/dacomp_da_zh) (zh)
+
+Please copy the data to the target folder.
+```
+cp -R ../../dacomp-da/tasks/. evaluation/benchmarks/dacomp/data/dacomp_da/
+cp -R ../../dacomp-da/tasks_zh/. evaluation/benchmarks/dacomp/data/dacomp_da_zh/
+```
 
 ```
 dacomp_da/
@@ -84,7 +96,32 @@ Examples:
 
 ### DE Multi-Agent (impl only) 🤝
 
-Command:
+1. Download `plan_config.zip` from:
+   [plan_config.zip](https://drive.google.com/file/d/1Wi3MOiReNH9m_jtv81tR8-pzVeBZxq09/view?usp=drive_link)
+
+2. Run the script below to unzip it and move each `build_plan.yaml` into the corresponding task folder:
+
+```bash
+#!/bin/bash
+unzip plan_config.zip -d ./plan
+
+target_base_path="/path/to/target/directory" # evaluation/benchmarks/dacomp/data/dacomp_de 
+
+for task_folder in ./plan/dacomp-de-impl-*; do
+  if [ -f "$task_folder/build_plan.yaml" ]; then
+    task_name=$(basename "$task_folder")
+    dest_folder="$target_base_path/$task_name"
+    mkdir -p "$dest_folder"
+    mv "$task_folder/build_plan.yaml" "$dest_folder/"
+    echo "Moved build_plan.yaml to $dest_folder"
+  else
+    echo "No build_plan.yaml found in $task_folder"
+  fi
+done
+```
+
+
+3. Start:
 
 ```bash
 bash evaluation/benchmarks/dacomp/scripts/run_infer_de_multi_agent_impl.sh \
