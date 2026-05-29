@@ -154,7 +154,8 @@ def _http_completion(
     payload = _prepare_payload_model_tweaks(model_name, payload)
 
     # Match agent behavior: retry with logging
-    for attempt in range(1, 3001):
+    max_retries = 10
+    for attempt in range(1, max_retries + 1):
         try:
             response = requests.post(
                 base_url,
@@ -164,7 +165,7 @@ def _http_completion(
             )
         except requests.RequestException as exc:
             logger.error("Failed to call model {}: {}", model_name, exc)
-            time.sleep(0.2)
+            time.sleep(30)
             continue
 
         try:
