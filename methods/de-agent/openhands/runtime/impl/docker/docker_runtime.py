@@ -1,5 +1,6 @@
 import os
 import platform
+import secrets
 import typing
 from functools import lru_cache
 from typing import Callable
@@ -110,6 +111,16 @@ class DockerRuntime(ActionExecutionClient):
         self.config = config
         self.status_callback = status_callback
 
+        # The action execution server binds to 0.0.0.0 inside the container and
+        # its port is published on the host, so it must authenticate every
+        # request. Use an operator-provided key if present, otherwise generate a
+        # strong random one for this runtime. The same value is injected into the
+        # container environment (as SESSION_API_KEY) and attached to every client
+        # request via the X-Session-API-Key header.
+        self._session_api_key: str = (
+            os.environ.get('SESSION_API_KEY') or secrets.token_urlsafe(32)
+        )
+
         self._host_port = -1
         self._container_port = -1
         self._vscode_port = -1
@@ -156,6 +167,9 @@ class DockerRuntime(ActionExecutionClient):
             git_provider_tokens,
         )
 
+        # Authenticate every request to the action execution server.
+        self.session.headers['X-Session-API-Key'] = self._session_api_key
+
         # Log runtime_extra_deps after base class initialization so self.sid is available
         if self.config.sandbox.runtime_extra_deps:
             self.log(
@@ -166,6 +180,10 @@ class DockerRuntime(ActionExecutionClient):
     @property
     def action_execution_server_url(self) -> str:
         return self.api_url
+
+    @property
+    def session_api_key(self) -> str | None:
+        return self._session_api_key
 
     async def connect(self) -> None:
         self.set_runtime_status(RuntimeStatus.STARTING_RUNTIME)
@@ -445,6 +463,9 @@ class DockerRuntime(ActionExecutionClient):
             {
                 'port': str(self._container_port),
                 'PYTHONUNBUFFERED': '1',
+                # The action execution server requires this to authenticate
+                # requests; without it the server would accept any request.
+                'SESSION_API_KEY': self._session_api_key,
                 # Passing in the ports means nested runtimes do not come up with their own ports!
                 'VSCODE_PORT': str(self._vscode_port),
                 'APP_PORT_1': str(self._app_ports[0]),
@@ -456,6 +477,17 @@ class DockerRuntime(ActionExecutionClient):
             environment['DEBUG'] = 'true'
         # also update with runtime_startup_env_vars
         environment.update(self.config.sandbox.runtime_startup_env_vars)
+
+        # Keep the client credential and the key the server expects in lockstep.
+        # If an operator supplied SESSION_API_KEY via runtime_startup_env_vars,
+        # adopt it as authoritative; otherwise enforce the one chosen in
+        # __init__. Either way the container and the HTTP client must agree, or
+        # every request would 403.
+        self._session_api_key = (
+            environment.get('SESSION_API_KEY') or self._session_api_key
+        )
+        environment['SESSION_API_KEY'] = self._session_api_key
+        self.session.headers['X-Session-API-Key'] = self._session_api_key
 
         self.log('debug', f'Workspace Base: {self.config.workspace_base}')
 

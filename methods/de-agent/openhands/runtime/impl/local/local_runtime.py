@@ -1,6 +1,7 @@
 """This runtime runs the action_execution_server directly on the local machine without Docker."""
 
 import os
+import secrets
 import shutil
 import subprocess
 import sys
@@ -64,6 +65,48 @@ _RUNNING_SERVERS: dict[str, ActionExecutionServerInfo] = {}
 
 # Global list to track warm servers waiting for use
 _WARM_SERVERS: list[ActionExecutionServerInfo] = []
+
+# LocalRuntime binds the action execution server to loopback only. This is the
+# primary defense: the server is never reachable off-host.
+LOCAL_RUNTIME_BIND_HOST = '127.0.0.1'
+_LOOPBACK_HOSTNAMES = {'localhost', '127.0.0.1', '::1', ''}
+
+
+def _bind_host_for_config(config: OpenHandsConfig) -> str:
+    """Choose the interface the local action execution server binds to.
+
+    The client reaches the server via ``sandbox.local_runtime_url``. For the
+    default (``http://localhost``) we bind to loopback so the server is not
+    reachable off-host. If an operator points ``local_runtime_url`` at a
+    non-loopback host (e.g. DIND setups using host.docker.internal), we bind to
+    all interfaces so the client can still connect -- this stays safe because
+    SESSION_API_KEY is always set for the local runtime (see
+    ensure_session_api_key), so every request is authenticated regardless of the
+    bind address.
+    """
+    hostname = (urlparse(config.sandbox.local_runtime_url).hostname or '').lower()
+    if hostname in _LOOPBACK_HOSTNAMES:
+        return LOCAL_RUNTIME_BIND_HOST
+    return '0.0.0.0'
+
+
+def ensure_session_api_key() -> str:
+    """Ensure a SESSION_API_KEY exists in the environment and return it.
+
+    The action execution server authenticates requests against SESSION_API_KEY.
+    When it is unset the server would accept *any* request, so we generate a
+    strong random key once per process and store it in os.environ. Every server
+    subprocess inherits it (they are spawned with os.environ.copy()) and the
+    HTTP client reads the same value, so auth is enforced end-to-end even though
+    the server only listens on loopback. This is idempotent: an operator-supplied
+    key is never overwritten.
+    """
+    key = os.environ.get('SESSION_API_KEY')
+    if not key:
+        key = secrets.token_urlsafe(32)
+        os.environ['SESSION_API_KEY'] = key
+        logger.info('Generated an ephemeral SESSION_API_KEY for the local runtime.')
+    return key
 
 
 def get_user_info() -> tuple[int, str | None]:
@@ -156,6 +199,11 @@ class LocalRuntime(ActionExecutionClient):
         self.config = config
         self._user_id, self._username = get_user_info()
 
+        # Ensure the runtime is authenticated before anything (client header or
+        # server subprocess) reads SESSION_API_KEY. Without this the loopback
+        # server would accept unauthenticated requests.
+        ensure_session_api_key()
+
         logger.warning(
             'Initializing LocalRuntime. WARNING: NO SANDBOX IS USED. '
             'This is an experimental feature, please report issues to https://github.com/All-Hands-AI/OpenHands/issues. '
@@ -207,6 +255,13 @@ class LocalRuntime(ActionExecutionClient):
     @property
     def action_execution_server_url(self) -> str:
         return self.api_url
+
+    @property
+    def session_api_key(self) -> str | None:
+        # Mirrors the X-Session-API-Key header set above. The MCP client builds
+        # its runtime connection from this property, so it must return the same
+        # key the loopback server now enforces (see ensure_session_api_key).
+        return os.getenv('SESSION_API_KEY')
 
     async def connect(self) -> None:
         """Start the action_execution_server on the local machine or connect to an existing one."""
@@ -387,6 +442,9 @@ class LocalRuntime(ActionExecutionClient):
 
     @classmethod
     def setup(cls, config: OpenHandsConfig, headless_mode: bool = False):
+        # Warm servers are spawned here before any instance is constructed, so
+        # make sure the shared SESSION_API_KEY exists first.
+        ensure_session_api_key()
         should_check_dependencies = os.getenv('SKIP_DEPENDENCY_CHECK', '') != '1'
         if should_check_dependencies:
             code_repo_path = os.path.dirname(os.path.dirname(openhands.__file__))
@@ -655,6 +713,7 @@ def _create_server(
         python_executable=sys.executable,
         override_user_id=user_id,
         override_username=username,
+        host=_bind_host_for_config(config),
     )
 
     logger.info(f'Starting server with command: {cmd}')

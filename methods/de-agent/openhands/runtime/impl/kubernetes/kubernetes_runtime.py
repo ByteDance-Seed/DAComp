@@ -1,3 +1,5 @@
+import os
+import secrets
 from functools import lru_cache
 from typing import Callable
 from uuid import UUID
@@ -104,6 +106,13 @@ class KubernetesRuntime(ActionExecutionClient):
         self._runtime_initialized: bool = False
         self.status_callback = status_callback
 
+        # The action execution server authenticates requests with SESSION_API_KEY.
+        # Reuse an operator-provided key if present, otherwise generate a strong
+        # random one. It is injected into the pod env and sent on every request.
+        self._session_api_key: str = (
+            os.environ.get('SESSION_API_KEY') or secrets.token_urlsafe(32)
+        )
+
         # Load and validate Kubernetes configuration
         if self.config.kubernetes is None:
             raise ValueError(
@@ -149,6 +158,13 @@ class KubernetesRuntime(ActionExecutionClient):
             user_id,
             git_provider_tokens,
         )
+
+        # Authenticate every request to the action execution server.
+        self.session.headers['X-Session-API-Key'] = self._session_api_key
+
+    @property
+    def session_api_key(self) -> str | None:
+        return self._session_api_key
 
     @staticmethod
     def _get_svc_name(pod_name: str) -> str:
@@ -463,9 +479,20 @@ class KubernetesRuntime(ActionExecutionClient):
         if self.config.debug or DEBUG:
             environment.append(V1EnvVar(name='DEBUG', value='true'))
 
-        # Add runtime startup env vars
+        # Add runtime startup env vars. If an operator supplied SESSION_API_KEY
+        # here, adopt it as authoritative so the pod and the HTTP client agree.
         for key, value in self.config.sandbox.runtime_startup_env_vars.items():
+            if key == 'SESSION_API_KEY':
+                self._session_api_key = value
+                self.session.headers['X-Session-API-Key'] = self._session_api_key
+                continue
             environment.append(V1EnvVar(name=key, value=value))
+
+        # Authenticate the action execution server: without this the server would
+        # accept any request. Appended last so it is authoritative.
+        environment.append(
+            V1EnvVar(name='SESSION_API_KEY', value=self._session_api_key)
+        )
 
         # Prepare volume mounts if workspace is configured
         volume_mounts = [

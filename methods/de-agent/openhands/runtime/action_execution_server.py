@@ -7,6 +7,7 @@ NOTE: this will be executed inside the docker sandbox.
 import argparse
 import asyncio
 import base64
+import hmac
 import json
 import mimetypes
 import os
@@ -92,7 +93,14 @@ api_key_header = APIKeyHeader(name='X-Session-API-Key', auto_error=False)
 
 
 def verify_api_key(api_key: str = Depends(api_key_header)):
-    if SESSION_API_KEY and api_key != SESSION_API_KEY:
+    # Fail closed: authentication is only skipped when the server is bound to
+    # loopback (see the `--host` handling in __main__, which refuses to expose
+    # the server on a non-loopback interface without SESSION_API_KEY set). If a
+    # key is configured, every request must present a matching one. Using
+    # hmac.compare_digest avoids leaking the key via timing side-channels.
+    if not SESSION_API_KEY:
+        return api_key
+    if not api_key or not hmac.compare_digest(api_key, SESSION_API_KEY):
         raise HTTPException(status_code=403, detail='Invalid API Key')
     return api_key
 
@@ -645,6 +653,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('port', type=int, help='Port to listen on')
+    parser.add_argument(
+        '--host',
+        type=str,
+        default='0.0.0.0',
+        help=(
+            'Network interface to bind to. Binding to a non-loopback address '
+            '(e.g. 0.0.0.0) requires SESSION_API_KEY to be set; otherwise the '
+            'server falls back to 127.0.0.1 to avoid unauthenticated exposure.'
+        ),
+    )
     parser.add_argument('--working-dir', type=str, help='Working directory')
     parser.add_argument('--plugins', type=str, help='Plugins to initialize', nargs='+')
     parser.add_argument(
@@ -1060,4 +1078,19 @@ if __name__ == '__main__':
             return JSONResponse(content=[])
 
     logger.debug(f'Starting action execution API on port {args.port}')
-    run(app, host='0.0.0.0', port=args.port)
+
+    # Defense in depth: never expose an unauthenticated server on a routable
+    # interface. If a non-loopback bind is requested without SESSION_API_KEY,
+    # fall back to loopback so /execute_action cannot be reached without auth.
+    host = args.host
+    _LOOPBACK_HOSTS = {'127.0.0.1', 'localhost', '::1'}
+    if host not in _LOOPBACK_HOSTS and not SESSION_API_KEY:
+        logger.warning(
+            'Refusing to bind action execution server to %s without '
+            'SESSION_API_KEY set; falling back to 127.0.0.1 to prevent '
+            'unauthenticated remote access.',
+            host,
+        )
+        host = '127.0.0.1'
+    logger.info(f'Binding action execution server to {host}:{args.port}')
+    run(app, host=host, port=args.port)

@@ -21,8 +21,16 @@ def get_action_execution_server_startup_command(
     override_username: str | None = None,
     main_module: str = DEFAULT_MAIN_MODULE,
     python_executable: str = 'python',
+    host: str | None = None,
 ) -> list[str]:
     sandbox_config = app_config.sandbox
+
+    # Host args
+    # Only pass --host when a caller explicitly requests a specific bind
+    # address (e.g. LocalRuntime binds to loopback). Container runtimes leave
+    # this unset and rely on the server's default 0.0.0.0 bind, which is safe
+    # because they inject SESSION_API_KEY.
+    host_args = ['--host', host] if host else []
 
     # Plugin args
     plugin_args = []
@@ -50,6 +58,7 @@ def get_action_execution_server_startup_command(
         '-m',
         main_module,
         str(server_port),
+        *host_args,
         '--working-dir',
         app_config.workspace_mount_path_in_sandbox,
         *plugin_args,
