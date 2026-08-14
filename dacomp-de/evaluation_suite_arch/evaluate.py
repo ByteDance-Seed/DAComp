@@ -15,6 +15,7 @@ import re
 
 import openai
 from utils.eval_prompt import eval_prompt, eval_prompt_zh
+from utils.scoring import extract_actual_score
 from utils.config import (
     SUPPORTED_MODELS,
     DEFAULT_RESULTS_DIR,
@@ -278,16 +279,8 @@ class DEDEvaluator:
             return {"parse_error": str(e), "raw_content": response_content}
 
     def extract_actual_score(self, evaluation_result: Dict[str, Any]) -> int:
-        """Extract actual score from evaluation result (retains CN keys)."""
-        if "总得分" in evaluation_result:
-            return evaluation_result["总得分"]
-        elif "parse_error" not in evaluation_result:
-            total_score = 0
-            for value in evaluation_result.values():
-                if isinstance(value, dict) and "总得分" in value:
-                    total_score += value["总得分"]
-            return total_score
-        return 0
+        """Extract actual score from a bilingual judge response."""
+        return extract_actual_score(evaluation_result)
 
     def save_task_result(self, result: Dict[str, Any]) -> str:
         """Save evaluation result for a single task."""

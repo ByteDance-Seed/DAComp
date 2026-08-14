@@ -2,10 +2,10 @@
 from pathlib import Path
 
 # Base paths
-BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_RESULTS_DIR = BASE_DIR / "results"
-DEFAULT_GOLD_EN_JSONL = BASE_DIR / "gold" / "dacomp-arch-gold.jsonl"
-DEFAULT_GOLD_ZH_JSONL = BASE_DIR / "gold" / "dacomp-arch-zh-gold.jsonl"
+SUITE_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_RESULTS_DIR = SUITE_DIR / "results"
+DEFAULT_GOLD_EN_JSONL = SUITE_DIR / "gold" / "dacomp-arch-gold.jsonl"
+DEFAULT_GOLD_ZH_JSONL = SUITE_DIR / "gold" / "dacomp-arch-zh-gold.jsonl"
 
 # API defaults
 DEFAULT_BASE_URL = ""
