@@ -91,14 +91,42 @@ class DEDEvaluator:
         return data
 
     def _select_gold(self, task_name: str, project_path: str):
-        is_zh = task_name.endswith("-zh") or "arch-zh" in str(project_path)
-        gold_map = self.gold_zh_map if is_zh else self.gold_en_map
-        if task_name not in gold_map and not is_zh and f"{task_name}-zh" in self.gold_zh_map:
-            gold_map = self.gold_zh_map
-            is_zh = True
-        if task_name not in gold_map:
-            raise FileNotFoundError(f"Gold question/rubric not found for task {task_name}")
-        return gold_map, is_zh
+        zh_task_name = task_name if task_name.endswith("-zh") else f"{task_name}-zh"
+        project_is_zh = "arch-zh" in str(project_path).lower()
+
+        if task_name.endswith("-zh"):
+            candidates = ((self.gold_zh_map, task_name, True),)
+        elif project_is_zh:
+            candidates = (
+                (self.gold_zh_map, zh_task_name, True),
+                (self.gold_en_map, task_name, False),
+            )
+        else:
+            candidates = (
+                (self.gold_en_map, task_name, False),
+                (self.gold_zh_map, zh_task_name, True),
+            )
+
+        fallback = None
+        for gold_map, gold_task_name, is_zh in candidates:
+            gold = gold_map.get(gold_task_name)
+            if gold is None:
+                continue
+            if fallback is None:
+                fallback = (gold, is_zh)
+            if self._rubric_is_complete(gold["rubric"]):
+                return gold, is_zh
+
+        if fallback is not None:
+            return fallback
+        raise FileNotFoundError(f"Gold question/rubric not found for task {task_name}")
+
+    def _rubric_is_complete(self, rubric_content: str) -> bool:
+        """Return whether a rubric has a denominator and a complete final line."""
+        rubric = rubric_content.rstrip()
+        if not rubric or self.extract_max_score_from_rubric(rubric) <= 0:
+            return False
+        return rubric.endswith((".", "!", "?", "。", "！", "？", ")", "]", "`"))
 
     def _list_tasks_in_dir(self, project_dir: Path) -> List[str]:
         tasks: List[str] = []
@@ -210,28 +238,31 @@ class DEDEvaluator:
         with self.lock:
             logger.info(f"Start evaluating task: {project_path}/{task_name}")
 
-        gold_map, is_zh = self._select_gold(task_name, project_path)
-
-        blueprint_content = self.load_blueprint_from_results(project_path, task_name)
-        question_content = gold_map[task_name]["question"]
-        rubric_content = gold_map[task_name]["rubric"]
-
-        max_score = self.extract_max_score_from_rubric(rubric_content)
-
-        prompt_tpl = eval_prompt_zh if is_zh else eval_prompt
-        formatted_prompt = prompt_tpl.format(
-            user_query=question_content,
-            model_blueprint=blueprint_content,
-            rubric=rubric_content
-        )
-
-        with self.lock:
-            logger.info(f"Calling LLM: {project_path}/{task_name}...")
-
+        max_score = 0
         try:
+            gold, is_zh = self._select_gold(task_name, project_path)
+            rubric_content = gold["rubric"]
+            max_score = self.extract_max_score_from_rubric(rubric_content)
+            if not self._rubric_is_complete(rubric_content):
+                raise ValueError(f"Gold rubric is missing or truncated for task {task_name}")
+
+            blueprint_content = self.load_blueprint_from_results(project_path, task_name)
+            if not blueprint_content.strip():
+                raise ValueError(f"Blueprint is empty for task {task_name}")
+
+            prompt_tpl = eval_prompt_zh if is_zh else eval_prompt
+            formatted_prompt = prompt_tpl.format(
+                user_query=gold["question"],
+                model_blueprint=blueprint_content,
+                rubric=rubric_content
+            )
+
+            with self.lock:
+                logger.info(f"Calling LLM: {project_path}/{task_name}...")
+
             response_content = self.call_llm_api(formatted_prompt, self.eval_model)
 
-            if response_content is None:
+            if not response_content or not response_content.strip():
                 raise Exception("LLM call failed")
 
             evaluation_result = self.parse_evaluation_result(response_content)
